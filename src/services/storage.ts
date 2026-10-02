@@ -1,0 +1,1401 @@
+import {
+  Product,
+  Sale,
+  ParkedCart,
+  CashShift,
+  CustomerCreditAccount,
+  Expense,
+  StockMovement,
+  StaffUser,
+  ActivityLog,
+  StoreSettings,
+  AppNotification
+} from '../types';
+
+const STORAGE_KEYS = {
+  PRODUCTS: 'rahel_pos_products_v1',
+  SALES: 'rahel_pos_sales_v1',
+  PARKED_CARTS: 'rahel_pos_parked_carts_v1',
+  SHIFTS: 'rahel_pos_shifts_v1',
+  CREDIT_ACCOUNTS: 'rahel_pos_credit_accounts_v1',
+  EXPENSES: 'rahel_pos_expenses_v1',
+  STOCK_MOVEMENTS: 'rahel_pos_stock_movements_v1',
+  STAFF: 'rahel_pos_staff_v1',
+  ACTIVE_USER: 'rahel_pos_active_user_v1',
+  LOGS: 'rahel_pos_logs_v1',
+  SETTINGS: 'rahel_pos_settings_v1',
+  NOTIFICATIONS: 'rahel_pos_notifications_v1',
+  LAST_SYNC: 'rahel_pos_last_sync_v1'
+};
+
+const DEFAULT_SETTINGS: StoreSettings = {
+  storeName: "Rahel Stationary",
+  tagline: "Stationery, Fine Papers & Commercial Printing",
+  address: "Suite 104, Commerce Plaza, Retail District",
+  phone: "+1 (555) 382-9011",
+  taxNumber: "TAX-2026-ST-8819",
+  taxRatePercent: 8.5,
+  currencySymbol: "ETB",
+  receiptHeader: "Thank you for shopping at Rahel Stationary!\nSpecialist Print & Office Supplies",
+  receiptFooter: "Goods once sold can be exchanged within 7 days with valid receipt.\nNo cash refunds on custom printing services.",
+  lowStockThresholdDefault: 10,
+  allowNegativeStock: false,
+  themeMode: 'dark',
+  enableFirestoreSync: false,
+  firestoreConfig: {
+    projectId: "rahel-pos-app",
+    databaseId: "(default)",
+    experimentalForceLongPolling: true
+  }
+};
+
+const SEED_STAFF: StaffUser[] = [
+  {
+    id: 'user_1',
+    name: 'Rahel Tadesse',
+    email: 'rahel@rahelstationary.com',
+    role: 'admin',
+    pin: '1234',
+    approved: true,
+    lastActive: new Date().toISOString()
+  },
+  {
+    id: 'user_2',
+    name: 'Solomon K.',
+    email: 'solomon@rahelstationary.com',
+    role: 'manager',
+    pin: '4321',
+    approved: true,
+    lastActive: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 'user_3',
+    name: 'Bethlehem M.',
+    email: 'betty@rahelstationary.com',
+    role: 'cashier',
+    pin: '1111',
+    approved: true,
+    lastActive: new Date().toISOString()
+  },
+  {
+    id: 'user_4',
+    name: 'Daniel W. (New Hire)',
+    email: 'daniel.w@rahelstationary.com',
+    role: 'cashier',
+    pin: '9999',
+    approved: false, // For pending staff approval alert banner
+    lastActive: new Date(Date.now() - 86400000).toISOString()
+  }
+];
+
+const SEED_PRODUCTS: Product[] = [
+  {
+    id: 'prod_1',
+    name: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+    sku: 'PPR-A4-80G',
+    barcode: '890123456001',
+    category: 'Paper & Notebooks',
+    costPrice: 4.20,
+    retailPrice: 7.50,
+    stock: 64,
+    minThreshold: 15,
+    unit: 'ream',
+    description: 'High opacity ultra-bright paper for laser and inkjet high-speed printing.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_2',
+    name: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+    sku: 'PEN-PIL-G2B',
+    barcode: '890123456002',
+    category: 'Writing & Pens',
+    costPrice: 1.10,
+    retailPrice: 2.25,
+    stock: 82,
+    minThreshold: 20,
+    unit: 'pcs',
+    description: 'Smooth writing quick-drying archival black gel ink.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_3',
+    name: 'Pilot G2 0.7mm Retractable Gel Pen (Blue)',
+    sku: 'PEN-PIL-G2BL',
+    barcode: '890123456003',
+    category: 'Writing & Pens',
+    costPrice: 1.10,
+    retailPrice: 2.25,
+    stock: 5, // Low stock warning!
+    minThreshold: 15,
+    unit: 'pcs',
+    description: 'Smooth writing quick-drying archival blue gel ink.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_4',
+    name: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
+    sku: 'NBK-MOL-A5D',
+    barcode: '890123456004',
+    category: 'Paper & Notebooks',
+    costPrice: 13.50,
+    retailPrice: 24.00,
+    stock: 18,
+    minThreshold: 8,
+    unit: 'pcs',
+    description: 'FSC-certified ivory acid-free paper with ribbon bookmark and back pocket.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_5',
+    name: 'Thermal Receipt Paper Roll 80x80mm (Box of 50)',
+    sku: 'POS-ROL-8080',
+    barcode: '890123456005',
+    category: 'Printing & Copying',
+    costPrice: 32.00,
+    retailPrice: 52.00,
+    stock: 12,
+    minThreshold: 6,
+    unit: 'box',
+    description: 'BPA-free high sensitivity thermal paper for POS receipt printers.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_6',
+    name: 'Glossy Photo Paper A4 (230gsm, 50 Sheets)',
+    sku: 'PPR-GLS-A450',
+    barcode: '890123456006',
+    category: 'Printing & Copying',
+    costPrice: 6.80,
+    retailPrice: 12.50,
+    stock: 24,
+    minThreshold: 10,
+    unit: 'pack',
+    description: 'High-gloss cast-coated instant-dry waterproof photo paper.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_7',
+    name: 'Color Laser Printing Service (A4 Single Page)',
+    sku: 'SRV-CLR-A4',
+    barcode: '890123456007',
+    category: 'Printing & Copying',
+    costPrice: 0.12,
+    retailPrice: 0.65,
+    stock: 9999, // Service
+    minThreshold: 0,
+    unit: 'page',
+    description: 'Heavy toner crisp commercial high-resolution color laser printout.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_8',
+    name: 'Document Binding Spiral Comb (Up to 100pgs)',
+    sku: 'SRV-BND-SPR',
+    barcode: '890123456008',
+    category: 'Binding & Lamination',
+    costPrice: 0.85,
+    retailPrice: 3.50,
+    stock: 140,
+    minThreshold: 25,
+    unit: 'book',
+    description: 'Clear PVC front cover, black leatherette back, plastic spiral binding.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_9',
+    name: 'Matte Lamination Pouches A4 (125 Micron, 100 pcs)',
+    sku: 'LAM-MTE-A4',
+    barcode: '890123456009',
+    category: 'Binding & Lamination',
+    costPrice: 11.20,
+    retailPrice: 19.95,
+    stock: 4, // Low stock warning!
+    minThreshold: 10,
+    unit: 'pack',
+    description: 'Anti-glare thermal lamination pouches for ID, menu, and signage protection.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_10',
+    name: 'Staedtler Mars Lumograph Art Pencil Set (12 Tins)',
+    sku: 'ART-STD-LUM',
+    barcode: '890123456010',
+    category: 'Art & Craft',
+    costPrice: 10.40,
+    retailPrice: 18.50,
+    stock: 16,
+    minThreshold: 5,
+    unit: 'tin',
+    description: 'Graded graphite pencils 6B to 4H for sketching, drafting, and illustration.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_11',
+    name: 'Heavy Duty Stapler (100 Sheets Capacity)',
+    sku: 'DSK-STP-HD100',
+    barcode: '890123456011',
+    category: 'Desk & Office',
+    costPrice: 16.50,
+    retailPrice: 29.00,
+    stock: 9,
+    minThreshold: 5,
+    unit: 'pcs',
+    description: 'Metal body with calibrated adjustable paper guide and anti-jam mechanism.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_12',
+    name: 'Custom Self-Inking Rubber Stamp (40x40mm)',
+    sku: 'STP-SLF-4040',
+    barcode: '890123456012',
+    category: 'Custom Stamps & Signs',
+    costPrice: 8.50,
+    retailPrice: 22.00,
+    stock: 45,
+    minThreshold: 10,
+    unit: 'pcs',
+    description: 'Precision laser-engraved polymer stamp pad with refillable black ink.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_13',
+    name: 'Kraft Padded Bubble Envelopes #2 (Pack of 25)',
+    sku: 'PKG-ENV-KRF2',
+    barcode: '890123456013',
+    category: 'Packaging & Envelopes',
+    costPrice: 7.20,
+    retailPrice: 14.50,
+    stock: 35,
+    minThreshold: 12,
+    unit: 'pack',
+    description: 'Self-seal tamper-evident tear strip with air cushion bubble lining.',
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'prod_14',
+    name: 'Architectural Tracing Paper Roll (90gsm, 20m)',
+    sku: 'PPR-TRC-90G',
+    barcode: '890123456014',
+    category: 'Paper & Notebooks',
+    costPrice: 9.80,
+    retailPrice: 18.00,
+    stock: 2, // Low stock warning!
+    minThreshold: 6,
+    unit: 'roll',
+    description: 'High transparency translucent parchment for CAD overlays and manual sketching.',
+    updatedAt: new Date().toISOString()
+  }
+];
+
+const SEED_SHIFT: CashShift = {
+  id: 'shift_101',
+  shiftNumber: 101,
+  cashierId: 'user_1',
+  cashierName: 'Rahel Tadesse',
+  openedAt: new Date(Date.now() - 14400000).toISOString(),
+  openingFloat: 150.00,
+  expectedCash: 312.50,
+  cashDrops: [
+    {
+      id: 'drop_1',
+      amount: 100.00,
+      reason: 'Safe deposit mid-day transfer',
+      timestamp: new Date(Date.now() - 7200000).toISOString()
+    }
+  ],
+  status: 'open',
+  notes: 'Morning shift commenced with ETB 150.00 float change.'
+};
+
+const SEED_CREDIT_ACCOUNTS: CustomerCreditAccount[] = [
+  {
+    id: 'cred_1',
+    customerName: 'Apex Architects & Planners Ltd',
+    phone: '+1 (555) 912-4401',
+    email: 'accounts@apexarchitects.com',
+    creditLimit: 1200.00,
+    currentBalance: 345.50,
+    dueDate: '2026-10-15',
+    createdAt: '2026-08-01T09:00:00.000Z',
+    lastPaymentDate: '2026-09-20T14:30:00.000Z',
+    notes: 'Monthly corporate blueprint printing and drafting supply contract.',
+    transactions: [
+      {
+        id: 'tx_c1',
+        saleId: 'REC-2026-8812',
+        date: '2026-09-28T11:20:00.000Z',
+        type: 'charge',
+        amount: 215.50,
+        note: 'Plotter bond rolls and custom blueprints',
+        receivedBy: 'Rahel Tadesse'
+      },
+      {
+        id: 'tx_c2',
+        saleId: 'REC-2026-8835',
+        date: '2026-10-01T15:10:00.000Z',
+        type: 'charge',
+        amount: 130.00,
+        note: 'Spiral comb presentation booklets',
+        receivedBy: 'Bethlehem M.'
+      }
+    ]
+  },
+  {
+    id: 'cred_2',
+    customerName: 'Sunrise Academy Private School',
+    phone: '+1 (555) 774-1290',
+    email: 'bursar@sunriseacademy.edu',
+    creditLimit: 800.00,
+    currentBalance: 184.00,
+    dueDate: '2026-10-10',
+    createdAt: '2026-07-15T08:30:00.000Z',
+    lastPaymentDate: '2026-09-15T10:00:00.000Z',
+    notes: 'Exam papers and end-of-term student report booklet printing.',
+    transactions: [
+      {
+        id: 'tx_c3',
+        saleId: 'REC-2026-8809',
+        date: '2026-09-26T16:45:00.000Z',
+        type: 'charge',
+        amount: 184.00,
+        note: 'Double A paper 20 reams + staple supplies',
+        receivedBy: 'Solomon K.'
+      }
+    ]
+  }
+];
+
+const SEED_EXPENSES: Expense[] = [
+  {
+    id: 'exp_1',
+    date: new Date(Date.now() - 48000000).toISOString(),
+    category: 'Printing Toner',
+    amount: 88.00,
+    paidVia: 'Cash Register',
+    description: 'Black toner replenishment for Xerox C8030 laser copier',
+    recordedBy: 'Rahel Tadesse',
+    receiptReference: 'SUP-TN-9921'
+  },
+  {
+    id: 'exp_2',
+    date: new Date(Date.now() - 172800000).toISOString(),
+    category: 'Packaging Supplies',
+    amount: 45.00,
+    paidVia: 'Petty Cash',
+    description: 'Fragile stamp tape and brown kraft wrapping paper',
+    recordedBy: 'Solomon K.',
+    receiptReference: 'PKG-7712'
+  }
+];
+
+const SEED_LOGS: ActivityLog[] = [
+  {
+    id: 'log_1',
+    timestamp: new Date(Date.now() - 14400000).toISOString(),
+    action: 'REGISTER_OPEN',
+    category: 'shift',
+    performedBy: 'Rahel Tadesse',
+    details: 'Shift #101 opened with float amount $150.00'
+  },
+  {
+    id: 'log_2',
+    timestamp: new Date(Date.now() - 12000000).toISOString(),
+    action: 'PRICE_UPDATE',
+    category: 'inventory',
+    performedBy: 'Rahel Tadesse',
+    details: 'Updated retail price of Pilot G2 Black from $2.10 to $2.25'
+  },
+  {
+    id: 'log_3',
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    action: 'CASH_DROP',
+    category: 'shift',
+    performedBy: 'Rahel Tadesse',
+    details: 'Cash drop of $100.00 transferred to back-office drop safe.'
+  }
+];
+
+const SEED_SALES: Sale[] = [
+  {
+    id: 'sale_1',
+    receiptNumber: 'REC-2026-8840',
+    timestamp: new Date(Date.now() - 10800000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Tadesse',
+    shiftId: 'shift_101',
+    items: [
+      {
+        productId: 'prod_1',
+        productName: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+        sku: 'PPR-A4-80G',
+        barcode: '890123456001',
+        unitPrice: 7.50,
+        costPrice: 4.20,
+        quantity: 2,
+        total: 15.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_2',
+        productName: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+        sku: 'PEN-PIL-G2B',
+        barcode: '890123456002',
+        unitPrice: 2.25,
+        costPrice: 1.10,
+        quantity: 3,
+        total: 6.75,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 21.75,
+    taxAmount: 1.85,
+    taxPercent: 8.5,
+    discountAmount: 0,
+    total: 23.60,
+    payments: [
+      {
+        method: 'cash',
+        amount: 23.60
+      }
+    ],
+    status: 'completed',
+    customerName: 'Walk-in Client'
+  },
+  {
+    id: 'sale_2',
+    receiptNumber: 'REC-2026-8841',
+    timestamp: new Date(Date.now() - 5400000).toISOString(),
+    cashierId: 'user_3',
+    cashierName: 'Bethlehem M.',
+    shiftId: 'shift_101',
+    items: [
+      {
+        productId: 'prod_4',
+        productName: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
+        sku: 'NBK-MOL-A5D',
+        barcode: '890123456004',
+        unitPrice: 24.00,
+        costPrice: 13.50,
+        quantity: 1,
+        total: 24.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_10',
+        productName: 'Staedtler Mars Lumograph Art Pencil Set (12 Tins)',
+        sku: 'ART-STD-LUM',
+        barcode: '890123456010',
+        unitPrice: 18.50,
+        costPrice: 10.40,
+        quantity: 1,
+        total: 18.50,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 42.50,
+    taxAmount: 3.61,
+    taxPercent: 8.5,
+    discountAmount: 2.11, // 5% promotional discount
+    total: 44.00,
+    payments: [
+      {
+        method: 'card',
+        amount: 44.00,
+        reference: 'AUTH-VISA-9941'
+      }
+    ],
+    status: 'completed',
+    customerName: 'Sara Alem'
+  }
+];
+
+class StorageService {
+  private listeners: Set<() => void> = new Set();
+
+  constructor() {
+    this.initSeeds();
+  }
+
+  public subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  private notify() {
+    this.listeners.forEach(cb => {
+      try {
+        cb();
+      } catch (err) {
+        console.error('Storage notify error', err);
+      }
+    });
+  }
+
+  private initSeeds() {
+    if (typeof window === 'undefined') return;
+
+    if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.STAFF)) {
+      localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_USER)) {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(SEED_SALES));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) {
+      localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([SEED_SHIFT]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) {
+      localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(SEED_CREDIT_ACCOUNTS));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SEED_EXPENSES));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
+      localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(SEED_LOGS));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.PARKED_CARTS)) {
+      localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.STOCK_MOVEMENTS)) {
+      localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify([]));
+    }
+    if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
+      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
+    }
+  }
+
+  private get<T>(key: string, fallback: T): T {
+    try {
+      const data = localStorage.getItem(key);
+      return data ? JSON.parse(data) : fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  private set<T>(key: string, value: T): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+      this.notify();
+    } catch (e) {
+      console.error(`Failed to store key ${key}`, e);
+    }
+  }
+
+  // Settings
+  public getSettings(): StoreSettings {
+    const s = this.get<StoreSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    if (!s.currencySymbol || s.currencySymbol === '$') {
+      s.currencySymbol = 'ETB';
+      this.set(STORAGE_KEYS.SETTINGS, s);
+    }
+    return s;
+  }
+
+  public saveSettings(settings: StoreSettings): void {
+    this.set(STORAGE_KEYS.SETTINGS, settings);
+    this.logActivity('SETTINGS_UPDATE', 'security', `Store settings updated by active staff.`);
+  }
+
+  // Active Staff & Authentication
+  public getStaff(): StaffUser[] {
+    return this.get<StaffUser[]>(STORAGE_KEYS.STAFF, SEED_STAFF);
+  }
+
+  public getActiveUser(): StaffUser {
+    return this.get<StaffUser>(STORAGE_KEYS.ACTIVE_USER, SEED_STAFF[0]);
+  }
+
+  public setActiveUser(user: StaffUser): void {
+    this.set(STORAGE_KEYS.ACTIVE_USER, user);
+    this.logActivity('USER_LOGIN', 'staff', `${user.name} logged in as ${user.role}.`);
+  }
+
+  public saveStaffMember(user: StaffUser): void {
+    const list = this.getStaff();
+    const idx = list.findIndex(u => u.id === user.id);
+    if (idx >= 0) {
+      list[idx] = user;
+    } else {
+      list.push(user);
+    }
+    this.set(STORAGE_KEYS.STAFF, list);
+    this.logActivity('STAFF_UPDATE', 'staff', `Updated staff record for ${user.name}`);
+  }
+
+  public deleteStaffMember(userId: string): void {
+    const list = this.getStaff().filter(u => u.id !== userId);
+    this.set(STORAGE_KEYS.STAFF, list);
+    this.logActivity('STAFF_DELETE', 'staff', `Deleted staff member ID ${userId}`);
+  }
+
+  public approveStaffMember(userId: string): void {
+    const list = this.getStaff();
+    const user = list.find(u => u.id === userId);
+    if (user) {
+      user.approved = true;
+      this.set(STORAGE_KEYS.STAFF, list);
+      this.logActivity('STAFF_APPROVED', 'staff', `Approved account login access for ${user.name}`);
+    }
+  }
+
+  // Products & Inventory
+  public getProducts(): Product[] {
+    return this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+  }
+
+  public saveProduct(product: Product): void {
+    const list = this.getProducts();
+    const idx = list.findIndex(p => p.id === product.id);
+    const isNew = idx < 0;
+    if (isNew) {
+      list.unshift(product);
+      this.logStockMovement({
+        id: 'mov_' + Date.now(),
+        productId: product.id,
+        productName: product.name,
+        sku: product.sku,
+        timestamp: new Date().toISOString(),
+        type: 'IN',
+        quantityChange: product.stock,
+        previousStock: 0,
+        newStock: product.stock,
+        reason: 'Initial catalog addition',
+        performedBy: this.getActiveUser().name
+      });
+      this.logActivity('PRODUCT_CREATED', 'inventory', `Added product ${product.name} (SKU: ${product.sku})`);
+    } else {
+      const prev = list[idx];
+      const stockDiff = product.stock - prev.stock;
+      if (stockDiff !== 0) {
+        this.logStockMovement({
+          id: 'mov_' + Date.now(),
+          productId: product.id,
+          productName: product.name,
+          sku: product.sku,
+          timestamp: new Date().toISOString(),
+          type: stockDiff > 0 ? 'IN' : 'AUDIT',
+          quantityChange: stockDiff,
+          previousStock: prev.stock,
+          newStock: product.stock,
+          reason: 'Manual catalog stock update',
+          performedBy: this.getActiveUser().name
+        });
+      }
+      list[idx] = product;
+      this.logActivity('PRODUCT_UPDATED', 'inventory', `Updated product ${product.name}`);
+    }
+    this.set(STORAGE_KEYS.PRODUCTS, list);
+  }
+
+  public saveProductsBulk(
+    items: Product[],
+    options: {
+      onDuplicate: 'update' | 'overwrite_stock' | 'skip' | 'generate_new';
+    } = { onDuplicate: 'update' }
+  ): { added: number; updated: number; skipped: number } {
+    const list = [...this.getProducts()];
+    let added = 0;
+    let updated = 0;
+    let skipped = 0;
+    const now = new Date().toISOString();
+    const activeUserName = this.getActiveUser()?.name || 'Store Staff';
+
+    items.forEach((item, index) => {
+      // Find matching item by SKU or Barcode or ID
+      const existingIndex = list.findIndex(
+        p =>
+          (p.sku && item.sku && p.sku.trim().toLowerCase() === item.sku.trim().toLowerCase()) ||
+          (p.barcode && item.barcode && p.barcode.trim() === item.barcode.trim()) ||
+          p.id === item.id
+      );
+
+      if (existingIndex >= 0) {
+        if (options.onDuplicate === 'skip') {
+          skipped++;
+          return;
+        } else if (options.onDuplicate === 'generate_new') {
+          // generate new SKU and Barcode
+          const newSku = this.generateSku(item.category, item.name);
+          const newBarcode = this.generateBarcodeNumber();
+          const newItem: Product = {
+            ...item,
+            id: 'prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6),
+            sku: newSku,
+            barcode: newBarcode,
+            updatedAt: now
+          };
+          list.unshift(newItem);
+          added++;
+          if (newItem.stock > 0) {
+            this.logStockMovement({
+              id: 'mov_' + Date.now() + '_' + index,
+              productId: newItem.id,
+              productName: newItem.name,
+              sku: newItem.sku,
+              timestamp: now,
+              type: 'IN',
+              quantityChange: newItem.stock,
+              previousStock: 0,
+              newStock: newItem.stock,
+              reason: 'Bulk inventory import (auto-generated unique SKU)',
+              performedBy: activeUserName
+            });
+          }
+        } else if (options.onDuplicate === 'overwrite_stock') {
+          // Overwrite stock count with imported quantity
+          const existing = list[existingIndex];
+          const stockDiff = item.stock - existing.stock;
+          list[existingIndex] = {
+            ...existing,
+            name: item.name || existing.name,
+            category: item.category || existing.category,
+            costPrice: item.costPrice > 0 ? item.costPrice : existing.costPrice,
+            retailPrice: item.retailPrice > 0 ? item.retailPrice : existing.retailPrice,
+            minThreshold: item.minThreshold > 0 ? item.minThreshold : existing.minThreshold,
+            unit: item.unit || existing.unit,
+            description: item.description || existing.description,
+            stock: item.stock,
+            updatedAt: now
+          };
+          updated++;
+
+          if (stockDiff !== 0) {
+            this.logStockMovement({
+              id: 'mov_' + Date.now() + '_' + index,
+              productId: existing.id,
+              productName: existing.name,
+              sku: existing.sku,
+              timestamp: now,
+              type: stockDiff > 0 ? 'IN' : 'AUDIT',
+              quantityChange: stockDiff,
+              previousStock: existing.stock,
+              newStock: item.stock,
+              reason: 'Bulk inventory import (stock count overwrite)',
+              performedBy: activeUserName
+            });
+          }
+        } else {
+          // 'update': replenish stock and update details
+          const existing = list[existingIndex];
+          const stockToAdd = item.stock || 0;
+          const newStock = existing.stock + stockToAdd;
+          
+          list[existingIndex] = {
+            ...existing,
+            name: item.name || existing.name,
+            category: item.category || existing.category,
+            costPrice: item.costPrice > 0 ? item.costPrice : existing.costPrice,
+            retailPrice: item.retailPrice > 0 ? item.retailPrice : existing.retailPrice,
+            minThreshold: item.minThreshold > 0 ? item.minThreshold : existing.minThreshold,
+            unit: item.unit || existing.unit,
+            description: item.description || existing.description,
+            stock: newStock,
+            updatedAt: now
+          };
+          updated++;
+
+          if (stockToAdd !== 0) {
+            this.logStockMovement({
+              id: 'mov_' + Date.now() + '_' + index,
+              productId: existing.id,
+              productName: existing.name,
+              sku: existing.sku,
+              timestamp: now,
+              type: 'IN',
+              quantityChange: stockToAdd,
+              previousStock: existing.stock,
+              newStock: newStock,
+              reason: 'Bulk inventory import (stock replenishment)',
+              performedBy: activeUserName
+            });
+          }
+        }
+      } else {
+        // Brand new product
+        const newItem: Product = {
+          ...item,
+          id: item.id || ('prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6)),
+          updatedAt: now
+        };
+        list.unshift(newItem);
+        added++;
+
+        if (newItem.stock > 0) {
+          this.logStockMovement({
+            id: 'mov_' + Date.now() + '_' + index,
+            productId: newItem.id,
+            productName: newItem.name,
+            sku: newItem.sku,
+            timestamp: now,
+            type: 'IN',
+            quantityChange: newItem.stock,
+            previousStock: 0,
+            newStock: newItem.stock,
+            reason: 'Bulk inventory initial addition',
+            performedBy: activeUserName
+          });
+        }
+      }
+    });
+
+    this.set(STORAGE_KEYS.PRODUCTS, list);
+    this.logActivity(
+      'BULK_IMPORT',
+      'inventory',
+      `Bulk imported products: ${added} added, ${updated} updated, ${skipped} skipped.`
+    );
+
+    return { added, updated, skipped };
+  }
+
+  public deleteProduct(id: string): void {
+    const list = this.getProducts();
+    const prod = list.find(p => p.id === id);
+    if (prod) {
+      const filtered = list.filter(p => p.id !== id);
+      this.set(STORAGE_KEYS.PRODUCTS, filtered);
+      this.logActivity('PRODUCT_DELETED', 'inventory', `Removed product ${prod.name} (SKU: ${prod.sku})`);
+    }
+  }
+
+  public adjustStock(productId: string, quantityChange: number, type: 'IN' | 'OUT' | 'AUDIT' | 'RETURN' | 'DAMAGE', reason: string): void {
+    const list = this.getProducts();
+    const prod = list.find(p => p.id === productId);
+    if (prod) {
+      const prev = prod.stock;
+      prod.stock = Math.max(0, prod.stock + quantityChange);
+      prod.updatedAt = new Date().toISOString();
+      this.set(STORAGE_KEYS.PRODUCTS, list);
+
+      this.logStockMovement({
+        id: 'mov_' + Date.now(),
+        productId: prod.id,
+        productName: prod.name,
+        sku: prod.sku,
+        timestamp: new Date().toISOString(),
+        type,
+        quantityChange,
+        previousStock: prev,
+        newStock: prod.stock,
+        reason,
+        performedBy: this.getActiveUser().name
+      });
+
+      this.logActivity('STOCK_ADJUSTMENT', 'inventory', `${prod.name}: ${quantityChange > 0 ? '+' : ''}${quantityChange} (${reason})`);
+    }
+  }
+
+  // Stock movements
+  public getStockMovements(): StockMovement[] {
+    return this.get<StockMovement[]>(STORAGE_KEYS.STOCK_MOVEMENTS, []);
+  }
+
+  private logStockMovement(movement: StockMovement): void {
+    const list = this.getStockMovements();
+    list.unshift(movement);
+    // keep latest 300 movements
+    if (list.length > 300) list.pop();
+    this.set(STORAGE_KEYS.STOCK_MOVEMENTS, list);
+  }
+
+  // Sales & Receipts
+  public getSales(): Sale[] {
+    return this.get<Sale[]>(STORAGE_KEYS.SALES, SEED_SALES);
+  }
+
+  public completeSale(sale: Sale): void {
+    const sales = this.getSales();
+    sales.unshift(sale);
+    this.set(STORAGE_KEYS.SALES, sales);
+
+    // Deduct stock for each item sold
+    sale.items.forEach(item => {
+      this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in receipt #${sale.receiptNumber}`);
+    });
+
+    // Update active shift cash if cash was received
+    const activeShift = this.getActiveShift();
+    if (activeShift && activeShift.status === 'open') {
+      const cashPortion = sale.payments
+        .filter(p => p.method === 'cash')
+        .reduce((sum, p) => sum + p.amount, 0);
+      if (cashPortion > 0) {
+        activeShift.expectedCash = Number((activeShift.expectedCash + cashPortion).toFixed(2));
+        this.saveShift(activeShift);
+      }
+    }
+
+    // Handle store credit charges
+    const creditPortion = sale.payments.filter(p => p.method === 'store_credit');
+    if (creditPortion.length > 0 && sale.customerName) {
+      creditPortion.forEach(payment => {
+        this.chargeStoreCredit(sale.customerName!, payment.amount, sale.receiptNumber);
+      });
+    }
+
+    this.logActivity('SALE_COMPLETED', 'sale', `Completed sale #${sale.receiptNumber} totaling ETB ${sale.total.toFixed(2)} (${sale.items.length} items)`);
+  }
+
+  public refundSale(saleId: string, reason: string): void {
+    const sales = this.getSales();
+    const sale = sales.find(s => s.id === saleId);
+    if (sale && sale.status !== 'refunded') {
+      sale.status = 'refunded';
+      sale.notes = (sale.notes ? sale.notes + '\n' : '') + `Refunded on ${new Date().toLocaleDateString()}: ${reason}`;
+      this.set(STORAGE_KEYS.SALES, sales);
+
+      // Return items to inventory
+      sale.items.forEach(item => {
+        this.adjustStock(item.productId, item.quantity, 'RETURN', `Refund on receipt #${sale.receiptNumber} (${reason})`);
+      });
+
+      this.logActivity('SALE_REFUNDED', 'sale', `Refunded sale #${sale.receiptNumber} (ETB ${sale.total.toFixed(2)}) - ${reason}`);
+    }
+  }
+
+  // Parked / Held Carts
+  public getParkedCarts(): ParkedCart[] {
+    return this.get<ParkedCart[]>(STORAGE_KEYS.PARKED_CARTS, []);
+  }
+
+  public parkCart(cart: ParkedCart): void {
+    const carts = this.getParkedCarts();
+    carts.unshift(cart);
+    this.set(STORAGE_KEYS.PARKED_CARTS, carts);
+    this.logActivity('CART_HELD', 'sale', `Held cart for customer '${cart.customerName || 'Walk-in'}' (${cart.items.length} items)`);
+  }
+
+  public removeParkedCart(id: string): void {
+    const carts = this.getParkedCarts().filter(c => c.id !== id);
+    this.set(STORAGE_KEYS.PARKED_CARTS, carts);
+  }
+
+  // Cash Shifts
+  public getShifts(): CashShift[] {
+    return this.get<CashShift[]>(STORAGE_KEYS.SHIFTS, [SEED_SHIFT]);
+  }
+
+  public getActiveShift(): CashShift | null {
+    const shifts = this.getShifts();
+    return shifts.find(s => s.status === 'open') || null;
+  }
+
+  public openShift(openingFloat: number, notes?: string): CashShift {
+    const active = this.getActiveShift();
+    if (active) return active;
+
+    const shifts = this.getShifts();
+    const user = this.getActiveUser();
+    const newShift: CashShift = {
+      id: 'shift_' + Date.now(),
+      shiftNumber: shifts.length + 101,
+      cashierId: user.id,
+      cashierName: user.name,
+      openedAt: new Date().toISOString(),
+      openingFloat,
+      expectedCash: openingFloat,
+      cashDrops: [],
+      status: 'open',
+      notes
+    };
+    shifts.unshift(newShift);
+    this.set(STORAGE_KEYS.SHIFTS, shifts);
+    this.logActivity('SHIFT_OPENED', 'shift', `Opened Shift #${newShift.shiftNumber} with ETB ${openingFloat.toFixed(2)} float`);
+    return newShift;
+  }
+
+  public closeShift(shiftId: string, actualCash: number, notes?: string): CashShift {
+    const shifts = this.getShifts();
+    const shift = shifts.find(s => s.id === shiftId);
+    if (shift) {
+      shift.closedAt = new Date().toISOString();
+      shift.actualCash = actualCash;
+      shift.discrepancy = Number((actualCash - shift.expectedCash).toFixed(2));
+      shift.status = 'closed';
+      if (notes) shift.notes = (shift.notes ? shift.notes + '\n' : '') + notes;
+      this.set(STORAGE_KEYS.SHIFTS, shifts);
+
+      this.logActivity(
+        'SHIFT_CLOSED',
+        'shift',
+        `Closed Shift #${shift.shiftNumber}. Expected: ETB ${shift.expectedCash.toFixed(2)}, Counted: ETB ${actualCash.toFixed(2)}, Diff: ETB ${shift.discrepancy.toFixed(2)}`
+      );
+      return shift;
+    }
+    throw new Error('Shift not found');
+  }
+
+  public addCashDrop(shiftId: string, amount: number, reason: string): void {
+    const shifts = this.getShifts();
+    const shift = shifts.find(s => s.id === shiftId);
+    if (shift && shift.status === 'open') {
+      shift.cashDrops.push({
+        id: 'drop_' + Date.now(),
+        amount,
+        reason,
+        timestamp: new Date().toISOString()
+      });
+      shift.expectedCash = Number((shift.expectedCash - amount).toFixed(2));
+      this.set(STORAGE_KEYS.SHIFTS, shifts);
+      this.logActivity('CASH_DROP', 'shift', `Cash Drop of ETB ${amount.toFixed(2)} from Shift #${shift.shiftNumber} (${reason})`);
+    }
+  }
+
+  public saveShift(shift: CashShift): void {
+    const shifts = this.getShifts();
+    const idx = shifts.findIndex(s => s.id === shift.id);
+    if (idx >= 0) {
+      shifts[idx] = shift;
+      this.set(STORAGE_KEYS.SHIFTS, shifts);
+    }
+  }
+
+  // Credit Accounts
+  public getCreditAccounts(): CustomerCreditAccount[] {
+    return this.get<CustomerCreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, SEED_CREDIT_ACCOUNTS);
+  }
+
+  public saveCreditAccount(account: CustomerCreditAccount): void {
+    const list = this.getCreditAccounts();
+    const idx = list.findIndex(a => a.id === account.id);
+    if (idx >= 0) {
+      list[idx] = account;
+    } else {
+      list.unshift(account);
+    }
+    this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, list);
+    this.logActivity('CREDIT_ACCOUNT_UPDATE', 'sale', `Updated credit account for ${account.customerName}`);
+  }
+
+  public chargeStoreCredit(customerName: string, amount: number, receiptNumber: string): void {
+    const list = this.getCreditAccounts();
+    let account = list.find(a => a.customerName.toLowerCase() === customerName.toLowerCase());
+    if (!account) {
+      account = {
+        id: 'cred_' + Date.now(),
+        customerName,
+        phone: 'Not on file',
+        creditLimit: 500,
+        currentBalance: 0,
+        createdAt: new Date().toISOString(),
+        transactions: []
+      };
+      list.unshift(account);
+    }
+
+    account.currentBalance = Number((account.currentBalance + amount).toFixed(2));
+    account.transactions.unshift({
+      id: 'tx_' + Date.now(),
+      saleId: receiptNumber,
+      date: new Date().toISOString(),
+      type: 'charge',
+      amount,
+      note: `Store purchase receipt #${receiptNumber}`,
+      receivedBy: this.getActiveUser().name
+    });
+    this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, list);
+  }
+
+  public recordCreditPayment(accountId: string, amount: number, note?: string): void {
+    const list = this.getCreditAccounts();
+    const account = list.find(a => a.id === accountId);
+    if (account) {
+      account.currentBalance = Math.max(0, Number((account.currentBalance - amount).toFixed(2)));
+      account.lastPaymentDate = new Date().toISOString();
+      account.transactions.unshift({
+        id: 'tx_pay_' + Date.now(),
+        date: new Date().toISOString(),
+        type: 'payment',
+        amount,
+        note: note || 'Customer debt settlement',
+        receivedBy: this.getActiveUser().name
+      });
+      this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, list);
+
+      // Add to cash register if cashier active
+      const activeShift = this.getActiveShift();
+      if (activeShift && activeShift.status === 'open') {
+        activeShift.expectedCash = Number((activeShift.expectedCash + amount).toFixed(2));
+        this.saveShift(activeShift);
+      }
+
+      this.logActivity('CREDIT_PAYMENT', 'sale', `Received ETB ${amount.toFixed(2)} debt payment from ${account.customerName}`);
+    }
+  }
+
+  // Expenses
+  public getExpenses(): Expense[] {
+    return this.get<Expense[]>(STORAGE_KEYS.EXPENSES, SEED_EXPENSES);
+  }
+
+  public addExpense(expense: Expense): void {
+    const list = this.getExpenses();
+    list.unshift(expense);
+    this.set(STORAGE_KEYS.EXPENSES, list);
+
+    // If paid via cash register, deduct from expected register cash
+    if (expense.paidVia === 'Cash Register') {
+      const shift = this.getActiveShift();
+      if (shift && shift.status === 'open') {
+        shift.expectedCash = Number((shift.expectedCash - expense.amount).toFixed(2));
+        this.saveShift(shift);
+      }
+    }
+
+    this.logActivity('EXPENSE_RECORDED', 'expense', `Recorded expense: ETB ${expense.amount.toFixed(2)} for ${expense.category} (${expense.description})`);
+  }
+
+  public deleteExpense(id: string): void {
+    const list = this.getExpenses().filter(e => e.id !== id);
+    this.set(STORAGE_KEYS.EXPENSES, list);
+  }
+
+  // Activity Logs
+  public getLogs(): ActivityLog[] {
+    return this.get<ActivityLog[]>(STORAGE_KEYS.LOGS, SEED_LOGS);
+  }
+
+  public logActivity(action: string, category: ActivityLog['category'], details: string): void {
+    const logs = this.getLogs();
+    logs.unshift({
+      id: 'log_' + Date.now() + Math.random().toString(36).substring(2, 6),
+      timestamp: new Date().toISOString(),
+      action,
+      category,
+      performedBy: this.getActiveUser()?.name || 'System',
+      details
+    });
+    // keep latest 500
+    if (logs.length > 500) logs.pop();
+    this.set(STORAGE_KEYS.LOGS, logs);
+  }
+
+  // Internal Notifications System
+  public getNotifications(): AppNotification[] {
+    return this.get<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+  }
+
+  public saveNotifications(notifications: AppNotification[]): void {
+    this.set(STORAGE_KEYS.NOTIFICATIONS, notifications);
+  }
+
+  public addNotification(notification: AppNotification): void {
+    const list = this.getNotifications();
+    if (!list.some(n => n.id === notification.id)) {
+      list.unshift(notification);
+      if (list.length > 150) list.pop();
+      this.set(STORAGE_KEYS.NOTIFICATIONS, list);
+    }
+  }
+
+  public markNotificationRead(id: string): void {
+    const list = this.getNotifications();
+    const target = list.find(n => n.id === id);
+    if (target && !target.read) {
+      target.read = true;
+      this.set(STORAGE_KEYS.NOTIFICATIONS, list);
+    }
+  }
+
+  public markAllNotificationsRead(): void {
+    const list = this.getNotifications();
+    let changed = false;
+    list.forEach(n => {
+      if (!n.read) {
+        n.read = true;
+        changed = true;
+      }
+    });
+    if (changed) {
+      this.set(STORAGE_KEYS.NOTIFICATIONS, list);
+    }
+  }
+
+  public removeNotification(id: string): void {
+    const list = this.getNotifications().filter(n => n.id !== id);
+    this.set(STORAGE_KEYS.NOTIFICATIONS, list);
+  }
+
+  public clearNotifications(): void {
+    this.set(STORAGE_KEYS.NOTIFICATIONS, []);
+  }
+
+  public getUnreadNotificationCount(): number {
+    return this.getNotifications().filter(n => !n.read).length;
+  }
+
+  /**
+   * Automated Restock Checker Task / Background Worker:
+   * Scans all inventory products and triggers 'Urgent Restock' alerts
+   * whenever any product quantity reaches or drops below its minimum threshold.
+   */
+  public checkStockThresholds(): { newlyTriggered: AppNotification[]; resolvedCount: number } {
+    const products = this.getProducts();
+    const notifications = this.getNotifications();
+    const newlyTriggered: AppNotification[] = [];
+    let resolvedCount = 0;
+    let listModified = false;
+
+    products.forEach(prod => {
+      const isAtOrBelowThreshold = prod.stock <= prod.minThreshold;
+      const existingAlertIndex = notifications.findIndex(
+        n => n.type === 'restock_alert' && n.productId === prod.id && !n.read
+      );
+
+      if (isAtOrBelowThreshold) {
+        if (existingAlertIndex < 0) {
+          // Brand new restock alert needed
+          const isDepleted = prod.stock <= 0;
+          const newAlert: AppNotification = {
+            id: 'notif_restock_' + prod.id + '_' + Date.now(),
+            title: isDepleted ? `Urgent Restock: ${prod.name}` : `Restock Alert: ${prod.name}`,
+            message: isDepleted
+              ? `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${prod.minThreshold} ${prod.unit}). Immediate replenishment required.`
+              : `Minimum threshold reached! Current stock is ${prod.stock} ${prod.unit} (Safety threshold: ${prod.minThreshold} ${prod.unit}).`,
+            type: 'restock_alert',
+            severity: isDepleted ? 'urgent' : 'warning',
+            timestamp: new Date().toISOString(),
+            read: false,
+            productId: prod.id,
+            productName: prod.name,
+            sku: prod.sku,
+            currentStock: prod.stock,
+            minThreshold: prod.minThreshold,
+            unit: prod.unit,
+            actionUrl: 'inventory'
+          };
+          notifications.unshift(newAlert);
+          newlyTriggered.push(newAlert);
+          listModified = true;
+
+          // Also record in Activity Logs
+          this.logActivity(
+            'RESTOCK_ALERT_TRIGGERED',
+            'inventory',
+            `Urgent Restock alert triggered for ${prod.name} (Stock: ${prod.stock}, Min Threshold: ${prod.minThreshold})`
+          );
+        } else {
+          // Update current stock if stock level changed
+          const existing = notifications[existingAlertIndex];
+          if (existing.currentStock !== prod.stock) {
+            existing.currentStock = prod.stock;
+            existing.timestamp = new Date().toISOString();
+            if (prod.stock <= 0) {
+              existing.severity = 'urgent';
+              existing.title = `Urgent Restock: ${prod.name}`;
+              existing.message = `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${prod.minThreshold} ${prod.unit}).`;
+            }
+            listModified = true;
+          }
+        }
+      } else {
+        // Product was replenished above threshold
+        if (existingAlertIndex >= 0) {
+          notifications[existingAlertIndex].read = true;
+          resolvedCount++;
+          listModified = true;
+        }
+      }
+    });
+
+    if (listModified) {
+      if (notifications.length > 150) notifications.length = 150;
+      this.set(STORAGE_KEYS.NOTIFICATIONS, notifications);
+    }
+
+    return { newlyTriggered, resolvedCount };
+  }
+
+  // Utilities: Barcode & SKU Generator
+  public generateBarcodeNumber(): string {
+    // Generate valid 12-digit UPC/EAN-12 format starting with 890 (stationery/store standard)
+    const randomSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
+    return '89' + randomSuffix.substring(0, 10);
+  }
+
+  public generateSku(category: string, name: string): string {
+    const catMap: Record<string, string> = {
+      'Writing & Pens': 'PEN',
+      'Paper & Notebooks': 'PPR',
+      'Printing & Copying': 'PRN',
+      'Art & Craft': 'ART',
+      'Desk & Office': 'DSK',
+      'Binding & Lamination': 'BND',
+      'Packaging & Envelopes': 'PKG',
+      'Custom Stamps & Signs': 'STP'
+    };
+    const prefix = catMap[category] || 'GEN';
+    const namePart = name
+      .replace(/[^a-zA-Z0-9]/g, '')
+      .toUpperCase()
+      .substring(0, 4);
+    const rand = Math.floor(100 + Math.random() * 900);
+    return `${prefix}-${namePart}-${rand}`;
+  }
+
+  // Export / Backup
+  public exportAllData(): string {
+    const backup = {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      settings: this.getSettings(),
+      products: this.getProducts(),
+      sales: this.getSales(),
+      shifts: this.getShifts(),
+      creditAccounts: this.getCreditAccounts(),
+      expenses: this.getExpenses(),
+      staff: this.getStaff(),
+      logs: this.getLogs()
+    };
+    return JSON.stringify(backup, null, 2);
+  }
+
+  public importData(jsonString: string): boolean {
+    try {
+      const data = JSON.parse(jsonString);
+      if (data.products && Array.isArray(data.products)) {
+        this.set(STORAGE_KEYS.PRODUCTS, data.products);
+      }
+      if (data.sales && Array.isArray(data.sales)) {
+        this.set(STORAGE_KEYS.SALES, data.sales);
+      }
+      if (data.settings) {
+        this.set(STORAGE_KEYS.SETTINGS, data.settings);
+      }
+      if (data.creditAccounts) {
+        this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, data.creditAccounts);
+      }
+      if (data.expenses) {
+        this.set(STORAGE_KEYS.EXPENSES, data.expenses);
+      }
+      if (data.staff) {
+        this.set(STORAGE_KEYS.STAFF, data.staff);
+      }
+      this.logActivity('DATA_RESTORE', 'security', 'Database restored from JSON backup file.');
+      return true;
+    } catch (e) {
+      console.error('Import failed', e);
+      return false;
+    }
+  }
+
+  // Reset to demo factory defaults
+  public resetToFactoryDefaults(): void {
+    localStorage.clear();
+    this.initSeeds();
+    this.notify();
+  }
+}
+
+export const storage = new StorageService();

@@ -1,0 +1,10 @@
+{
+  "name": "Rahel Stationary POS & Inventory",
+  "description": "Production-grade offline-first Point of Sale (POS) and inventory management system for stationery & printing retail stores.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
