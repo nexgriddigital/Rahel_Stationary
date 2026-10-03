@@ -85,8 +85,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const activeUser = storage.getActiveUser();
   const settings = storage.getSettings();
   const products = storage.getProducts();
-  const staffList = storage.getStaff();
-  const pendingStaff = staffList.filter(s => !s.approved);
 
   // Search filtering
   const matchingProducts = searchQuery.trim()
@@ -490,15 +488,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="p-1.5 rounded-xl bg-[#141417] hover:bg-[#d4af37]/10 border border-[#2a261f] text-[#c2baa9] hover:text-[#f5d77f] transition-colors relative"
           >
             <Menu className="w-4 h-4" />
-            {pendingStaff.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#d4af37] animate-pulse" />
-            )}
           </button>
 
           {/* More Menu Organized Dropdown */}
           {isMoreMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/35 p-2 space-y-2 z-50 animate-in fade-in zoom-in-95 duration-100">
-              {/* User Account Card */}
+              {/* Administrator Profile Card */}
               <div className="p-3 rounded-xl bg-[#1a1a20] border border-[#2a261f]">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#f5d77f] to-[#b38728] text-black font-bold text-sm flex items-center justify-center shrink-0">
@@ -507,8 +502,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-xs truncate text-[#f4efe8]">{activeUser.name}</div>
                     <div className="text-[10px] text-[#8c8273] truncate">{activeUser.email}</div>
-                    <div className="text-[10px] font-semibold text-[#f5d77f] capitalize">
-                      Role: {activeUser.role}
+                    <div className="text-[10px] font-semibold text-[#f5d77f] capitalize flex items-center gap-1">
+                      <Shield className="w-3 h-3 text-[#d4af37]" />
+                      <span>Admin Privileges</span>
                     </div>
                   </div>
                 </div>
@@ -518,40 +514,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setIsMoreMenuOpen(false);
                       onOpenPinModal();
                     }}
-                    className="font-semibold text-[#f5d77f] hover:underline"
+                    className="font-semibold text-[#f5d77f] hover:underline flex items-center gap-1"
                   >
-                    Switch Account
+                    <Lock className="w-3 h-3" />
+                    <span>Verify Admin PIN</span>
                   </button>
-                  <button
-                    onClick={() => alert(`Photo avatar edit feature for ${activeUser.name}`)}
-                    className="text-[#8c8273] hover:text-[#f4efe8]"
-                  >
-                    Edit Photo
-                  </button>
+                  <span className="text-[10px] text-[#8c8273]">
+                    Sole Admin
+                  </span>
                 </div>
               </div>
-
-              {/* Prominent Pending Staff Approvals Alert Banner (for Admins) */}
-              {pendingStaff.length > 0 && (
-                <div className="p-2.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f]">
-                  <div className="flex items-center gap-1.5 font-bold text-xs">
-                    <AlertCircle className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                    <span>Pending Staff Approvals ({pendingStaff.length})</span>
-                  </div>
-                  <p className="text-[10px] text-[#c2baa9] mt-0.5 leading-tight">
-                    {pendingStaff[0].name} requested POS cashier PIN access.
-                  </p>
-                  <button
-                    onClick={() => {
-                      storage.approveStaffMember(pendingStaff[0].id);
-                      setIsMoreMenuOpen(false);
-                    }}
-                    className="mt-1.5 w-full py-1 text-[10px] font-bold rounded-lg bg-[#d4af37] text-black transition-colors"
-                  >
-                    Approve Account Now
-                  </button>
-                </div>
-              )}
 
               {/* Cloud Firestore Sync Status & Manual Sync Now */}
               <div className="p-2.5 rounded-xl bg-[#1a1a20] border border-[#2a261f] flex items-center justify-between text-xs">

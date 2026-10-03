@@ -1,257 +1,373 @@
 import React, { useState } from 'react';
-import { StaffUser, Role } from '../types';
+import { StaffUser } from '../types';
 import { storage } from '../services/storage';
-import { Users, Plus, Shield, CheckCircle, Clock, Trash2, KeyRound, X } from 'lucide-react';
+import {
+  Shield,
+  ShieldCheck,
+  KeyRound,
+  CheckCircle2,
+  Lock,
+  UserCheck,
+  ShoppingBag,
+  DollarSign,
+  Package,
+  FileSpreadsheet,
+  Settings,
+  ScrollText,
+  AlertCircle,
+  Save,
+  Check
+} from 'lucide-react';
 
 export const StaffView: React.FC = () => {
-  const [staff, setStaff] = useState<StaffUser[]>(storage.getStaff());
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState<Role>('cashier');
-  const [pin, setPin] = useState('');
+  const [adminUser, setAdminUser] = useState<StaffUser>(storage.getActiveUser());
+  const [isEditingPin, setIsEditingPin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
+  const [newEmail, setNewEmail] = useState(adminUser.email);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const refreshList = () => {
-    setStaff(storage.getStaff());
-  };
-
-  const handleCreate = (e: React.FormEvent) => {
+  const handleUpdateCredentials = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || pin.length !== 4) return;
+    setErrorMsg(null);
 
-    const newStaff: StaffUser = {
-      id: 'user_' + Date.now(),
-      name: name.trim(),
-      email: email.trim() || `${name.toLowerCase().replace(/\s+/g, '.')}@rahelstationary.com`,
-      role,
-      pin,
-      approved: true,
+    let updatedPin = adminUser.pin;
+    if (isEditingPin) {
+      if (newPin.length !== 4 || !/^\d{4}$/.test(newPin)) {
+        setErrorMsg('PIN must be exactly 4 numeric digits.');
+        return;
+      }
+      if (newPin !== confirmPin) {
+        setErrorMsg('PIN confirmation does not match.');
+        return;
+      }
+      updatedPin = newPin;
+    }
+
+    const updatedUser: StaffUser = {
+      ...adminUser,
+      email: newEmail.trim() || 'rahel@rahelstationary.com',
+      pin: updatedPin,
       lastActive: new Date().toISOString()
     };
 
-    storage.saveStaffMember(newStaff);
-    refreshList();
-    setShowAddModal(false);
-    setName('');
-    setEmail('');
-    setPin('');
+    storage.saveStaffMember(updatedUser);
+    setAdminUser(updatedUser);
+    setSaveSuccessMsg('Administrator credentials updated successfully.');
+    setIsEditingPin(false);
+    setNewPin('');
+    setConfirmPin('');
+
+    setTimeout(() => {
+      setSaveSuccessMsg(null);
+    }, 3500);
   };
 
-  const handleApprove = (userId: string) => {
-    storage.approveStaffMember(userId);
-    refreshList();
-  };
-
-  const handleDelete = (userId: string) => {
-    if (confirm('Delete this staff member profile?')) {
-      storage.deleteStaffMember(userId);
-      refreshList();
+  const adminPrivileges = [
+    {
+      title: 'POS Register & Transaction Control',
+      icon: ShoppingBag,
+      description: 'Full authorization to execute checkouts, apply percent/custom price discounts, hold and recall parked carts, process refunds, and accept split payments in ETB.'
+    },
+    {
+      title: 'Cash Drawer & Shift Reconciliation',
+      icon: DollarSign,
+      description: 'Sole authorization to open daily register shifts, set opening float amounts, conduct cash drops to the drop-safe, and audit drawer discrepancy logs.'
+    },
+    {
+      title: 'Inventory Catalog & SKU Control',
+      icon: Package,
+      description: 'Unrestricted master access to create products, bulk import Excel catalog files, generate barcodes, and adjust safety restock thresholds.'
+    },
+    {
+      title: 'Credit Tab & Accounts Receivable',
+      icon: UserCheck,
+      description: 'Exclusive authority to open corporate credit accounts, assign credit limits, record partial or full balance settlements, and print debt statements.'
+    },
+    {
+      title: 'Store Settings & ETB Currency Config',
+      icon: Settings,
+      description: 'Master administrative permission to manage store details, receipt header/footer messages, tax rates, and ETB currency formatting.'
+    },
+    {
+      title: 'System Security & Activity Audit',
+      icon: ScrollText,
+      description: 'Continuous audit oversight of all price updates, shift reconciliations, inventory movements, and system logs.'
     }
-  };
+  ];
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col p-4 sm:p-6 overflow-hidden bg-[#0a0a0c] text-[#f4efe8]">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col p-4 sm:p-6 overflow-y-auto bg-[#0a0a0c] text-[#f4efe8] space-y-6">
       {/* Top Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#26221c]">
         <div>
-          <h2 className="text-xl font-bold text-[#f5d77f]">
-            Staff Members & Role-Based Access Control
-          </h2>
-          <p className="text-xs text-[#998b7a]">
-            Manage cashiers, managers, auditors, 4-digit PINs & account approval workflows.
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#f5d77f]">
+              Administrator Profile & Privileges
+            </h2>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35 flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-[#d4af37]" />
+              Single-User Mode (Sole Admin)
+            </span>
+          </div>
+          <p className="text-xs text-[#a39c90] mt-0.5">
+            Rahel Fira is the sole authorized administrator with full master privileges across all POS functions.
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] hover:from-[#e6ca65] hover:to-[#b88c14] text-black flex items-center gap-1.5 shadow-[0_0_12px_rgba(212,175,55,0.25)] transition-all cursor-pointer"
-        >
-          <Plus className="w-4 h-4 text-black" />
-          <span>Add Staff Member</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-xl bg-[#141417] border border-[#d4af37]/30 text-xs text-[#f5d77f] flex items-center gap-1.5 font-semibold">
+            <Lock className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Admin PIN: {adminUser.pin}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Staff Grid */}
-      <div className="flex-1 mt-4 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {staff.map((user) => (
-          <div
-            key={user.id}
-            className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-3 flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#d4af37] to-[#aa8010] text-black font-bold text-sm flex items-center justify-center shrink-0">
-                    {user.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-[#f4efe8]">
-                      {user.name}
-                    </h3>
-                    <div className="text-[11px] text-[#998b7a]">
-                      {user.email}
-                    </div>
-                  </div>
-                </div>
-
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full capitalize flex items-center gap-1 ${
-                    user.role === 'admin'
-                      ? 'bg-[#d4af37]/20 border border-[#d4af37]/40 text-[#f5d77f]'
-                      : user.role === 'manager'
-                      ? 'bg-amber-900/40 border border-amber-800/40 text-amber-200'
-                      : user.role === 'auditor'
-                      ? 'bg-blue-950/60 border border-blue-800/40 text-blue-200'
-                      : 'bg-white/5 border border-white/10 text-[#c4bbb0]'
-                  }`}
-                >
-                  <Shield className="w-3 h-3 text-[#d4af37]" />
-                  <span>{user.role}</span>
-                </span>
+      {/* Main Grid: Admin Profile Card & Credentials Management */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Administrator Profile Identity */}
+        <div className="p-6 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-5 flex flex-col justify-between hover:border-[#d4af37]/40 transition-colors">
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#f5d77f] via-[#d4af37] to-[#8f6a15] text-black font-extrabold text-2xl flex items-center justify-center shadow-lg shadow-[#d4af37]/20 shrink-0">
+                RF
               </div>
-
-              {/* Status / Approval */}
-              <div className="mt-3 pt-3 border-t border-[#26221c] flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5">
-                  {user.approved ? (
-                    <span className="flex items-center gap-1 text-[#f5d77f] font-semibold text-[11px]">
-                      <CheckCircle className="w-3.5 h-3.5 text-[#d4af37]" />
-                      Approved
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-amber-400 font-bold text-[11px]">
-                      <Clock className="w-3.5 h-3.5" />
-                      Pending Approval
-                    </span>
-                  )}
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-[#f4efe8] truncate">
+                  {adminUser.name}
+                </h3>
+                <div className="text-xs text-[#a39c90] truncate">
+                  {adminUser.email}
                 </div>
-
-                <div className="font-mono text-[11px] text-[#998b7a]">
-                  PIN: ••••
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1">
+                    <Shield className="w-3 h-3 text-[#d4af37]" />
+                    Master Administrator
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-950/70 text-emerald-300 border border-emerald-800/40 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    Authorized
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-2 border-t border-[#26221c] flex items-center justify-between">
-              {!user.approved ? (
-                <button
-                  onClick={() => handleApprove(user.id)}
-                  className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                >
-                  <CheckCircle className="w-3.5 h-3.5" />
-                  <span>Grant PIN Access</span>
-                </button>
-              ) : (
-                <span className="text-[10px] text-[#998b7a]">
-                  Active shift authorization
+            <div className="pt-4 border-t border-[#26221c] space-y-2.5 text-xs">
+              <div className="flex items-center justify-between text-[#a39c90]">
+                <span>System Role:</span>
+                <strong className="text-[#f5d77f] font-mono capitalize">
+                  {adminUser.role} (Unrestricted)
+                </strong>
+              </div>
+              <div className="flex items-center justify-between text-[#a39c90]">
+                <span>Account ID:</span>
+                <span className="font-mono text-[#c4bbb0]">{adminUser.id}</span>
+              </div>
+              <div className="flex items-center justify-between text-[#a39c90]">
+                <span>Multi-User System:</span>
+                <span className="text-amber-300 font-semibold">Disabled (Single Owner)</span>
+              </div>
+              <div className="flex items-center justify-between text-[#a39c90]">
+                <span>Status:</span>
+                <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Active & Logged In
                 </span>
-              )}
-
-              {user.role !== 'admin' && (
-                <button
-                  onClick={() => handleDelete(user.id)}
-                  className="p-1.5 text-[#736657] hover:text-rose-400 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              )}
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Add Staff Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#26221c] bg-[#18181c]">
-              <h3 className="font-semibold text-sm text-[#f4efe8]">Add New Staff Cashier</h3>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#998b7a] hover:text-[#f4efe8] hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          <div className="p-3 rounded-xl bg-[#1a1714] border border-[#d4af37]/30 text-[11px] text-[#c4bbb0] space-y-1">
+            <div className="font-bold text-[#f5d77f] flex items-center gap-1.5">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+              Sole Operator Policy
             </div>
+            <p className="text-[10px] text-[#998b7a] leading-relaxed">
+              No multiple user accounts or secondary cashier logins are enabled. All actions, drawer balances, and fiscal audits are attributed directly to <strong>Rahel Fira</strong>.
+            </p>
+          </div>
+        </div>
 
-            <form onSubmit={handleCreate} className="p-5 space-y-3">
+        {/* Right 2 Columns: Credentials Update & Security Controls */}
+        <div className="lg:col-span-2 p-6 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-[#26221c]">
+            <div className="flex items-center gap-2">
+              <KeyRound className="w-4 h-4 text-[#d4af37]" />
+              <h3 className="font-bold text-sm text-[#f4efe8]">
+                Administrator Security Credentials
+              </h3>
+            </div>
+            <span className="text-xs text-[#a39c90]">
+              Quick POS Lock & Verification
+            </span>
+          </div>
+
+          {/* Feedback Alerts */}
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800/60 text-xs text-rose-300 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {saveSuccessMsg && (
+            <div className="p-3 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/40 text-xs text-[#f5d77f] flex items-center gap-2">
+              <Check className="w-4 h-4 shrink-0 text-[#d4af37]" />
+              <span>{saveSuccessMsg}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleUpdateCredentials} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-[#998b7a] mb-1">
-                  Full Name *
+                <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
+                  Administrator Full Name
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. Samuel Bekele"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-[#1a1714] border border-[#26221c] text-[#f4efe8] placeholder-[#736657] focus:outline-none focus:border-[#d4af37]"
+                  value={adminUser.name}
+                  disabled
+                  className="w-full px-3 py-2 text-xs rounded-xl bg-[#101012] border border-[#26221c] text-[#8c8273] font-semibold cursor-not-allowed"
                 />
+                <span className="text-[10px] text-[#736657] mt-0.5 block">
+                  Fixed to Rahel Fira (Administrator)
+                </span>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#998b7a] mb-1">
-                  Email Address
+                <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
+                  Administrator Email
                 </label>
                 <input
                   type="email"
-                  placeholder="samuel@rahelstationary.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-[#1a1714] border border-[#26221c] text-[#f4efe8] placeholder-[#736657] focus:outline-none focus:border-[#d4af37]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#998b7a] mb-1">
-                  Role Assignment
-                </label>
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as Role)}
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl bg-[#1a1714] border border-[#26221c] text-[#f4efe8] focus:outline-none focus:border-[#d4af37]"
-                >
-                  <option value="cashier">Cashier (Standard Checkout)</option>
-                  <option value="manager">Store Manager (Discounts & Voids)</option>
-                  <option value="auditor">Auditor (View Reports & Stock)</option>
-                  <option value="admin">Administrator (Full Access)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#998b7a] mb-1">
-                  4-Digit Cashier PIN *
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  required
-                  placeholder="e.g. 5566"
-                  value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-3 py-2 text-sm font-mono font-bold tracking-widest text-center rounded-xl bg-[#1a1714] border border-[#26221c] text-[#f5d77f] focus:outline-none focus:border-[#d4af37]"
                 />
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#26221c]">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-3 py-1.5 text-xs text-[#998b7a] hover:bg-white/5 rounded-lg cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] hover:from-[#e6ca65] hover:to-[#b88c14] text-black shadow-xs cursor-pointer"
-                >
-                  Save Staff Member
-                </button>
+            {/* PIN Settings */}
+            <div className="p-4 rounded-xl bg-[#18181c] border border-[#26221c] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-[#f4efe8]">
+                    4-Digit Register PIN
+                  </div>
+                  <div className="text-[11px] text-[#998b7a]">
+                    Used to unlock POS register or verify privileged cash drops.
+                  </div>
+                </div>
+
+                {!isEditingPin ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingPin(true)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#38322a] hover:border-[#d4af37]/40 transition-colors"
+                  >
+                    Change PIN
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPin(false);
+                      setNewPin('');
+                      setConfirmPin('');
+                    }}
+                    className="px-3 py-1.5 text-xs text-[#a39c90] hover:text-[#f4efe8]"
+                  >
+                    Cancel PIN Change
+                  </button>
+                )}
               </div>
-            </form>
-          </div>
+
+              {isEditingPin && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#26221c]">
+                  <div>
+                    <label className="block text-[11px] text-[#a39c90] mb-1">
+                      New 4-Digit PIN
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      value={newPin}
+                      placeholder="e.g. 1234"
+                      onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                      className="w-full px-3 py-2 text-sm font-mono font-bold tracking-widest text-center rounded-xl bg-[#121215] border border-[#d4af37]/50 text-[#f5d77f] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-[#a39c90] mb-1">
+                      Confirm 4-Digit PIN
+                    </label>
+                    <input
+                      type="password"
+                      maxLength={4}
+                      value={confirmPin}
+                      placeholder="Repeat PIN"
+                      onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
+                      className="w-full px-3 py-2 text-sm font-mono font-bold tracking-widest text-center rounded-xl bg-[#121215] border border-[#d4af37]/50 text-[#f5d77f] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black flex items-center gap-1.5 shadow-sm shadow-[#d4af37]/20 transition-all active:scale-95 cursor-pointer"
+              >
+                <Save className="w-3.5 h-3.5 text-black" />
+                <span>Save Administrator Settings</span>
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+
+      {/* Admin Privileges Grid */}
+      <div className="p-6 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4">
+        <div>
+          <h3 className="font-bold text-sm text-[#f4efe8] flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
+            <span>Administrative Capabilities & Access Matrix</span>
+          </h3>
+          <p className="text-xs text-[#a39c90] mt-0.5">
+            Full permissions granted exclusively to Rahel Fira across the application:
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {adminPrivileges.map((item, idx) => {
+            const Icon = item.icon;
+            return (
+              <div
+                key={idx}
+                className="p-4 rounded-xl bg-[#18181c] border border-[#26221c] space-y-2 hover:border-[#d4af37]/40 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-[#d4af37]" />
+                  </div>
+                  <h4 className="font-bold text-xs text-[#f5d77f] leading-snug">
+                    {item.title}
+                  </h4>
+                </div>
+                <p className="text-[11px] text-[#a39c90] leading-relaxed">
+                  {item.description}
+                </p>
+                <div className="pt-1 flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                  <span>Unrestricted Master Privilege</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 };

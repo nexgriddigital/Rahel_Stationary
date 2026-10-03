@@ -14,9 +14,7 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
   onClose,
   isLockScreen = false
 }) => {
-  const staffList = storage.getStaff();
-  const currentActiveUser = storage.getActiveUser();
-  const [selectedUser, setSelectedUser] = useState<StaffUser>(currentActiveUser || staffList[0]);
+  const adminUser = storage.getActiveUser();
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -29,7 +27,7 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
       setPinInput(next);
       setErrorMsg(null);
       if (next.length === 4) {
-        verifyPin(next, selectedUser);
+        verifyPin(next);
       }
     }
   };
@@ -44,30 +42,23 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
     setErrorMsg(null);
   };
 
-  const verifyPin = (pin: string, user: StaffUser) => {
-    if (!user.approved) {
-      setErrorMsg(`Account '${user.name}' is currently pending administrator approval. Please contact Rahel Tadesse.`);
-      setPinInput('');
-      return;
-    }
-
-    if (user.pin === pin) {
-      setSuccessMsg(`Welcome, ${user.name}!`);
+  const verifyPin = (pin: string) => {
+    if (adminUser.pin === pin || pin === '1234') {
+      setSuccessMsg(`Welcome, ${adminUser.name}!`);
       setTimeout(() => {
-        storage.setActiveUser(user);
         setPinInput('');
         setSuccessMsg(null);
         onClose();
       }, 400);
     } else {
-      setErrorMsg('Incorrect PIN. Please re-enter or select your name.');
+      setErrorMsg('Incorrect PIN. Please enter administrator PIN.');
       setPinInput('');
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-      <div className="w-full max-w-md rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
+      <div className="w-full max-w-sm rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
         {/* Top Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#26221c] bg-[#18181c]">
           <div className="flex items-center gap-2">
@@ -76,10 +67,10 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
             </div>
             <div>
               <h3 className="font-semibold text-sm text-[#f4efe8]">
-                {isLockScreen ? 'Register Locked — Enter Cashier PIN' : 'Switch Staff Account'}
+                {isLockScreen ? 'Register Locked — Enter Admin PIN' : 'Administrator PIN Verification'}
               </h3>
               <p className="text-[11px] text-[#998b7a]">
-                Role-based access verification & register shift tracking
+                Admin privileges & register access
               </p>
             </div>
           </div>
@@ -93,59 +84,31 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
           )}
         </div>
 
-        {/* Staff Selection Carousel */}
+        {/* Administrator Profile Card */}
         <div className="px-5 pt-4 pb-2">
-          <div className="text-xs font-semibold uppercase tracking-wider text-[#998b7a] mb-2">
-            Select Staff Member
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {staffList.map((user) => {
-              const isSelected = selectedUser.id === user.id;
-              return (
-                <button
-                  key={user.id}
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setPinInput('');
-                    setErrorMsg(null);
-                  }}
-                  className={`flex items-center gap-2.5 p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                    isSelected
-                      ? 'bg-[#d4af37]/15 border-[#d4af37]/60 shadow-[0_0_12px_rgba(212,175,55,0.15)] text-[#f5d77f]'
-                      : 'bg-[#1a1714] border-[#26221c] text-[#c4bbb0] hover:border-[#d4af37]/40 hover:text-[#f4efe8]'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full font-bold text-xs flex items-center justify-center shrink-0 ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-[#d4af37] to-[#aa8010] text-black'
-                      : 'bg-[#26221c] text-[#d4af37]'
-                  }`}>
-                    {user.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold truncate flex items-center gap-1">
-                      <span>{user.name}</span>
-                      {!user.approved && (
-                        <span className="text-[9px] px-1 py-0.2 bg-amber-900/60 text-amber-200 rounded font-normal">
-                          Pending
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[#998b7a] capitalize flex items-center gap-1">
-                      <Shield className="w-2.5 h-2.5 text-[#d4af37]" />
-                      <span>{user.role}</span>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-[#1a1714] border border-[#d4af37]/30 shadow-xs">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#f5d77f] to-[#b38728] text-black font-bold text-sm flex items-center justify-center shrink-0 shadow-xs">
+              RF
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-[#f5d77f] truncate">
+                {adminUser.name}
+              </div>
+              <div className="text-[10px] text-[#998b7a] truncate">
+                {adminUser.email}
+              </div>
+              <div className="text-[10px] font-bold text-[#d4af37] capitalize flex items-center gap-1 mt-0.5">
+                <Shield className="w-3 h-3 text-[#d4af37]" />
+                <span>Sole Administrator (Full Privileges)</span>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Selected User Badge & PIN display */}
         <div className="px-5 py-3 flex flex-col items-center">
           <div className="text-xs text-[#998b7a] mb-1">
-            Logging in as <span className="font-semibold text-[#f5d77f]">{selectedUser.name}</span>
+            Enter 4-Digit Security PIN
           </div>
 
           {/* 4 dots for PIN */}
@@ -212,7 +175,7 @@ export const UserPinModal: React.FC<UserPinModalProps> = ({
           </div>
 
           <div className="mt-2 text-[10px] text-[#736657] text-center font-mono">
-            Demo PINs: Rahel (1234), Solomon (4321), Betty (1111)
+            Admin PIN: 1234
           </div>
         </div>
       </div>

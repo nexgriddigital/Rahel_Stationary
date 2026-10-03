@@ -62,8 +62,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const parkedCarts = storage.getParkedCarts();
   const creditAccounts = storage.getCreditAccounts();
   const unpaidCreditCount = creditAccounts.filter(a => a.currentBalance > 0).length;
-  const staffMembers = storage.getStaff();
-  const pendingStaffCount = staffMembers.filter(s => !s.approved).length;
 
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string | number; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
@@ -88,10 +86,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
     {
       id: 'staff',
-      label: 'Staff & Roles',
-      icon: Users,
-      badge: pendingStaffCount > 0 ? `+${pendingStaffCount}` : undefined,
-      badgeColor: 'bg-[#d4af37] text-black font-bold'
+      label: 'Administrator',
+      icon: Shield,
+      badge: 'Admin',
+      badgeColor: 'bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40'
     },
     { id: 'logs', label: 'Activity Logs', icon: ScrollText },
     { id: 'settings', label: 'Store Settings', icon: Settings }
@@ -251,7 +249,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* User Switch Card */}
+          {/* Administrator Profile Card */}
           <div className="flex items-center justify-between p-2 rounded-xl bg-[#18181c] border border-[#2a261f]">
             <div
               onClick={onOpenPinModal}
@@ -264,16 +262,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="text-xs font-semibold truncate leading-tight text-[#f4efe8]">
                   {activeUser.name}
                 </div>
-                <div className="text-[10px] text-[#a39c90] capitalize flex items-center gap-1">
+                <div className="text-[10px] text-[#f5d77f] capitalize flex items-center gap-1 font-medium">
                   <Shield className="w-2.5 h-2.5 text-[#d4af37]" />
-                  <span>{activeUser.role}</span>
+                  <span>Admin Privileges</span>
                 </div>
               </div>
             </div>
 
             <button
               onClick={onOpenPinModal}
-              title="Lock Register / Switch Staff PIN"
+              title="Lock Register / Admin PIN"
               className="p-1.5 rounded-lg text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/10 transition-colors"
             >
               <Lock className="w-3.5 h-3.5" />

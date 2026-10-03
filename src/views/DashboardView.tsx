@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { storage } from '../services/storage';
 import { Sale, Product } from '../types';
 import { NavTab } from '../components/Sidebar';
@@ -16,12 +16,18 @@ import {
   Printer,
   BarChart3,
   Flame,
-  PlusCircle
+  PlusCircle,
+  Calendar,
+  Layers
 } from 'lucide-react';
 import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -48,6 +54,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const activeShift = storage.getActiveShift();
   const settings = storage.getSettings();
 
+  const [areaChartMode, setAreaChartMode] = useState<'daily' | 'cumulative'>('daily');
+
   const todayStr = new Date().toDateString();
   const todaySales = sales.filter(
     (s) => s.status !== 'refunded' && new Date(s.timestamp).toDateString() === todayStr
@@ -56,6 +64,174 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
   const lowStockItems = products.filter((p) => p.stock <= p.minThreshold);
   const recentSales = sales.slice(0, 5);
+
+  // 7-day daily sales revenue trend
+  const dailySalesData = useMemo(() => {
+    const days = [];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      const startOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0).getTime();
+      const endOfDay = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999).getTime();
+
+      const dayLabel =
+        i === 0
+          ? 'Today'
+          : i === 1
+          ? 'Yesterday'
+          : d.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+      const fullDateLabel = d.toLocaleDateString(undefined, {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+
+      // Filter non-refunded sales matching this day
+      const daySales = sales.filter((s) => {
+        if (s.status === 'refunded') return false;
+        const saleTime = new Date(s.timestamp).getTime();
+        return saleTime >= startOfDay && saleTime <= endOfDay;
+      });
+
+      const revenue = Number(daySales.reduce((sum, s) => sum + s.total, 0).toFixed(2));
+
+      days.push({
+        dayKey: d.toISOString().split('T')[0],
+        dayLabel,
+        fullDateLabel,
+        revenue,
+        transactionCount: daySales.length,
+        isToday: i === 0
+      });
+    }
+
+    return days;
+  }, [sales]);
+
+  const total7DayRevenue = useMemo(() => {
+    return dailySalesData.reduce((sum, d) => sum + d.revenue, 0);
+  }, [dailySalesData]);
+
+  const total7DayTransactions = useMemo(() => {
+    return dailySalesData.reduce((sum, d) => sum + d.transactionCount, 0);
+  }, [dailySalesData]);
+
+  const averageDailyRevenue = useMemo(() => {
+    return total7DayRevenue / 7;
+  }, [total7DayRevenue]);
+
+  // Month-over-Month Sales Trend Data (Current Month vs Previous Month)
+  const monthlyComparisonData = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonthIdx = now.getMonth(); // 0-indexed
+    const todayDate = now.getDate();
+
+    const prevMonthIdx = currentMonthIdx === 0 ? 11 : currentMonthIdx - 1;
+    const prevYear = currentMonthIdx === 0 ? currentYear - 1 : currentYear;
+
+    const daysInCurrentMonth = new Date(currentYear, currentMonthIdx + 1, 0).getDate();
+    const daysInPrevMonth = new Date(prevYear, prevMonthIdx + 1, 0).getDate();
+    const maxDays = Math.max(daysInCurrentMonth, daysInPrevMonth);
+
+    const currentMonthName = now.toLocaleString(undefined, { month: 'long' });
+    const currentMonthShort = now.toLocaleString(undefined, { month: 'short' });
+    const prevMonthName = new Date(prevYear, prevMonthIdx, 1).toLocaleString(undefined, { month: 'long' });
+    const prevMonthShort = new Date(prevYear, prevMonthIdx, 1).toLocaleString(undefined, { month: 'short' });
+
+    let runningCurrent = 0;
+    let runningPrev = 0;
+
+    const points = [];
+
+    for (let day = 1; day <= maxDays; day++) {
+      // Previous Month sales on this day
+      let prevDaySales = 0;
+      let prevTxCount = 0;
+      if (day <= daysInPrevMonth) {
+        const matchingPrevSales = sales.filter((s) => {
+          if (s.status === 'refunded') return false;
+          const st = new Date(s.timestamp);
+          return (
+            st.getFullYear() === prevYear &&
+            st.getMonth() === prevMonthIdx &&
+            st.getDate() === day
+          );
+        });
+        prevDaySales = Number(matchingPrevSales.reduce((sum, s) => sum + s.total, 0).toFixed(2));
+        prevTxCount = matchingPrevSales.length;
+        runningPrev += prevDaySales;
+      }
+
+      // Current Month sales on this day (recorded up to today)
+      let currentDaySales: number | null = null;
+      let currentTxCount = 0;
+      if (day <= todayDate) {
+        const matchingCurrSales = sales.filter((s) => {
+          if (s.status === 'refunded') return false;
+          const st = new Date(s.timestamp);
+          return (
+            st.getFullYear() === currentYear &&
+            st.getMonth() === currentMonthIdx &&
+            st.getDate() === day
+          );
+        });
+        currentDaySales = Number(matchingCurrSales.reduce((sum, s) => sum + s.total, 0).toFixed(2));
+        currentTxCount = matchingCurrSales.length;
+        runningCurrent += currentDaySales;
+      }
+
+      points.push({
+        dayNumber: day,
+        dayLabel: `Day ${day}`,
+        currentRevenue: currentDaySales,
+        previousRevenue: prevDaySales,
+        cumulativeCurrent: currentDaySales !== null ? Number(runningCurrent.toFixed(2)) : null,
+        cumulativePrevious: Number(runningPrev.toFixed(2)),
+        currentTxCount,
+        prevTxCount,
+        isFuture: day > todayDate,
+        isToday: day === todayDate
+      });
+    }
+
+    return {
+      points,
+      currentMonthName,
+      currentMonthShort,
+      prevMonthName,
+      prevMonthShort,
+      currentYear,
+      prevYear,
+      todayDate,
+      daysInCurrentMonth,
+      daysInPrevMonth
+    };
+  }, [sales]);
+
+  const momStats = useMemo(() => {
+    const today = monthlyComparisonData.todayDate;
+    const currentPoints = monthlyComparisonData.points.filter((p) => p.currentRevenue !== null);
+    const currentMTD = currentPoints.reduce((sum, p) => sum + (p.currentRevenue || 0), 0);
+
+    const prevPointsSamePeriod = monthlyComparisonData.points.filter((p) => p.dayNumber <= today);
+    const prevSamePeriod = prevPointsSamePeriod.reduce((sum, p) => sum + (p.previousRevenue || 0), 0);
+
+    const prevFullTotal = monthlyComparisonData.points.reduce((sum, p) => sum + (p.previousRevenue || 0), 0);
+
+    const growthDiff = currentMTD - prevSamePeriod;
+    const growthPercent = prevSamePeriod > 0 ? (growthDiff / prevSamePeriod) * 100 : 0;
+
+    return {
+      currentMTD: Number(currentMTD.toFixed(2)),
+      prevSamePeriod: Number(prevSamePeriod.toFixed(2)),
+      prevFullTotal: Number(prevFullTotal.toFixed(2)),
+      growthDiff: Number(growthDiff.toFixed(2)),
+      growthPercent: Number(growthPercent.toFixed(1))
+    };
+  }, [monthlyComparisonData]);
 
   // Top 10 items approaching or below their minimum thresholds
   const criticalStockData = useMemo(() => {
@@ -191,6 +367,374 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-[11px] text-[#8c8273]">
             Active stationery items tracked
           </div>
+        </div>
+      </div>
+
+      {/* Recharts Line Chart: Daily Sales Revenue (Last 7 Days) */}
+      <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4 hover:border-[#d4af37]/30 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#26221c]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] flex items-center justify-center shadow-2xs shrink-0">
+              <TrendingUp className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm text-[#f4efe8]">
+                  Daily Sales Revenue
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
+                  Last 7 Days
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#1a1714] text-[#a39c90] border border-[#26221c] font-mono">
+                  7-Day Total: <strong className="text-[#f5d77f]">{settings.currencySymbol} {total7DayRevenue.toFixed(2)}</strong>
+                </span>
+              </div>
+              <p className="text-xs text-[#a39c90] mt-0.5">
+                Plotted total sales revenue across daily retail checkouts over the last 7 days.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-4 text-xs pr-2 border-r border-[#26221c]">
+              <div className="text-right">
+                <div className="text-[10px] text-[#8c8273]">7-Day Volume</div>
+                <div className="font-mono font-bold text-[#f4efe8]">
+                  {total7DayTransactions} receipts
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-[#8c8273]">Daily Average</div>
+                <div className="font-mono font-bold text-[#f5d77f]">
+                  {settings.currencySymbol} {averageDailyRevenue.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => onNavigate('sales')}
+              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#1a1a20] hover:bg-[#22222a] text-[#f5d77f] border border-[#26221c] hover:border-[#d4af37]/40 flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <span>View Ledger</span>
+              <ArrowRight className="w-3.5 h-3.5 text-[#d4af37]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Line Chart Container */}
+        <div className="w-full h-80 pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={dailySalesData}
+              margin={{ top: 15, right: 25, left: 10, bottom: 20 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#26221c"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="dayLabel"
+                stroke="#8c8273"
+                tick={{ fill: '#a39c90', fontSize: 11 }}
+                dy={8}
+              />
+              <YAxis
+                stroke="#8c8273"
+                tick={{ fill: '#a39c90', fontSize: 11 }}
+                tickFormatter={(val) => `${val}`}
+                dx={-5}
+              />
+              <Tooltip
+                cursor={{ stroke: 'rgba(212, 175, 55, 0.3)', strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-[#141417] border border-[#d4af37]/60 p-3 rounded-xl shadow-2xl text-xs space-y-2 min-w-[200px] text-[#f4efe8]">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#26221c]">
+                          <span className="font-bold text-[#f5d77f]">{d.dayLabel}</span>
+                          {d.isToday && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40">
+                              Live Today
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-[#8c8273]">
+                          {d.fullDateLabel}
+                        </div>
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-[#a39c90]">Sales Revenue:</span>
+                          <span className="font-mono font-bold text-sm text-[#f5d77f]">
+                            {settings.currencySymbol} {d.revenue.toFixed(2)}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="text-[#a39c90]">Total Receipts:</span>
+                          <span className="font-mono text-[#c4bbb0]">
+                            {d.transactionCount} {d.transactionCount === 1 ? 'sale' : 'sales'}
+                          </span>
+                        </div>
+                        {d.transactionCount > 0 && (
+                          <div className="flex items-center justify-between text-[10px] text-[#8c8273] pt-0.5">
+                            <span>Average Ticket:</span>
+                            <span className="font-mono text-[#c4bbb0]">
+                              {settings.currencySymbol} {(d.revenue / d.transactionCount).toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                wrapperStyle={{ paddingBottom: 12 }}
+                formatter={(value) => (
+                  <span className="text-xs text-[#c4bbb0]">{value}</span>
+                )}
+              />
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                name={`Daily Sales Revenue (${settings.currencySymbol})`}
+                stroke="#f5d77f"
+                strokeWidth={3}
+                dot={{ fill: '#d4af37', stroke: '#0a0a0c', strokeWidth: 2, r: 5 }}
+                activeDot={{ r: 7, fill: '#f5d77f', stroke: '#ffffff', strokeWidth: 2 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Recharts Area Chart: Monthly Sales Trends (Current vs Previous Month) */}
+      <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4 hover:border-[#d4af37]/30 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#26221c]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#818cf8]/15 border border-[#818cf8]/30 text-[#818cf8] flex items-center justify-center shadow-2xs shrink-0">
+              <Layers className="w-4 h-4 text-[#818cf8]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm text-[#f4efe8]">
+                  Monthly Sales Trend (Area Chart)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
+                  {monthlyComparisonData.currentMonthName} vs {monthlyComparisonData.prevMonthName}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1 ${
+                    momStats.growthDiff >= 0
+                      ? 'bg-emerald-950/70 text-emerald-300 border-emerald-800/50'
+                      : 'bg-rose-950/70 text-rose-300 border-rose-800/50'
+                  }`}
+                >
+                  <span>
+                    MoM {momStats.growthDiff >= 0 ? '+' : ''}
+                    {momStats.growthPercent}%
+                  </span>
+                </span>
+              </div>
+              <p className="text-xs text-[#a39c90] mt-0.5">
+                Visualizing sales trajectory over the current month ({monthlyComparisonData.currentMonthName}) compared to the previous month ({monthlyComparisonData.prevMonthName}).
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* View Mode Toggle: Daily vs Cumulative */}
+            <div className="p-1 rounded-xl bg-[#18181c] border border-[#2a261f] flex items-center gap-1 text-xs">
+              <button
+                type="button"
+                onClick={() => setAreaChartMode('daily')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                  areaChartMode === 'daily'
+                    ? 'bg-[#d4af37] text-black shadow-xs font-bold'
+                    : 'text-[#a39c90] hover:text-[#f4efe8]'
+                }`}
+              >
+                Daily Sales
+              </button>
+              <button
+                type="button"
+                onClick={() => setAreaChartMode('cumulative')}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all cursor-pointer ${
+                  areaChartMode === 'cumulative'
+                    ? 'bg-[#d4af37] text-black shadow-xs font-bold'
+                    : 'text-[#a39c90] hover:text-[#f4efe8]'
+                }`}
+              >
+                Cumulative (MTD)
+              </button>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-3 pl-2 border-l border-[#26221c] text-xs">
+              <div className="text-right">
+                <div className="text-[10px] text-[#8c8273]">
+                  {monthlyComparisonData.currentMonthShort} MTD (Day 1–{monthlyComparisonData.todayDate})
+                </div>
+                <div className="font-mono font-bold text-[#f5d77f]">
+                  {settings.currencySymbol} {momStats.currentMTD.toFixed(2)}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] text-[#8c8273]">
+                  {monthlyComparisonData.prevMonthShort} (Same Days)
+                </div>
+                <div className="font-mono text-[#818cf8] font-bold">
+                  {settings.currencySymbol} {momStats.prevSamePeriod.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Area Chart Container */}
+        <div className="w-full h-80 pt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart
+              data={monthlyComparisonData.points}
+              margin={{ top: 15, right: 25, left: 10, bottom: 20 }}
+            >
+              <defs>
+                {/* Current Month Gold Area Gradient */}
+                <linearGradient id="currentMonthAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f5d77f" stopOpacity={0.45} />
+                  <stop offset="95%" stopColor="#d4af37" stopOpacity={0.0} />
+                </linearGradient>
+                {/* Previous Month Indigo Area Gradient */}
+                <linearGradient id="prevMonthAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#818cf8" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#26221c"
+                vertical={false}
+              />
+              <XAxis
+                dataKey="dayNumber"
+                stroke="#8c8273"
+                tick={{ fill: '#a39c90', fontSize: 11 }}
+                tickFormatter={(d) => `Day ${d}`}
+                dy={8}
+                interval={2}
+              />
+              <YAxis
+                stroke="#8c8273"
+                tick={{ fill: '#a39c90', fontSize: 11 }}
+                tickFormatter={(val) => `${val}`}
+                dx={-5}
+              />
+              <Tooltip
+                cursor={{ stroke: 'rgba(212, 175, 55, 0.3)', strokeWidth: 1.5, strokeDasharray: '4 4' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const d = payload[0].payload;
+                    const isCumulative = areaChartMode === 'cumulative';
+                    const currVal = isCumulative ? d.cumulativeCurrent : d.currentRevenue;
+                    const prevVal = isCumulative ? d.cumulativePrevious : d.previousRevenue;
+                    const hasCurrent = currVal !== null && currVal !== undefined;
+                    const diff = hasCurrent ? currVal - prevVal : null;
+
+                    return (
+                      <div className="bg-[#141417] border border-[#d4af37]/60 p-3 rounded-xl shadow-2xl text-xs space-y-2 min-w-[220px] text-[#f4efe8]">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#26221c]">
+                          <span className="font-bold text-[#f5d77f]">
+                            Day {d.dayNumber} of Month
+                          </span>
+                          <span className="text-[10px] text-[#a39c90]">
+                            {isCumulative ? 'Cumulative Pace' : 'Daily Revenue'}
+                          </span>
+                        </div>
+
+                        {/* Current Month Row */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#f5d77f] font-semibold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#f5d77f]"></span>
+                            {monthlyComparisonData.currentMonthName} {monthlyComparisonData.currentYear}:
+                          </span>
+                          <span className="font-mono font-bold text-[#f5d77f]">
+                            {hasCurrent ? `${settings.currencySymbol} ${currVal.toFixed(2)}` : 'Upcoming'}
+                          </span>
+                        </div>
+
+                        {/* Previous Month Row */}
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-[#818cf8] font-semibold flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#818cf8]"></span>
+                            {monthlyComparisonData.prevMonthName} {monthlyComparisonData.prevYear}:
+                          </span>
+                          <span className="font-mono font-bold text-[#c4bbb0]">
+                            {settings.currencySymbol} {prevVal.toFixed(2)}
+                          </span>
+                        </div>
+
+                        {/* Difference Row if data exists */}
+                        {diff !== null && (
+                          <div className="pt-1.5 border-t border-[#26221c] flex items-center justify-between text-[11px]">
+                            <span className="text-[#a39c90]">Performance Variance:</span>
+                            <span
+                              className={`font-mono font-bold ${
+                                diff >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                              }`}
+                            >
+                              {diff >= 0 ? '+' : ''}
+                              {settings.currencySymbol} {diff.toFixed(2)}
+                            </span>
+                          </div>
+                        )}
+
+                        {d.isToday && (
+                          <div className="pt-1 text-[10px] text-[#f5d77f] font-semibold flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-[#d4af37]" />
+                            <span>Current Day (Live Store Hours)</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Legend
+                verticalAlign="top"
+                align="right"
+                wrapperStyle={{ paddingBottom: 12 }}
+                formatter={(value) => (
+                  <span className="text-xs text-[#c4bbb0]">{value}</span>
+                )}
+              />
+              {/* Previous Month Area: Layered behind current month */}
+              <Area
+                type="monotone"
+                dataKey={areaChartMode === 'daily' ? 'previousRevenue' : 'cumulativePrevious'}
+                name={`${monthlyComparisonData.prevMonthName} ${monthlyComparisonData.prevYear} (Previous Month)`}
+                stroke="#818cf8"
+                strokeWidth={2}
+                strokeDasharray="4 4"
+                fillOpacity={1}
+                fill="url(#prevMonthAreaGradient)"
+              />
+              {/* Current Month Area: Layered in front with gold theme */}
+              <Area
+                type="monotone"
+                dataKey={areaChartMode === 'daily' ? 'currentRevenue' : 'cumulativeCurrent'}
+                name={`${monthlyComparisonData.currentMonthName} ${monthlyComparisonData.currentYear} (Current Month)`}
+                stroke="#f5d77f"
+                strokeWidth={3}
+                fillOpacity={1}
+                fill="url(#currentMonthAreaGradient)"
+                dot={{ fill: '#d4af37', stroke: '#0a0a0c', strokeWidth: 2, r: 3.5 }}
+                activeDot={{ r: 7, fill: '#f5d77f', stroke: '#ffffff', strokeWidth: 2 }}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

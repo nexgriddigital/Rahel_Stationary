@@ -52,39 +52,12 @@ const DEFAULT_SETTINGS: StoreSettings = {
 const SEED_STAFF: StaffUser[] = [
   {
     id: 'user_1',
-    name: 'Rahel Tadesse',
+    name: 'Rahel Fira',
     email: 'rahel@rahelstationary.com',
     role: 'admin',
     pin: '1234',
     approved: true,
     lastActive: new Date().toISOString()
-  },
-  {
-    id: 'user_2',
-    name: 'Solomon K.',
-    email: 'solomon@rahelstationary.com',
-    role: 'manager',
-    pin: '4321',
-    approved: true,
-    lastActive: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'user_3',
-    name: 'Bethlehem M.',
-    email: 'betty@rahelstationary.com',
-    role: 'cashier',
-    pin: '1111',
-    approved: true,
-    lastActive: new Date().toISOString()
-  },
-  {
-    id: 'user_4',
-    name: 'Daniel W. (New Hire)',
-    email: 'daniel.w@rahelstationary.com',
-    role: 'cashier',
-    pin: '9999',
-    approved: false, // For pending staff approval alert banner
-    lastActive: new Date(Date.now() - 86400000).toISOString()
   }
 ];
 
@@ -291,7 +264,7 @@ const SEED_SHIFT: CashShift = {
   id: 'shift_101',
   shiftNumber: 101,
   cashierId: 'user_1',
-  cashierName: 'Rahel Tadesse',
+  cashierName: 'Rahel Fira',
   openedAt: new Date(Date.now() - 14400000).toISOString(),
   openingFloat: 150.00,
   expectedCash: 312.50,
@@ -327,7 +300,7 @@ const SEED_CREDIT_ACCOUNTS: CustomerCreditAccount[] = [
         type: 'charge',
         amount: 215.50,
         note: 'Plotter bond rolls and custom blueprints',
-        receivedBy: 'Rahel Tadesse'
+        receivedBy: 'Rahel Fira'
       },
       {
         id: 'tx_c2',
@@ -336,7 +309,7 @@ const SEED_CREDIT_ACCOUNTS: CustomerCreditAccount[] = [
         type: 'charge',
         amount: 130.00,
         note: 'Spiral comb presentation booklets',
-        receivedBy: 'Bethlehem M.'
+        receivedBy: 'Rahel Fira'
       }
     ]
   },
@@ -359,7 +332,7 @@ const SEED_CREDIT_ACCOUNTS: CustomerCreditAccount[] = [
         type: 'charge',
         amount: 184.00,
         note: 'Double A paper 20 reams + staple supplies',
-        receivedBy: 'Solomon K.'
+        receivedBy: 'Rahel Fira'
       }
     ]
   }
@@ -373,7 +346,7 @@ const SEED_EXPENSES: Expense[] = [
     amount: 88.00,
     paidVia: 'Cash Register',
     description: 'Black toner replenishment for Xerox C8030 laser copier',
-    recordedBy: 'Rahel Tadesse',
+    recordedBy: 'Rahel Fira',
     receiptReference: 'SUP-TN-9921'
   },
   {
@@ -383,7 +356,7 @@ const SEED_EXPENSES: Expense[] = [
     amount: 45.00,
     paidVia: 'Petty Cash',
     description: 'Fragile stamp tape and brown kraft wrapping paper',
-    recordedBy: 'Solomon K.',
+    recordedBy: 'Rahel Fira',
     receiptReference: 'PKG-7712'
   }
 ];
@@ -394,34 +367,35 @@ const SEED_LOGS: ActivityLog[] = [
     timestamp: new Date(Date.now() - 14400000).toISOString(),
     action: 'REGISTER_OPEN',
     category: 'shift',
-    performedBy: 'Rahel Tadesse',
-    details: 'Shift #101 opened with float amount $150.00'
+    performedBy: 'Rahel Fira',
+    details: 'Shift #101 opened with float amount ETB 150.00'
   },
   {
     id: 'log_2',
     timestamp: new Date(Date.now() - 12000000).toISOString(),
     action: 'PRICE_UPDATE',
     category: 'inventory',
-    performedBy: 'Rahel Tadesse',
-    details: 'Updated retail price of Pilot G2 Black from $2.10 to $2.25'
+    performedBy: 'Rahel Fira',
+    details: 'Updated retail price of Pilot G2 Black from ETB 2.10 to ETB 2.25'
   },
   {
     id: 'log_3',
     timestamp: new Date(Date.now() - 7200000).toISOString(),
     action: 'CASH_DROP',
     category: 'shift',
-    performedBy: 'Rahel Tadesse',
-    details: 'Cash drop of $100.00 transferred to back-office drop safe.'
+    performedBy: 'Rahel Fira',
+    details: 'Cash drop of ETB 100.00 transferred to back-office drop safe.'
   }
 ];
 
 const SEED_SALES: Sale[] = [
+  // Today's Sales
   {
     id: 'sale_1',
     receiptNumber: 'REC-2026-8840',
     timestamp: new Date(Date.now() - 10800000).toISOString(),
     cashierId: 'user_1',
-    cashierName: 'Rahel Tadesse',
+    cashierName: 'Rahel Fira',
     shiftId: 'shift_101',
     items: [
       {
@@ -465,8 +439,8 @@ const SEED_SALES: Sale[] = [
     id: 'sale_2',
     receiptNumber: 'REC-2026-8841',
     timestamp: new Date(Date.now() - 5400000).toISOString(),
-    cashierId: 'user_3',
-    cashierName: 'Bethlehem M.',
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
     shiftId: 'shift_101',
     items: [
       {
@@ -506,8 +480,390 @@ const SEED_SALES: Sale[] = [
     ],
     status: 'completed',
     customerName: 'Sara Alem'
+  },
+  // 1 Day Ago (Yesterday)
+  {
+    id: 'sale_prev_1a',
+    receiptNumber: 'REC-2026-8835',
+    timestamp: new Date(Date.now() - 86400000 - 7200000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_100',
+    items: [
+      {
+        productId: 'prod_5',
+        productName: 'Thermal Receipt Paper Roll 80x80mm (Box of 50)',
+        sku: 'POS-ROL-8080',
+        barcode: '890123456005',
+        unitPrice: 52.00,
+        costPrice: 32.00,
+        quantity: 2,
+        total: 104.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 104.00,
+    taxAmount: 8.84,
+    taxPercent: 8.5,
+    discountAmount: 0,
+    total: 112.84,
+    payments: [{ method: 'card', amount: 112.84, reference: 'CBE-POS-4412' }],
+    status: 'completed',
+    customerName: 'Addis Commercial Bank'
+  },
+  {
+    id: 'sale_prev_1b',
+    receiptNumber: 'REC-2026-8836',
+    timestamp: new Date(Date.now() - 86400000 - 14400000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_100',
+    items: [
+      {
+        productId: 'prod_1',
+        productName: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+        sku: 'PPR-A4-80G',
+        barcode: '890123456001',
+        unitPrice: 7.50,
+        costPrice: 4.20,
+        quantity: 10,
+        total: 75.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_2',
+        productName: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+        sku: 'PEN-PIL-G2B',
+        barcode: '890123456002',
+        unitPrice: 2.25,
+        costPrice: 1.10,
+        quantity: 10,
+        total: 22.50,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 97.50,
+    taxAmount: 8.29,
+    taxPercent: 8.5,
+    discountAmount: 5.79,
+    total: 100.00,
+    payments: [{ method: 'cash', amount: 100.00 }],
+    status: 'completed',
+    customerName: 'Yared Stationery'
+  },
+  // 2 Days Ago
+  {
+    id: 'sale_prev_2a',
+    receiptNumber: 'REC-2026-8830',
+    timestamp: new Date(Date.now() - 172800000 - 10800000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_99',
+    items: [
+      {
+        productId: 'prod_4',
+        productName: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
+        sku: 'NBK-MOL-A5D',
+        barcode: '890123456004',
+        unitPrice: 24.00,
+        costPrice: 13.50,
+        quantity: 5,
+        total: 120.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_6',
+        productName: 'Glossy Photo Paper A4 (230gsm, 50 Sheets)',
+        sku: 'PPR-GLS-A450',
+        barcode: '890123456006',
+        unitPrice: 12.50,
+        costPrice: 6.80,
+        quantity: 3,
+        total: 37.50,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 157.50,
+    taxAmount: 13.39,
+    taxPercent: 8.5,
+    discountAmount: 0,
+    total: 170.89,
+    payments: [{ method: 'mobile_transfer', amount: 170.89, reference: 'TELEBIRR-8891' }],
+    status: 'completed',
+    customerName: 'Bethlehem Studio'
+  },
+  // 3 Days Ago
+  {
+    id: 'sale_prev_3a',
+    receiptNumber: 'REC-2026-8824',
+    timestamp: new Date(Date.now() - 259200000 - 7200000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_98',
+    items: [
+      {
+        productId: 'prod_5',
+        productName: 'Thermal Receipt Paper Roll 80x80mm (Box of 50)',
+        sku: 'POS-ROL-8080',
+        barcode: '890123456005',
+        unitPrice: 52.00,
+        costPrice: 32.00,
+        quantity: 4,
+        total: 208.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_1',
+        productName: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+        sku: 'PPR-A4-80G',
+        barcode: '890123456001',
+        unitPrice: 7.50,
+        costPrice: 4.20,
+        quantity: 6,
+        total: 45.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 253.00,
+    taxAmount: 21.51,
+    taxPercent: 8.5,
+    discountAmount: 9.51,
+    total: 265.00,
+    payments: [{ method: 'cash', amount: 265.00 }],
+    status: 'completed',
+    customerName: 'St. George Academy'
+  },
+  // 4 Days Ago
+  {
+    id: 'sale_prev_4a',
+    receiptNumber: 'REC-2026-8818',
+    timestamp: new Date(Date.now() - 345600000 - 12000000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_97',
+    items: [
+      {
+        productId: 'prod_10',
+        productName: 'Staedtler Mars Lumograph Art Pencil Set (12 Tins)',
+        sku: 'ART-STD-LUM',
+        barcode: '890123456010',
+        unitPrice: 18.50,
+        costPrice: 10.40,
+        quantity: 8,
+        total: 148.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_2',
+        productName: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+        sku: 'PEN-PIL-G2B',
+        barcode: '890123456002',
+        unitPrice: 2.25,
+        costPrice: 1.10,
+        quantity: 12,
+        total: 27.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 175.00,
+    taxAmount: 14.88,
+    taxPercent: 8.5,
+    discountAmount: 0,
+    total: 189.88,
+    payments: [{ method: 'card', amount: 189.88, reference: 'AWASH-9912' }],
+    status: 'completed',
+    customerName: 'Fineline Architects'
+  },
+  // 5 Days Ago
+  {
+    id: 'sale_prev_5a',
+    receiptNumber: 'REC-2026-8812',
+    timestamp: new Date(Date.now() - 432000000 - 9000000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_96',
+    items: [
+      {
+        productId: 'prod_1',
+        productName: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+        sku: 'PPR-A4-80G',
+        barcode: '890123456001',
+        unitPrice: 7.50,
+        costPrice: 4.20,
+        quantity: 25,
+        total: 187.50,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_6',
+        productName: 'Glossy Photo Paper A4 (230gsm, 50 Sheets)',
+        sku: 'PPR-GLS-A450',
+        barcode: '890123456006',
+        unitPrice: 12.50,
+        costPrice: 6.80,
+        quantity: 4,
+        total: 50.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 237.50,
+    taxAmount: 20.19,
+    taxPercent: 8.5,
+    discountAmount: 12.69,
+    total: 245.00,
+    payments: [{ method: 'cash', amount: 245.00 }],
+    status: 'completed',
+    customerName: 'National Printing Bureau'
+  },
+  // 6 Days Ago
+  {
+    id: 'sale_prev_6a',
+    receiptNumber: 'REC-2026-8805',
+    timestamp: new Date(Date.now() - 518400000 - 8000000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    shiftId: 'shift_95',
+    items: [
+      {
+        productId: 'prod_4',
+        productName: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
+        sku: 'NBK-MOL-A5D',
+        barcode: '890123456004',
+        unitPrice: 24.00,
+        costPrice: 13.50,
+        quantity: 6,
+        total: 144.00,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_2',
+        productName: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+        sku: 'PEN-PIL-G2B',
+        barcode: '890123456002',
+        unitPrice: 2.25,
+        costPrice: 1.10,
+        quantity: 8,
+        total: 18.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 162.00,
+    taxAmount: 13.77,
+    taxPercent: 8.5,
+    discountAmount: 0,
+    total: 175.77,
+    payments: [{ method: 'mobile_transfer', amount: 175.77, reference: 'TELEBIRR-7701' }],
+    status: 'completed',
+    customerName: 'Elias Worku'
   }
 ];
+
+const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
+  const sales: Sale[] = [...initialSeeds];
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Previous month
+  const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+  const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+  const daysInPrevMonth = new Date(prevYear, prevMonth + 1, 0).getDate();
+
+  // Seed sales for previous month days 1..daysInPrevMonth
+  for (let d = 1; d <= daysInPrevMonth; d++) {
+    const dateObj = new Date(prevYear, prevMonth, d, 14, 30, 0);
+    const dateStr = dateObj.toDateString();
+    const existing = sales.some(s => new Date(s.timestamp).toDateString() === dateStr);
+    if (!existing) {
+      const dayOfWeek = dateObj.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const baseTotal = Number((140 + ((d * 23) % 190) + (isWeekend ? 65 : 0)).toFixed(2));
+      sales.push({
+        id: `sale_hist_${prevYear}_${prevMonth + 1}_${d}`,
+        receiptNumber: `REC-${prevYear}-${String(prevMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`,
+        timestamp: dateObj.toISOString(),
+        cashierId: 'user_1',
+        cashierName: 'Rahel Fira',
+        shiftId: `shift_p${prevMonth + 1}`,
+        items: [
+          {
+            productId: 'prod_1',
+            productName: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+            sku: 'PPR-A4-80G',
+            barcode: '890123456001',
+            unitPrice: 7.50,
+            costPrice: 4.20,
+            quantity: Math.max(1, Math.floor(baseTotal / 12)),
+            total: Number((baseTotal * 0.7).toFixed(2)),
+            discountPercent: 0
+          },
+          {
+            productId: 'prod_2',
+            productName: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
+            sku: 'PEN-PIL-G2B',
+            barcode: '890123456002',
+            unitPrice: 2.25,
+            costPrice: 1.10,
+            quantity: 4,
+            total: 9.00,
+            discountPercent: 0
+          }
+        ],
+        subtotal: Number((baseTotal * 0.92).toFixed(2)),
+        taxAmount: Number((baseTotal * 0.08).toFixed(2)),
+        taxPercent: 8.5,
+        discountAmount: 0,
+        total: baseTotal,
+        payments: [{ method: d % 2 === 0 ? 'card' : 'cash', amount: baseTotal }],
+        status: 'completed',
+        customerName: d % 3 === 0 ? 'Commercial Client' : 'Walk-in Retail'
+      });
+    }
+  }
+
+  // Seed sales for current month up to today
+  for (let d = 1; d <= now.getDate(); d++) {
+    const dateObj = new Date(currentYear, currentMonth, d, 15, 0, 0);
+    const dateStr = dateObj.toDateString();
+    const existing = sales.some(s => new Date(s.timestamp).toDateString() === dateStr);
+    if (!existing) {
+      const baseTotal = Number((160 + ((d * 31) % 210)).toFixed(2));
+      sales.push({
+        id: `sale_curr_${currentYear}_${currentMonth + 1}_${d}`,
+        receiptNumber: `REC-${currentYear}-${String(currentMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`,
+        timestamp: dateObj.toISOString(),
+        cashierId: 'user_1',
+        cashierName: 'Rahel Fira',
+        shiftId: `shift_c${currentMonth + 1}`,
+        items: [
+          {
+            productId: 'prod_4',
+            productName: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
+            sku: 'NBK-MOL-A5D',
+            barcode: '890123456004',
+            unitPrice: 24.00,
+            costPrice: 13.50,
+            quantity: 2,
+            total: 48.00,
+            discountPercent: 0
+          }
+        ],
+        subtotal: Number((baseTotal * 0.92).toFixed(2)),
+        taxAmount: Number((baseTotal * 0.08).toFixed(2)),
+        taxPercent: 8.5,
+        discountAmount: 0,
+        total: baseTotal,
+        payments: [{ method: 'cash', amount: baseTotal }],
+        status: 'completed',
+        customerName: 'Store Client'
+      });
+    }
+  }
+
+  return sales;
+};
+
+const ALL_SEED_SALES = generateMonthlySeedSales(SEED_SALES);
 
 class StorageService {
   private listeners: Set<() => void> = new Set();
@@ -572,6 +928,12 @@ class StorageService {
     if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
       localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
     }
+    // Always enforce single admin user: Rahel Fira
+    const staff = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, []);
+    if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin') {
+      localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+    }
   }
 
   private get<T>(key: string, fallback: T): T {
@@ -607,46 +969,46 @@ class StorageService {
     this.logActivity('SETTINGS_UPDATE', 'security', `Store settings updated by active staff.`);
   }
 
-  // Active Staff & Authentication
+  // Active Staff & Authentication - Single Admin User: Rahel Fira
   public getStaff(): StaffUser[] {
-    return this.get<StaffUser[]>(STORAGE_KEYS.STAFF, SEED_STAFF);
+    const list = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, SEED_STAFF);
+    if (!list || list.length !== 1 || list[0].name !== 'Rahel Fira' || list[0].role !== 'admin') {
+      this.set(STORAGE_KEYS.STAFF, SEED_STAFF);
+      return SEED_STAFF;
+    }
+    return list;
   }
 
   public getActiveUser(): StaffUser {
-    return this.get<StaffUser>(STORAGE_KEYS.ACTIVE_USER, SEED_STAFF[0]);
+    const user = this.get<StaffUser>(STORAGE_KEYS.ACTIVE_USER, SEED_STAFF[0]);
+    if (!user || user.name !== 'Rahel Fira' || user.role !== 'admin') {
+      this.set(STORAGE_KEYS.ACTIVE_USER, SEED_STAFF[0]);
+      return SEED_STAFF[0];
+    }
+    return user;
   }
 
   public setActiveUser(user: StaffUser): void {
-    this.set(STORAGE_KEYS.ACTIVE_USER, user);
-    this.logActivity('USER_LOGIN', 'staff', `${user.name} logged in as ${user.role}.`);
+    // Only Rahel Fira is permitted
+    const adminUser = { ...SEED_STAFF[0], ...user, name: 'Rahel Fira', role: 'admin' as const, approved: true };
+    this.set(STORAGE_KEYS.ACTIVE_USER, adminUser);
+    this.logActivity('USER_LOGIN', 'staff', `${adminUser.name} logged in as ${adminUser.role}.`);
   }
 
   public saveStaffMember(user: StaffUser): void {
-    const list = this.getStaff();
-    const idx = list.findIndex(u => u.id === user.id);
-    if (idx >= 0) {
-      list[idx] = user;
-    } else {
-      list.push(user);
-    }
-    this.set(STORAGE_KEYS.STAFF, list);
-    this.logActivity('STAFF_UPDATE', 'staff', `Updated staff record for ${user.name}`);
+    const adminUser = { ...SEED_STAFF[0], ...user, name: 'Rahel Fira', role: 'admin' as const, approved: true };
+    this.set(STORAGE_KEYS.STAFF, [adminUser]);
+    this.set(STORAGE_KEYS.ACTIVE_USER, adminUser);
+    this.logActivity('STAFF_UPDATE', 'staff', `Updated security credentials for ${adminUser.name}`);
   }
 
-  public deleteStaffMember(userId: string): void {
-    const list = this.getStaff().filter(u => u.id !== userId);
-    this.set(STORAGE_KEYS.STAFF, list);
-    this.logActivity('STAFF_DELETE', 'staff', `Deleted staff member ID ${userId}`);
+  public deleteStaffMember(_userId: string): void {
+    // Cannot delete the sole administrator Rahel Fira
+    this.set(STORAGE_KEYS.STAFF, SEED_STAFF);
   }
 
-  public approveStaffMember(userId: string): void {
-    const list = this.getStaff();
-    const user = list.find(u => u.id === userId);
-    if (user) {
-      user.approved = true;
-      this.set(STORAGE_KEYS.STAFF, list);
-      this.logActivity('STAFF_APPROVED', 'staff', `Approved account login access for ${user.name}`);
-    }
+  public approveStaffMember(_userId: string): void {
+    this.set(STORAGE_KEYS.STAFF, SEED_STAFF);
   }
 
   // Products & Inventory
@@ -911,7 +1273,12 @@ class StorageService {
 
   // Sales & Receipts
   public getSales(): Sale[] {
-    return this.get<Sale[]>(STORAGE_KEYS.SALES, SEED_SALES);
+    const list = this.get<Sale[]>(STORAGE_KEYS.SALES, ALL_SEED_SALES);
+    if (!list || list.length < 25) {
+      this.set(STORAGE_KEYS.SALES, ALL_SEED_SALES);
+      return ALL_SEED_SALES;
+    }
+    return list;
   }
 
   public completeSale(sale: Sale): void {
