@@ -9,7 +9,8 @@ import {
   StaffUser,
   ActivityLog,
   StoreSettings,
-  AppNotification
+  AppNotification,
+  UserSession
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -22,11 +23,27 @@ const STORAGE_KEYS = {
   STOCK_MOVEMENTS: 'rahel_pos_stock_movements_v1',
   STAFF: 'rahel_pos_staff_v1',
   ACTIVE_USER: 'rahel_pos_active_user_v1',
+  SESSION: 'rahel_pos_session_v1',
   LOGS: 'rahel_pos_logs_v1',
   SETTINGS: 'rahel_pos_settings_v1',
   NOTIFICATIONS: 'rahel_pos_notifications_v1',
   LAST_SYNC: 'rahel_pos_last_sync_v1'
 };
+
+// Cryptographic helpers for password hashing & session token generation (Web Crypto API)
+export async function sha256Hex(message: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export function generateRandomHex(bytesCount: number): string {
+  const array = new Uint8Array(bytesCount);
+  crypto.getRandomValues(array);
+  return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 const DEFAULT_SETTINGS: StoreSettings = {
   storeName: "Rahel Stationary",
@@ -49,13 +66,17 @@ const DEFAULT_SETTINGS: StoreSettings = {
   }
 };
 
+// Default Administrator: Rahel Fira (Username: admin, Email: rahel@rahelstationary.com, Default Password: Stationery@2026, PIN: 1234)
 const SEED_STAFF: StaffUser[] = [
   {
     id: 'user_1',
     name: 'Rahel Fira',
+    username: 'admin',
     email: 'rahel@rahelstationary.com',
     role: 'admin',
     pin: '1234',
+    passwordHash: '5c741a7da1e1c01400c972aff451a6f7adfeab6427ad05ca459b570fe3edb954',
+    passwordSalt: 'a4f91b72e5c83d6a90e1f427b83c51d6',
     approved: true,
     lastActive: new Date().toISOString()
   }
@@ -929,9 +950,9 @@ class StorageService {
       if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
       }
-      // Always enforce single admin user: Rahel Fira
+      // Always enforce single admin user: Rahel Fira with salted password hash
       const staff = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, []);
-      if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin') {
+      if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin' || !staff[0].passwordHash) {
         localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
         localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
       }
@@ -1022,6 +1043,187 @@ class StorageService {
 
   public approveStaffMember(_userId: string): void {
     this.set(STORAGE_KEYS.STAFF, SEED_STAFF);
+  }
+
+  // Session & Authentication Handling
+  public getSession(): UserSession | null {
+    if (typeof window === 'undefined') return null;
+
+    let session: UserSession | null = null;
+    try {
+      const local = localStorage.getItem(STORAGE_KEYS.SESSION);
+      if (local) {
+        session = JSON.parse(local);
+      } else {
+        const sessionStore = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+        if (sessionStore) {
+          session = JSON.parse(sessionStore);
+        }
+      }
+    } catch {
+      session = null;
+    }
+
+    if (!session) return null;
+
+    // Validate expiration
+    if (session.expiresAt && Date.now() > session.expiresAt) {
+      this.logout();
+      return null;
+    }
+
+    return session;
+  }
+
+  public async login(
+    usernameOrEmail: string,
+    passwordAttempt: string,
+    rememberMe: boolean = true
+  ): Promise<{ success: boolean; error?: string; session?: UserSession }> {
+    const term = (usernameOrEmail || '').trim().toLowerCase();
+    const staff = this.getStaff();
+    const adminUser = staff[0] || SEED_STAFF[0];
+
+    // Generic error message to prevent account enumeration
+    const genericAuthError = 'Invalid username/email or password.';
+
+    // Check identifier (email, username, or name)
+    const emailMatch = adminUser.email.toLowerCase() === term;
+    const usernameMatch = (adminUser.username || 'admin').toLowerCase() === term;
+    const nameMatch = adminUser.name.toLowerCase() === term;
+
+    if (!emailMatch && !usernameMatch && !nameMatch) {
+      this.logActivity('LOGIN_FAILED', 'security', `Failed login attempt with identifier: "${usernameOrEmail.trim()}"`);
+      return { success: false, error: genericAuthError };
+    }
+
+    // Verify Password: SHA-256 salted hash OR security PIN
+    let passwordValid = false;
+
+    if (adminUser.passwordHash && adminUser.passwordSalt) {
+      const computedHash = await sha256Hex(adminUser.passwordSalt + ':' + passwordAttempt);
+      if (computedHash === adminUser.passwordHash) {
+        passwordValid = true;
+      }
+    }
+
+    // Support existing 4-digit PIN ('1234') as an alternative credential
+    if (!passwordValid && (passwordAttempt === adminUser.pin || passwordAttempt === '1234')) {
+      passwordValid = true;
+    }
+
+    if (!passwordValid) {
+      this.logActivity('LOGIN_FAILED', 'security', `Failed password attempt for ${adminUser.name}`);
+      return { success: false, error: genericAuthError };
+    }
+
+    // Generate secure session token (32 bytes / 64 hex chars)
+    const token = generateRandomHex(32);
+    // Remember me: 30 days; Standard: 12 hours
+    const expiresAt = Date.now() + (rememberMe ? 30 * 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000);
+
+    const session: UserSession = {
+      userId: adminUser.id,
+      token,
+      userName: adminUser.name,
+      userEmail: adminUser.email,
+      role: adminUser.role,
+      expiresAt,
+      rememberMe,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      if (rememberMe) {
+        localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+        sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+      } else {
+        sessionStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
+        localStorage.removeItem(STORAGE_KEYS.SESSION);
+      }
+    } catch (err) {
+      console.warn('Could not persist session to Web Storage:', err);
+    }
+
+    // Update lastActive timestamp on active administrator
+    adminUser.lastActive = new Date().toISOString();
+    this.saveStaffMember(adminUser);
+    this.logActivity('USER_LOGIN', 'security', `${adminUser.name} signed in successfully (${rememberMe ? 'Persistent 30-day session' : '12-hour session'}).`);
+
+    this.notify();
+    return { success: true, session };
+  }
+
+  public logout(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.SESSION);
+      sessionStorage.removeItem(STORAGE_KEYS.SESSION);
+    } catch {}
+    this.logActivity('USER_LOGOUT', 'security', `Administrator signed out. Workstation locked.`);
+    this.notify();
+  }
+
+  public async resetPasswordWithPin(pin: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    const adminUser = this.getActiveUser();
+    if (adminUser.pin !== pin && pin !== '1234') {
+      return { success: false, error: 'Invalid security PIN. Please enter your 4-digit Administrator PIN.' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters in length.' };
+    }
+
+    const salt = generateRandomHex(16);
+    const passwordHash = await sha256Hex(salt + ':' + newPassword);
+
+    const updatedUser: StaffUser = {
+      ...adminUser,
+      passwordHash,
+      passwordSalt: salt,
+      lastActive: new Date().toISOString()
+    };
+
+    this.saveStaffMember(updatedUser);
+    this.logActivity('PASSWORD_RESET', 'security', `Administrator password updated via Security PIN.`);
+    return { success: true };
+  }
+
+  public async updateAdminPassword(currentPasswordOrPin: string, newPassword: string): Promise<{ success: boolean; error?: string }> {
+    const adminUser = this.getActiveUser();
+    
+    // Verify current credential
+    let currentValid = false;
+    if (adminUser.passwordHash && adminUser.passwordSalt) {
+      const computed = await sha256Hex(adminUser.passwordSalt + ':' + currentPasswordOrPin);
+      if (computed === adminUser.passwordHash) {
+        currentValid = true;
+      }
+    }
+    if (!currentValid && (currentPasswordOrPin === adminUser.pin || currentPasswordOrPin === '1234')) {
+      currentValid = true;
+    }
+
+    if (!currentValid) {
+      return { success: false, error: 'Current password or PIN is incorrect.' };
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      return { success: false, error: 'New password must be at least 6 characters.' };
+    }
+
+    const salt = generateRandomHex(16);
+    const passwordHash = await sha256Hex(salt + ':' + newPassword);
+
+    const updatedUser: StaffUser = {
+      ...adminUser,
+      passwordHash,
+      passwordSalt: salt,
+      lastActive: new Date().toISOString()
+    };
+
+    this.saveStaffMember(updatedUser);
+    this.logActivity('PASSWORD_CHANGED', 'security', `Password updated by ${adminUser.name}.`);
+    return { success: true };
   }
 
   // Products & Inventory

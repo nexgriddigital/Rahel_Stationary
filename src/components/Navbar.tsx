@@ -49,6 +49,7 @@ interface NavbarProps {
   onClearAllNotifications?: () => void;
   onQuickRestock?: (productId: string, quantity?: number) => void;
   onNavigateToInventory?: () => void;
+  onLogout?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -70,7 +71,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onMarkAllNotificationsRead,
   onClearAllNotifications,
   onQuickRestock,
-  onNavigateToInventory
+  onNavigateToInventory,
+  onLogout
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
@@ -642,19 +644,38 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </button>
 
-                {/* Sign Out & Register Lock */}
+                {/* Register Lock (PIN) */}
                 <button
+                  type="button"
                   onClick={() => {
                     setIsMoreMenuOpen(false);
                     onOpenPinModal();
                   }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-950/30 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#f5d77f] hover:bg-[#d4af37]/10 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-2">
-                    <Lock className="w-3.5 h-3.5" />
-                    <span>Lock Register & Sign Out</span>
+                    <Lock className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Quick PIN Lock</span>
                   </div>
+                  <span className="text-[10px] text-[#8c8273]">Lock Screen</span>
                 </button>
+
+                {/* Sign Out Workstation */}
+                {onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      onLogout();
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer font-medium"
+                  >
+                    <div className="flex items-center gap-2">
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out Workstation</span>
+                    </div>
+                  </button>
+                )}
               </div>
             </div>
           )}

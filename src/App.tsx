@@ -16,8 +16,10 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { UrgentRestockToast } from './components/UrgentRestockToast';
 import { useRestockWorker } from './services/useRestockWorker';
+import { UserSession } from './types';
 
 // Views
+import { LoginView } from './views/LoginView';
 import { DashboardView } from './views/DashboardView';
 import { PosRegisterView } from './views/PosRegisterView';
 import { InventoryView } from './views/InventoryView';
@@ -31,6 +33,7 @@ import { ActivityLogsView } from './views/ActivityLogsView';
 import { SettingsView } from './views/SettingsView';
 
 export default function App() {
+  const [session, setSession] = useState<UserSession | null>(() => storage.getSession());
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeReceiptSale, setActiveReceiptSale] = useState<Sale | null>(null);
@@ -63,15 +66,21 @@ export default function App() {
     onNavigateToInventory: () => setCurrentTab('inventory')
   });
 
-  // Reactivity tick for storage updates
+  // Reactivity tick for storage updates & session tracking
   const [, setStorageTick] = useState(0);
 
   useEffect(() => {
     const unsubscribe = storage.subscribe(() => {
       setStorageTick((t) => t + 1);
+      setSession(storage.getSession());
     });
     return unsubscribe;
   }, []);
+
+  const handleLogout = () => {
+    storage.logout();
+    setSession(null);
+  };
 
   // Update theme class on HTML element
   useEffect(() => {
@@ -189,6 +198,18 @@ export default function App() {
     }
   };
 
+  // Unauthenticated users are protected and must log in
+  if (!session) {
+    return (
+      <LoginView
+        onLoginSuccess={(sess) => {
+          setSession(sess);
+          setCurrentTab('dashboard');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-[#f4efe8] flex antialiased">
       {/* Side Navigation Bar (Desktop & Mobile Drawer) */}
@@ -198,6 +219,7 @@ export default function App() {
         onOpenShiftModal={() => setIsShiftModalOpen(true)}
         onOpenPinModal={() => setIsPinModalOpen(true)}
         onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
+        onLogout={handleLogout}
         isMobileOpen={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         cartItemCount={cartItemCount}
@@ -212,6 +234,7 @@ export default function App() {
           onOpenShortcuts={() => setIsShortcutsOpen(true)}
           onOpenPinModal={() => setIsPinModalOpen(true)}
           onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
+          onLogout={handleLogout}
           onOpenCartDrawer={() => setCurrentTab('pos')}
           onSelectProduct={(p) => {
             handleAddToCart(p);

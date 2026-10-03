@@ -3,12 +3,26 @@ export type Role = 'admin' | 'manager' | 'cashier' | 'auditor';
 export interface StaffUser {
   id: string;
   name: string;
+  username?: string;
   email: string;
   role: Role;
   pin: string; // 4-digit PIN for quick switch
+  passwordHash?: string; // Salted SHA-256
+  passwordSalt?: string;
   avatarUrl?: string;
   approved: boolean; // Staff approvals workflow
   lastActive?: string;
+}
+
+export interface UserSession {
+  userId: string;
+  token: string;
+  userName: string;
+  userEmail: string;
+  role: Role;
+  expiresAt: number; // Unix timestamp ms
+  rememberMe: boolean;
+  createdAt: string;
 }
 
 export type ProductCategory = 

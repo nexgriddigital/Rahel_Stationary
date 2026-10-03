@@ -17,7 +17,8 @@ import {
   ChevronRight,
   Shield,
   CircleDollarSign,
-  Maximize2
+  Maximize2,
+  LogOut
 } from 'lucide-react';
 import { storage } from '../services/storage';
 
@@ -40,6 +41,7 @@ interface SidebarProps {
   onOpenShiftModal: () => void;
   onOpenPinModal: () => void;
   onOpenDownloadModal: () => void;
+  onLogout?: () => void;
   isMobileOpen?: boolean;
   onCloseMobile?: () => void;
   cartItemCount?: number;
@@ -51,6 +53,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenShiftModal,
   onOpenPinModal,
   onOpenDownloadModal,
+  onLogout,
   isMobileOpen = false,
   onCloseMobile,
   cartItemCount = 0
@@ -269,13 +272,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={onOpenPinModal}
-              title="Lock Register / Admin PIN"
-              className="p-1.5 rounded-lg text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/10 transition-colors"
-            >
-              <Lock className="w-3.5 h-3.5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={onOpenPinModal}
+                title="Lock Register / Admin PIN"
+                className="p-1.5 rounded-lg text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/10 transition-colors cursor-pointer"
+              >
+                <Lock className="w-3.5 h-3.5" />
+              </button>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  title="Sign Out Workstation"
+                  className="p-1.5 rounded-lg text-[#8c8273] hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </aside>

@@ -24,11 +24,14 @@ export const StaffView: React.FC = () => {
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [newEmail, setNewEmail] = useState(adminUser.email);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const handleUpdateCredentials = (e: React.FormEvent) => {
+  const handleUpdateCredentials = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -45,19 +48,47 @@ export const StaffView: React.FC = () => {
       updatedPin = newPin;
     }
 
+    let updatedPasswordHash = adminUser.passwordHash;
+    let updatedPasswordSalt = adminUser.passwordSalt;
+
+    if (isEditingPassword) {
+      if (newPassword.length < 6) {
+        setErrorMsg('New password must be at least 6 characters long.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setErrorMsg('New password confirmation does not match.');
+        return;
+      }
+      // Import crypto helper or generate salt
+      const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(salt + ':' + newPassword));
+      const hash = Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0')).join('');
+      updatedPasswordSalt = salt;
+      updatedPasswordHash = hash;
+    }
+
     const updatedUser: StaffUser = {
       ...adminUser,
       email: newEmail.trim() || 'rahel@rahelstationary.com',
       pin: updatedPin,
+      passwordHash: updatedPasswordHash,
+      passwordSalt: updatedPasswordSalt,
       lastActive: new Date().toISOString()
     };
 
     storage.saveStaffMember(updatedUser);
     setAdminUser(updatedUser);
-    setSaveSuccessMsg('Administrator credentials updated successfully.');
+    setSaveSuccessMsg('Administrator credentials and password updated successfully.');
     setIsEditingPin(false);
     setNewPin('');
     setConfirmPin('');
+    setIsEditingPassword(false);
+    setNewPassword('');
+    setConfirmPassword('');
 
     setTimeout(() => {
       setSaveSuccessMsg(null);
@@ -309,6 +340,71 @@ export const StaffView: React.FC = () => {
                       placeholder="Repeat PIN"
                       onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                       className="w-full px-3 py-2 text-sm font-mono font-bold tracking-widest text-center rounded-xl bg-[#121215] border border-[#d4af37]/50 text-[#f5d77f] focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Workstation Password Settings */}
+            <div className="p-4 rounded-xl bg-[#18181c] border border-[#26221c] space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-bold text-[#f4efe8]">
+                    Workstation Login Password
+                  </div>
+                  <div className="text-[11px] text-[#998b7a]">
+                    Used to authenticate on the main login screen.
+                  </div>
+                </div>
+
+                {!isEditingPassword ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingPassword(true)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#38322a] hover:border-[#d4af37]/40 transition-colors cursor-pointer"
+                  >
+                    Change Password
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPassword(false);
+                      setNewPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="px-3 py-1.5 text-xs text-[#a39c90] hover:text-[#f4efe8] cursor-pointer"
+                  >
+                    Cancel Password Change
+                  </button>
+                )}
+              </div>
+
+              {isEditingPassword && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#26221c]">
+                  <div>
+                    <label className="block text-[11px] text-[#a39c90] mb-1">
+                      New Password (min. 6 chars)
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      placeholder="Enter new password"
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl bg-[#121215] border border-[#d4af37]/50 text-[#f4efe8] focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-[#a39c90] mb-1">
+                      Confirm New Password
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      placeholder="Repeat new password"
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="w-full px-3 py-2 text-xs rounded-xl bg-[#121215] border border-[#d4af37]/50 text-[#f4efe8] focus:outline-none"
                     />
                   </div>
                 </div>
