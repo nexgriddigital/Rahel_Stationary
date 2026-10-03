@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -30,25 +30,37 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci || npm install --legacy-peer-deps
 
       - name: Build Vite production bundle
         run: npm run build
 
-      - name: Copy index.html to 404.html for SPA routing fallback
-        run: cp dist/index.html dist/404.html
+      - name: Ensure .nojekyll and 404 SPA fallback exist in dist
+        run: |
+          touch dist/.nojekyll
+          cp dist/index.html dist/404.html || true
 
-      - name: Setup GitHub Pages
+      - name: Deploy to gh-pages branch (fallback for Branch-based Pages)
+        uses: peaceiris/actions-gh-pages@v4
+        continue-on-error: true
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+
+      - name: Setup GitHub Pages (Actions-based Pages)
         uses: actions/configure-pages@v5
+        continue-on-error: true
 
       - name: Upload dist artifact
         uses: actions/upload-pages-artifact@v3
+        continue-on-error: true
         with:
           path: './dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+

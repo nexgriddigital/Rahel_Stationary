@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Redirecting - Rahel Stationary POS</title>
+    <script>
+      // Single Page Application redirect for GitHub Pages
+      // Redirects 404 paths back to index.html preserving the path in a query parameter
+      var pathSegmentsToKeep = 1;
+      var l = window.location;
+      var isLocalOrApex = l.hostname === 'localhost' || l.hostname === '127.0.0.1' || l.hostname.endsWith('.run.app');
+      var repoSegment = isLocalOrApex ? '' : '/' + l.pathname.slice(1).split('/')[0];
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        repoSegment + '/?' +
+        (l.search ? l.search.slice(1) + '&' : '') +
+        'p=' + encodeURIComponent(l.pathname.slice(repoSegment.length)) +
+        (l.hash ? '&h=' + encodeURIComponent(l.hash.slice(1)) : '')
+      );
+    </script>
+  </head>
+  <body style="background:#09090b;color:#f4efe8;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+    <p>Redirecting to Rahel POS...</p>
+  </body>
+</html>

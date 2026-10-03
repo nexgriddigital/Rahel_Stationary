@@ -892,47 +892,51 @@ class StorageService {
   private initSeeds() {
     if (typeof window === 'undefined') return;
 
-    if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.STAFF)) {
-      localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_USER)) {
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
-      localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
-      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(SEED_SALES));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) {
-      localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([SEED_SHIFT]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) {
-      localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(SEED_CREDIT_ACCOUNTS));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
-      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SEED_EXPENSES));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
-      localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(SEED_LOGS));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.PARKED_CARTS)) {
-      localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.STOCK_MOVEMENTS)) {
-      localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify([]));
-    }
-    if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
-      localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
-    }
-    // Always enforce single admin user: Rahel Fira
-    const staff = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, []);
-    if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin') {
-      localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+    try {
+      if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.STAFF)) {
+        localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_USER)) {
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(SEED_SALES));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) {
+        localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([SEED_SHIFT]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) {
+        localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(SEED_CREDIT_ACCOUNTS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
+        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SEED_EXPENSES));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
+        localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(SEED_LOGS));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.PARKED_CARTS)) {
+        localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.STOCK_MOVEMENTS)) {
+        localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify([]));
+      }
+      if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
+        localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
+      }
+      // Always enforce single admin user: Rahel Fira
+      const staff = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, []);
+      if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin') {
+        localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+      }
+    } catch (err) {
+      console.warn('Storage initialisation fallback (private browsing or restricted storage):', err);
     }
   }
 

@@ -147,9 +147,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
             <h3 className="font-bold text-sm text-[#f5d77f]">
               Monetary Standards & Currency
             </h3>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
-              0% Tax (Tax-Free Store)
-            </span>
           </div>
 
           <div className="max-w-md space-y-3">
@@ -184,7 +181,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
               />
             </div>
             <p className="text-[11px] text-[#8c8273]">
-              Default currency across registers, credit tabs, and reports. All prices are calculated with <strong>0% tax</strong>.
+              Default currency across registers, credit tabs, and reports.
             </p>
           </div>
         </div>

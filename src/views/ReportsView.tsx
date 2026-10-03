@@ -161,7 +161,7 @@ export const ReportsView: React.FC = () => {
             {sales.length}
           </div>
           <div className="text-[11px] text-[#998b7a]">
-            0% tax policy (tax-free sales)
+            Total recorded store sales
           </div>
         </div>
       </div>
