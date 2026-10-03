@@ -11,7 +11,6 @@ import { Navbar } from './components/Navbar';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { UserPinModal } from './components/UserPinModal';
 import { CashShiftModal } from './components/CashShiftModal';
-import { ReceiptModal } from './components/ReceiptModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { UrgentRestockToast } from './components/UrgentRestockToast';
@@ -36,7 +35,7 @@ export default function App() {
   const [session, setSession] = useState<UserSession | null>(() => storage.getSession());
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeReceiptSale, setActiveReceiptSale] = useState<Sale | null>(null);
+  const [barcodeNotFound, setBarcodeNotFound] = useState<string | null>(null);
 
   // Modals
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -153,7 +152,6 @@ export default function App() {
         setIsShiftModalOpen(false);
         setIsDownloadModalOpen(false);
         setIsShortcutsOpen(false);
-        setActiveReceiptSale(null);
         return;
       }
 
@@ -193,8 +191,8 @@ export default function App() {
       handleAddToCart(product);
       setCurrentTab('pos');
     } else {
-      // Product not found alert
-      alert(`Barcode "${code}" was not found in the stationery catalog. You can add it in Inventory Management.`);
+      setBarcodeNotFound(code);
+      setTimeout(() => setBarcodeNotFound(null), 4000);
     }
   };
 
@@ -255,11 +253,28 @@ export default function App() {
         />
 
         {/* View Router */}
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-hidden relative">
+          {/* Barcode not found toast */}
+          {barcodeNotFound && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-rose-950/90 border border-rose-700 text-rose-200 text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+              <span className="font-bold">Barcode Not Found:</span>
+              <span className="font-mono text-white">[{barcodeNotFound}]</span>
+              <span>is not in the catalog.</span>
+              <button
+                onClick={() => {
+                  setBarcodeNotFound(null);
+                  setCurrentTab('inventory');
+                }}
+                className="ml-2 px-2 py-0.5 rounded bg-rose-800 text-white font-semibold hover:bg-rose-700 text-[11px]"
+              >
+                Add to Inventory
+              </button>
+            </div>
+          )}
+
           {currentTab === 'dashboard' && (
             <DashboardView
               onNavigate={setCurrentTab}
-              onOpenReceipt={(sale) => setActiveReceiptSale(sale)}
               onOpenScanner={() => setIsScannerOpen(true)}
               onOpenShiftModal={() => setIsShiftModalOpen(true)}
             />
@@ -267,7 +282,7 @@ export default function App() {
 
           {currentTab === 'pos' && (
             <PosRegisterView
-              onOpenReceipt={(sale) => setActiveReceiptSale(sale)}
+              onNavigateToHistory={() => setCurrentTab('sales')}
               onOpenScanner={() => setIsScannerOpen(true)}
               cart={cart}
               setCart={setCart}
@@ -283,7 +298,7 @@ export default function App() {
           )}
 
           {currentTab === 'sales' && (
-            <SalesLedgerView onOpenReceipt={(sale) => setActiveReceiptSale(sale)} />
+            <SalesLedgerView onNavigateToPOS={() => setCurrentTab('pos')} />
           )}
 
           {currentTab === 'credit' && <CreditAccountsView />}
@@ -320,12 +335,6 @@ export default function App() {
       <CashShiftModal
         isOpen={isShiftModalOpen}
         onClose={() => setIsShiftModalOpen(false)}
-      />
-
-      <ReceiptModal
-        isOpen={!!activeReceiptSale}
-        sale={activeReceiptSale}
-        onClose={() => setActiveReceiptSale(null)}
       />
 
       <KeyboardShortcutsModal

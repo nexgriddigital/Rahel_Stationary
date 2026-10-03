@@ -69,7 +69,8 @@ export interface PaymentSplit {
 
 export interface Sale {
   id: string;
-  receiptNumber: string;
+  transactionId?: string; // Formatted transaction reference e.g. "TXN-2026-8840"
+  receiptNumber: string; // Retained for backwards-compatibility
   timestamp: string;
   cashierId: string;
   cashierName: string;
@@ -95,6 +96,100 @@ export interface Sale {
   customerName?: string;
   customerPhone?: string;
   notes?: string;
+}
+
+export interface ProductSaleStat {
+  productId: string;
+  productName: string;
+  sku: string;
+  barcode: string;
+  category: string;
+  quantitySold: number;
+  totalRevenue: number;
+  averagePrice: number;
+}
+
+export interface PaymentMethodStat {
+  method: PaymentMethod;
+  label: string;
+  count: number;
+  totalAmount: number;
+  percentage: number;
+}
+
+export interface StaffSaleStat {
+  staffId: string;
+  staffName: string;
+  transactionsCount: number;
+  totalRevenue: number;
+  itemsSold: number;
+}
+
+export interface DaySaleSummary {
+  date: string; // YYYY-MM-DD
+  dayName: string; // "Mon", "Tue" etc
+  shortDate: string; // "Oct 3"
+  totalTransactions: number;
+  totalItemsSold: number;
+  totalRevenue: number;
+}
+
+export interface DailyReport {
+  date: string; // YYYY-MM-DD
+  formattedDate: string; // "Saturday, October 3, 2026"
+  totalTransactions: number;
+  totalItemsSold: number;
+  totalRevenue: number;
+  averageTransactionValue: number;
+  productBreakdown: ProductSaleStat[];
+  paymentMethodBreakdown: PaymentMethodStat[];
+  staffBreakdown: StaffSaleStat[];
+  transactions: Sale[];
+}
+
+export interface WeeklyReport {
+  startDate: string; // YYYY-MM-DD (Monday)
+  endDate: string; // YYYY-MM-DD (Sunday)
+  label: string; // "Mon Oct 28 - Sun Nov 3, 2026"
+  totalTransactions: number;
+  totalItemsSold: number;
+  totalRevenue: number;
+  averageDailyRevenue: number;
+  dailyTotals: DaySaleSummary[];
+  productBreakdown: ProductSaleStat[];
+  bestSellingProducts: ProductSaleStat[];
+  staffBreakdown: StaffSaleStat[];
+  paymentMethodBreakdown: PaymentMethodStat[];
+  transactions: Sale[];
+}
+
+export interface MonthlyReport {
+  year: number;
+  month: number; // 1-12
+  monthName: string; // "October 2026"
+  totalTransactions: number;
+  totalItemsSold: number;
+  totalRevenue: number;
+  averageDailyRevenue: number;
+  dailyBreakdown: DaySaleSummary[];
+  productBreakdown: ProductSaleStat[];
+  bestSellingProducts: ProductSaleStat[];
+  staffBreakdown: StaffSaleStat[];
+  paymentMethodBreakdown: PaymentMethodStat[];
+  transactions: Sale[];
+}
+
+export interface DashboardSalesMetrics {
+  todaySales: number;
+  todayTransactions: number;
+  thisWeekSales: number;
+  thisWeekTransactions: number;
+  thisMonthSales: number;
+  thisMonthTransactions: number;
+  totalProductsSold: number;
+  lowStockCount: number;
+  totalSalesCount: number;
+  totalAllTimeRevenue: number;
 }
 
 export interface ParkedCart {

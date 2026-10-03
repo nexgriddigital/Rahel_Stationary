@@ -10,7 +10,16 @@ import {
   ActivityLog,
   StoreSettings,
   AppNotification,
-  UserSession
+  UserSession,
+  DailyReport,
+  WeeklyReport,
+  MonthlyReport,
+  DashboardSalesMetrics,
+  ProductSaleStat,
+  PaymentMethodStat,
+  StaffSaleStat,
+  DaySaleSummary,
+  PaymentMethod
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -1231,8 +1240,40 @@ class StorageService {
     return this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
   }
 
-  public saveProduct(product: Product): void {
+  public isBarcodeUnique(barcode: string, excludeProductId?: string): boolean {
+    const clean = (barcode || '').trim();
+    if (!clean) return true;
+    const products = this.getProducts();
+    return !products.some(p => p.id !== excludeProductId && p.barcode.trim() === clean);
+  }
+
+  public getProductByBarcode(code: string): Product | undefined {
+    const clean = (code || '').trim().toLowerCase();
+    if (!clean) return undefined;
+    const products = this.getProducts();
+    return products.find(p => p.barcode.trim().toLowerCase() === clean || p.sku.trim().toLowerCase() === clean);
+  }
+
+  public saveProduct(product: Product): { success: boolean; error?: string } {
     const list = this.getProducts();
+    let barcode = (product.barcode || '').trim();
+
+    // Automatically generate unique barcode if product does not have one
+    if (!barcode) {
+      barcode = this.generateBarcodeNumber();
+      product.barcode = barcode;
+    }
+
+    // Ensure that no two products can have the same barcode
+    if (!this.isBarcodeUnique(barcode, product.id)) {
+      const duplicateProduct = list.find(p => p.id !== product.id && p.barcode.trim() === barcode);
+      return {
+        success: false,
+        error: `Barcode "${barcode}" is already assigned to "${duplicateProduct?.name || 'another item'}". Every product must have a unique barcode.`
+      };
+    }
+
+    product.barcode = barcode;
     const idx = list.findIndex(p => p.id === product.id);
     const isNew = idx < 0;
     if (isNew) {
@@ -1250,7 +1291,7 @@ class StorageService {
         reason: 'Initial catalog addition',
         performedBy: this.getActiveUser().name
       });
-      this.logActivity('PRODUCT_CREATED', 'inventory', `Added product ${product.name} (SKU: ${product.sku})`);
+      this.logActivity('PRODUCT_CREATED', 'inventory', `Added product ${product.name} (SKU: ${product.sku}, Barcode: ${product.barcode})`);
     } else {
       const prev = list[idx];
       const stockDiff = product.stock - prev.stock;
@@ -1270,9 +1311,10 @@ class StorageService {
         });
       }
       list[idx] = product;
-      this.logActivity('PRODUCT_UPDATED', 'inventory', `Updated product ${product.name}`);
+      this.logActivity('PRODUCT_UPDATED', 'inventory', `Updated product ${product.name} (Barcode: ${product.barcode})`);
     }
     this.set(STORAGE_KEYS.PRODUCTS, list);
+    return { success: true };
   }
 
   public saveProductsBulk(
@@ -1486,24 +1528,36 @@ class StorageService {
     this.set(STORAGE_KEYS.STOCK_MOVEMENTS, list);
   }
 
-  // Sales & Receipts
+  // Sales & Transactions
   public getSales(): Sale[] {
     const list = this.get<Sale[]>(STORAGE_KEYS.SALES, ALL_SEED_SALES);
-    if (!list || list.length < 25) {
-      this.set(STORAGE_KEYS.SALES, ALL_SEED_SALES);
-      return ALL_SEED_SALES;
-    }
-    return list;
+    const effectiveList = (!list || list.length < 25) ? ALL_SEED_SALES : list;
+    return effectiveList.map(s => ({
+      ...s,
+      transactionId: s.transactionId || (s.receiptNumber ? (s.receiptNumber.startsWith('TXN-') ? s.receiptNumber : s.receiptNumber.replace(/^REC-/, 'TXN-')) : `TXN-2026-${s.id.slice(-4)}`)
+    }));
   }
 
   public completeSale(sale: Sale): void {
     const sales = this.getSales();
+    
+    // Ensure clean transaction ID representation
+    if (!sale.transactionId) {
+      sale.transactionId = sale.receiptNumber
+        ? (sale.receiptNumber.startsWith('TXN-') ? sale.receiptNumber : sale.receiptNumber.replace(/^REC-/, 'TXN-'))
+        : `TXN-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    }
+    // Also sync receiptNumber for backward-compatibility
+    if (!sale.receiptNumber) {
+      sale.receiptNumber = sale.transactionId;
+    }
+
     sales.unshift(sale);
     this.set(STORAGE_KEYS.SALES, sales);
 
     // Deduct stock for each item sold
     sale.items.forEach(item => {
-      this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in receipt #${sale.receiptNumber}`);
+      this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in transaction #${sale.transactionId}`);
     });
 
     // Update active shift cash if cash was received
@@ -1522,11 +1576,11 @@ class StorageService {
     const creditPortion = sale.payments.filter(p => p.method === 'store_credit');
     if (creditPortion.length > 0 && sale.customerName) {
       creditPortion.forEach(payment => {
-        this.chargeStoreCredit(sale.customerName!, payment.amount, sale.receiptNumber);
+        this.chargeStoreCredit(sale.customerName!, payment.amount, sale.transactionId || sale.receiptNumber);
       });
     }
 
-    this.logActivity('SALE_COMPLETED', 'sale', `Completed sale #${sale.receiptNumber} totaling ETB ${sale.total.toFixed(2)} (${sale.items.length} items)`);
+    this.logActivity('SALE_COMPLETED', 'sale', `Recorded transaction #${sale.transactionId} totaling ETB ${sale.total.toFixed(2)} (${sale.items.length} items)`);
   }
 
   public refundSale(saleId: string, reason: string): void {
@@ -1539,11 +1593,547 @@ class StorageService {
 
       // Return items to inventory
       sale.items.forEach(item => {
-        this.adjustStock(item.productId, item.quantity, 'RETURN', `Refund on receipt #${sale.receiptNumber} (${reason})`);
+        this.adjustStock(item.productId, item.quantity, 'RETURN', `Refund on transaction #${sale.transactionId || sale.receiptNumber} (${reason})`);
       });
 
-      this.logActivity('SALE_REFUNDED', 'sale', `Refunded sale #${sale.receiptNumber} (ETB ${sale.total.toFixed(2)}) - ${reason}`);
+      this.logActivity('SALE_REFUNDED', 'sale', `Refunded transaction #${sale.transactionId || sale.receiptNumber} (ETB ${sale.total.toFixed(2)}) - ${reason}`);
     }
+  }
+
+  // ==========================================
+  // REAL-TIME TRANSACTION REPORTING ENGINE
+  // (Transactions are the single source of truth)
+  // ==========================================
+
+  // Helper to format Date into local YYYY-MM-DD
+  public toLocalDateString(dateInput: Date | string | number): string {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Helper to get Monday 00:00:00 to Sunday 23:59:59 week range for any given date
+  public getWeekBounds(dateInput: Date | string | number) {
+    const d = new Date(dateInput);
+    const day = d.getDay(); // 0 is Sunday, 1 is Monday ...
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMonday, 0, 0, 0, 0);
+    const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6, 23, 59, 59, 999);
+    return {
+      monday,
+      sunday,
+      startDate: this.toLocalDateString(monday),
+      endDate: this.toLocalDateString(sunday)
+    };
+  }
+
+  /**
+   * Generates a Daily Sales Report calculated from actual recorded transactions for the specified date
+   */
+  public getDailyReport(dateStr?: string): DailyReport {
+    const targetDate = dateStr || this.toLocalDateString(new Date());
+    const [y, m, d] = targetDate.split('-').map(Number);
+    const localDateObj = new Date(y, m - 1, d);
+    const formattedDate = localDateObj.toLocaleDateString(undefined, {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const allSales = this.getSales();
+    const daySales = allSales.filter(
+      s => s.status !== 'refunded' && this.toLocalDateString(s.timestamp) === targetDate
+    );
+
+    const totalTransactions = daySales.length;
+    let totalItemsSold = 0;
+    let totalRevenue = 0;
+
+    const productMap = new Map<string, ProductSaleStat>();
+    const staffMap = new Map<string, StaffSaleStat>();
+    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
+      cash: { count: 0, totalAmount: 0, label: 'Cash' },
+      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
+      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
+      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
+    };
+
+    const catalog = this.getProducts();
+
+    daySales.forEach(sale => {
+      totalRevenue += sale.total;
+
+      // Product sales breakdown
+      sale.items.forEach(item => {
+        totalItemsSold += item.quantity;
+        const existing = productMap.get(item.productId);
+        const catItem = catalog.find(p => p.id === item.productId);
+        const category = catItem?.category || 'General Stationery';
+
+        if (existing) {
+          existing.quantitySold += item.quantity;
+          existing.totalRevenue = Number((existing.totalRevenue + item.total).toFixed(2));
+          existing.averagePrice = Number((existing.totalRevenue / existing.quantitySold).toFixed(2));
+        } else {
+          productMap.set(item.productId, {
+            productId: item.productId,
+            productName: item.productName,
+            sku: item.sku,
+            barcode: item.barcode,
+            category,
+            quantitySold: item.quantity,
+            totalRevenue: Number(item.total.toFixed(2)),
+            averagePrice: Number((item.total / item.quantity).toFixed(2))
+          });
+        }
+      });
+
+      // Staff breakdown
+      const staffKey = sale.cashierId || sale.cashierName;
+      const existingStaff = staffMap.get(staffKey);
+      const itemsInThisSale = sale.items.reduce((sum, i) => sum + i.quantity, 0);
+
+      if (existingStaff) {
+        existingStaff.transactionsCount += 1;
+        existingStaff.totalRevenue = Number((existingStaff.totalRevenue + sale.total).toFixed(2));
+        existingStaff.itemsSold += itemsInThisSale;
+      } else {
+        staffMap.set(staffKey, {
+          staffId: sale.cashierId,
+          staffName: sale.cashierName,
+          transactionsCount: 1,
+          totalRevenue: Number(sale.total.toFixed(2)),
+          itemsSold: itemsInThisSale
+        });
+      }
+
+      // Payment Breakdown
+      sale.payments.forEach(p => {
+        if (paymentMap[p.method]) {
+          paymentMap[p.method].count += 1;
+          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
+        }
+      });
+    });
+
+    totalRevenue = Number(totalRevenue.toFixed(2));
+    const averageTransactionValue =
+      totalTransactions > 0 ? Number((totalRevenue / totalTransactions).toFixed(2)) : 0;
+
+    // Convert payment map to array with percentages
+    const paymentMethodBreakdown: PaymentMethodStat[] = (
+      Object.keys(paymentMap) as PaymentMethod[]
+    ).map(method => {
+      const data = paymentMap[method];
+      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
+      return {
+        method,
+        label: data.label,
+        count: data.count,
+        totalAmount: data.totalAmount,
+        percentage
+      };
+    });
+
+    const productBreakdown = Array.from(productMap.values()).sort(
+      (a, b) => b.quantitySold - a.quantitySold
+    );
+    const staffBreakdown = Array.from(staffMap.values()).sort(
+      (a, b) => b.totalRevenue - a.totalRevenue
+    );
+
+    return {
+      date: targetDate,
+      formattedDate,
+      totalTransactions,
+      totalItemsSold,
+      totalRevenue,
+      averageTransactionValue,
+      productBreakdown,
+      paymentMethodBreakdown,
+      staffBreakdown,
+      transactions: daySales
+    };
+  }
+
+  /**
+   * Generates a Weekly Sales Report calculated from actual recorded transactions
+   */
+  public getWeeklyReport(dateOrStartStr?: string): WeeklyReport {
+    const referenceDate = dateOrStartStr ? new Date(dateOrStartStr) : new Date();
+    const { monday, sunday, startDate, endDate } = this.getWeekBounds(referenceDate);
+
+    const monLabel = monday.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const sunLabel = sunday.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const label = `${monLabel} – ${sunLabel}`;
+
+    const allSales = this.getSales();
+    const startTime = monday.getTime();
+    const endTime = sunday.getTime();
+
+    const weekSales = allSales.filter(s => {
+      if (s.status === 'refunded') return false;
+      const t = new Date(s.timestamp).getTime();
+      return t >= startTime && t <= endTime;
+    });
+
+    const totalTransactions = weekSales.length;
+    let totalItemsSold = 0;
+    let totalRevenue = 0;
+
+    // Daily breakdown for all 7 days Mon-Sun
+    const dailyTotals: DaySaleSummary[] = [];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (let i = 0; i < 7; i++) {
+      const curDay = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      const curDateStr = this.toLocalDateString(curDay);
+      const daySales = weekSales.filter(s => this.toLocalDateString(s.timestamp) === curDateStr);
+
+      const dayRevenue = Number(daySales.reduce((acc, s) => acc + s.total, 0).toFixed(2));
+      const dayItems = daySales.reduce((acc, s) => acc + s.items.reduce((sum, item) => sum + item.quantity, 0), 0);
+
+      dailyTotals.push({
+        date: curDateStr,
+        dayName: dayNames[i],
+        shortDate: curDay.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+        totalTransactions: daySales.length,
+        totalItemsSold: dayItems,
+        totalRevenue: dayRevenue
+      });
+    }
+
+    const productMap = new Map<string, ProductSaleStat>();
+    const staffMap = new Map<string, StaffSaleStat>();
+    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
+      cash: { count: 0, totalAmount: 0, label: 'Cash' },
+      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
+      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
+      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
+    };
+    const catalog = this.getProducts();
+
+    weekSales.forEach(sale => {
+      totalRevenue += sale.total;
+
+      sale.items.forEach(item => {
+        totalItemsSold += item.quantity;
+        const existing = productMap.get(item.productId);
+        const catItem = catalog.find(p => p.id === item.productId);
+        const category = catItem?.category || 'General Stationery';
+
+        if (existing) {
+          existing.quantitySold += item.quantity;
+          existing.totalRevenue = Number((existing.totalRevenue + item.total).toFixed(2));
+          existing.averagePrice = Number((existing.totalRevenue / existing.quantitySold).toFixed(2));
+        } else {
+          productMap.set(item.productId, {
+            productId: item.productId,
+            productName: item.productName,
+            sku: item.sku,
+            barcode: item.barcode,
+            category,
+            quantitySold: item.quantity,
+            totalRevenue: Number(item.total.toFixed(2)),
+            averagePrice: Number((item.total / item.quantity).toFixed(2))
+          });
+        }
+      });
+
+      const staffKey = sale.cashierId || sale.cashierName;
+      const existingStaff = staffMap.get(staffKey);
+      const itemsInThisSale = sale.items.reduce((sum, i) => sum + i.quantity, 0);
+
+      if (existingStaff) {
+        existingStaff.transactionsCount += 1;
+        existingStaff.totalRevenue = Number((existingStaff.totalRevenue + sale.total).toFixed(2));
+        existingStaff.itemsSold += itemsInThisSale;
+      } else {
+        staffMap.set(staffKey, {
+          staffId: sale.cashierId,
+          staffName: sale.cashierName,
+          transactionsCount: 1,
+          totalRevenue: Number(sale.total.toFixed(2)),
+          itemsSold: itemsInThisSale
+        });
+      }
+
+      sale.payments.forEach(p => {
+        if (paymentMap[p.method]) {
+          paymentMap[p.method].count += 1;
+          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
+        }
+      });
+    });
+
+    totalRevenue = Number(totalRevenue.toFixed(2));
+    const averageDailyRevenue = Number((totalRevenue / 7).toFixed(2));
+
+    const productBreakdown = Array.from(productMap.values()).sort(
+      (a, b) => b.totalRevenue - a.totalRevenue
+    );
+    const bestSellingProducts = Array.from(productMap.values()).sort(
+      (a, b) => b.quantitySold - a.quantitySold
+    );
+    const staffBreakdown = Array.from(staffMap.values()).sort(
+      (a, b) => b.totalRevenue - a.totalRevenue
+    );
+
+    const paymentMethodBreakdown: PaymentMethodStat[] = (
+      Object.keys(paymentMap) as PaymentMethod[]
+    ).map(method => {
+      const data = paymentMap[method];
+      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
+      return {
+        method,
+        label: data.label,
+        count: data.count,
+        totalAmount: data.totalAmount,
+        percentage
+      };
+    });
+
+    return {
+      startDate,
+      endDate,
+      label,
+      totalTransactions,
+      totalItemsSold,
+      totalRevenue,
+      averageDailyRevenue,
+      dailyTotals,
+      productBreakdown,
+      bestSellingProducts,
+      staffBreakdown,
+      paymentMethodBreakdown,
+      transactions: weekSales
+    };
+  }
+
+  /**
+   * Generates a Monthly Sales Report calculated from actual recorded transactions
+   */
+  public getMonthlyReport(year: number, month: number): MonthlyReport {
+    // month is 1-12
+    const startOfMonth = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const endOfMonth = new Date(year, month - 1, daysInMonth, 23, 59, 59, 999);
+
+    const monthName = startOfMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+    const allSales = this.getSales();
+    const startTime = startOfMonth.getTime();
+    const endTime = endOfMonth.getTime();
+
+    const monthSales = allSales.filter(s => {
+      if (s.status === 'refunded') return false;
+      const t = new Date(s.timestamp).getTime();
+      return t >= startTime && t <= endTime;
+    });
+
+    const totalTransactions = monthSales.length;
+    let totalItemsSold = 0;
+    let totalRevenue = 0;
+
+    // Daily breakdown for each day of the month (1..daysInMonth)
+    const dailyBreakdown: DaySaleSummary[] = [];
+
+    for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+      const curDateObj = new Date(year, month - 1, dayNum);
+      const curDateStr = this.toLocalDateString(curDateObj);
+      const daySales = monthSales.filter(s => this.toLocalDateString(s.timestamp) === curDateStr);
+
+      const dayRevenue = Number(daySales.reduce((acc, s) => acc + s.total, 0).toFixed(2));
+      const dayItems = daySales.reduce((acc, s) => acc + s.items.reduce((sum, item) => sum + item.quantity, 0), 0);
+
+      dailyBreakdown.push({
+        date: curDateStr,
+        dayName: curDateObj.toLocaleDateString(undefined, { weekday: 'short' }),
+        shortDate: `${curDateObj.toLocaleDateString(undefined, { month: 'short' })} ${dayNum}`,
+        totalTransactions: daySales.length,
+        totalItemsSold: dayItems,
+        totalRevenue: dayRevenue
+      });
+    }
+
+    const productMap = new Map<string, ProductSaleStat>();
+    const staffMap = new Map<string, StaffSaleStat>();
+    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
+      cash: { count: 0, totalAmount: 0, label: 'Cash' },
+      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
+      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
+      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
+    };
+    const catalog = this.getProducts();
+
+    monthSales.forEach(sale => {
+      totalRevenue += sale.total;
+
+      sale.items.forEach(item => {
+        totalItemsSold += item.quantity;
+        const existing = productMap.get(item.productId);
+        const catItem = catalog.find(p => p.id === item.productId);
+        const category = catItem?.category || 'General Stationery';
+
+        if (existing) {
+          existing.quantitySold += item.quantity;
+          existing.totalRevenue = Number((existing.totalRevenue + item.total).toFixed(2));
+          existing.averagePrice = Number((existing.totalRevenue / existing.quantitySold).toFixed(2));
+        } else {
+          productMap.set(item.productId, {
+            productId: item.productId,
+            productName: item.productName,
+            sku: item.sku,
+            barcode: item.barcode,
+            category,
+            quantitySold: item.quantity,
+            totalRevenue: Number(item.total.toFixed(2)),
+            averagePrice: Number((item.total / item.quantity).toFixed(2))
+          });
+        }
+      });
+
+      const staffKey = sale.cashierId || sale.cashierName;
+      const existingStaff = staffMap.get(staffKey);
+      const itemsInThisSale = sale.items.reduce((sum, i) => sum + i.quantity, 0);
+
+      if (existingStaff) {
+        existingStaff.transactionsCount += 1;
+        existingStaff.totalRevenue = Number((existingStaff.totalRevenue + sale.total).toFixed(2));
+        existingStaff.itemsSold += itemsInThisSale;
+      } else {
+        staffMap.set(staffKey, {
+          staffId: sale.cashierId,
+          staffName: sale.cashierName,
+          transactionsCount: 1,
+          totalRevenue: Number(sale.total.toFixed(2)),
+          itemsSold: itemsInThisSale
+        });
+      }
+
+      sale.payments.forEach(p => {
+        if (paymentMap[p.method]) {
+          paymentMap[p.method].count += 1;
+          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
+        }
+      });
+    });
+
+    totalRevenue = Number(totalRevenue.toFixed(2));
+    const averageDailyRevenue = Number((totalRevenue / daysInMonth).toFixed(2));
+
+    const productBreakdown = Array.from(productMap.values()).sort(
+      (a, b) => b.totalRevenue - a.totalRevenue
+    );
+    const bestSellingProducts = Array.from(productMap.values()).sort(
+      (a, b) => b.quantitySold - a.quantitySold
+    );
+    const staffBreakdown = Array.from(staffMap.values()).sort(
+      (a, b) => b.totalRevenue - a.totalRevenue
+    );
+
+    const paymentMethodBreakdown: PaymentMethodStat[] = (
+      Object.keys(paymentMap) as PaymentMethod[]
+    ).map(method => {
+      const data = paymentMap[method];
+      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
+      return {
+        method,
+        label: data.label,
+        count: data.count,
+        totalAmount: data.totalAmount,
+        percentage
+      };
+    });
+
+    return {
+      year,
+      month,
+      monthName,
+      totalTransactions,
+      totalItemsSold,
+      totalRevenue,
+      averageDailyRevenue,
+      dailyBreakdown,
+      productBreakdown,
+      bestSellingProducts,
+      staffBreakdown,
+      paymentMethodBreakdown,
+      transactions: monthSales
+    };
+  }
+
+  /**
+   * Calculates all Dashboard Executive Sales Statistics from actual recorded transactions
+   */
+  public getDashboardSalesMetrics(): DashboardSalesMetrics {
+    const allSales = this.getSales().filter(s => s.status !== 'refunded');
+    const now = new Date();
+    const todayStr = this.toLocalDateString(now);
+
+    const { monday, sunday } = this.getWeekBounds(now);
+    const startOfWeekTime = monday.getTime();
+    const endOfWeekTime = sunday.getTime();
+
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth(); // 0-indexed
+
+    let todaySales = 0;
+    let todayTransactions = 0;
+    let thisWeekSales = 0;
+    let thisWeekTransactions = 0;
+    let thisMonthSales = 0;
+    let thisMonthTransactions = 0;
+    let totalProductsSold = 0;
+    let totalAllTimeRevenue = 0;
+
+    allSales.forEach(sale => {
+      const saleDate = new Date(sale.timestamp);
+      const saleTime = saleDate.getTime();
+      const saleDateStr = this.toLocalDateString(saleDate);
+
+      totalAllTimeRevenue += sale.total;
+      const itemsInSale = sale.items.reduce((sum, i) => sum + i.quantity, 0);
+      totalProductsSold += itemsInSale;
+
+      // Today
+      if (saleDateStr === todayStr) {
+        todaySales += sale.total;
+        todayTransactions += 1;
+      }
+
+      // This Week
+      if (saleTime >= startOfWeekTime && saleTime <= endOfWeekTime) {
+        thisWeekSales += sale.total;
+        thisWeekTransactions += 1;
+      }
+
+      // This Month
+      if (saleDate.getFullYear() === currentYear && saleDate.getMonth() === currentMonth) {
+        thisMonthSales += sale.total;
+        thisMonthTransactions += 1;
+      }
+    });
+
+    const products = this.getProducts();
+    const lowStockCount = products.filter(p => p.stock <= p.minThreshold).length;
+
+    return {
+      todaySales: Number(todaySales.toFixed(2)),
+      todayTransactions,
+      thisWeekSales: Number(thisWeekSales.toFixed(2)),
+      thisWeekTransactions,
+      thisMonthSales: Number(thisMonthSales.toFixed(2)),
+      thisMonthTransactions,
+      totalProductsSold,
+      lowStockCount,
+      totalSalesCount: allSales.length,
+      totalAllTimeRevenue: Number(totalAllTimeRevenue.toFixed(2))
+    };
   }
 
   // Parked / Held Carts
@@ -1901,9 +2491,22 @@ class StorageService {
 
   // Utilities: Barcode & SKU Generator
   public generateBarcodeNumber(): string {
-    // Generate valid 12-digit UPC/EAN-12 format starting with 890 (stationery/store standard)
-    const randomSuffix = Math.floor(100000000 + Math.random() * 900000000).toString();
-    return '89' + randomSuffix.substring(0, 10);
+    const existing = new Set(this.getProducts().map(p => (p.barcode || '').trim()));
+    let candidate = '';
+    let attempts = 0;
+    do {
+      // 12-digit standard code starting with '89' (EAN-12 / UPC compatible)
+      const randomSuffix = Math.floor(1000000000 + Math.random() * 9000000000).toString();
+      candidate = '89' + randomSuffix;
+      attempts++;
+    } while (existing.has(candidate) && attempts < 100);
+
+    // Fallback if 100 random collisions
+    if (existing.has(candidate)) {
+      candidate = '89' + Date.now().toString().slice(-10);
+    }
+
+    return candidate;
   }
 
   public generateSku(category: string, name: string): string {

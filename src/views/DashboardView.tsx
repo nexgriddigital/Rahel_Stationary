@@ -38,14 +38,12 @@ import {
 
 interface DashboardViewProps {
   onNavigate: (tab: NavTab) => void;
-  onOpenReceipt: (sale: Sale) => void;
   onOpenScanner: () => void;
   onOpenShiftModal: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
-  onOpenReceipt,
   onOpenScanner,
   onOpenShiftModal
 }) => {
@@ -53,6 +51,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const products = storage.getProducts();
   const activeShift = storage.getActiveShift();
   const settings = storage.getSettings();
+  const metrics = storage.getDashboardSalesMetrics();
 
   const [areaChartMode, setAreaChartMode] = useState<'daily' | 'cumulative'>('daily');
 
@@ -297,75 +296,104 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       </div>
 
-      {/* 4 Executive Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {/* Metric 1 */}
-        <div className="p-4 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#a39c90]">
-              Today&apos;s Gross Sales
+      {/* 6 Executive Metric KPI Cards (Calculated directly from recorded transactions) */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        {/* Metric 1: Today's Sales */}
+        <div className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Today&apos;s Sales
             </span>
-            <TrendingUp className="w-4 h-4 text-[#f5d77f]" />
+            <TrendingUp className="w-3.5 h-3.5 text-[#f5d77f] shrink-0" />
           </div>
-          <div className="text-2xl font-bold font-mono text-[#f5d77f]">
-            {settings.currencySymbol} {todayRevenue.toFixed(2)}
+          <div className="text-xl font-bold font-mono text-[#f5d77f] truncate">
+            {settings.currencySymbol} {metrics.todaySales.toFixed(2)}
           </div>
-          <div className="text-[11px] text-[#8c8273]">
-            {todaySales.length} retail checkouts today
+          <div className="text-[10px] text-[#8c8273] truncate">
+            Gross sales today
           </div>
         </div>
 
-        {/* Metric 2 */}
-        <div className="p-4 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#a39c90]">
-              Register Cash Drawer
+        {/* Metric 2: Today's Transactions */}
+        <div className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Today&apos;s Orders
             </span>
-            <DollarSign className="w-4 h-4 text-[#d4af37]" />
+            <ShoppingBag className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
           </div>
-          <div className="text-2xl font-bold font-mono text-[#f5d77f]">
-            {settings.currencySymbol} {activeShift ? activeShift.expectedCash.toFixed(2) : '0.00'}
+          <div className="text-xl font-bold font-mono text-[#f4efe8]">
+            {metrics.todayTransactions}
           </div>
-          <div className="text-[11px] text-[#8c8273]">
-            {activeShift ? `Shift #${activeShift.shiftNumber} active` : 'Register drawer closed'}
+          <div className="text-[10px] text-[#8c8273] truncate">
+            Transactions today
           </div>
         </div>
 
-        {/* Metric 3 */}
+        {/* Metric 3: This Week's Sales */}
+        <div className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              This Week&apos;s Sales
+            </span>
+            <Calendar className="w-3.5 h-3.5 text-[#f5d77f] shrink-0" />
+          </div>
+          <div className="text-xl font-bold font-mono text-[#f5d77f] truncate">
+            {settings.currencySymbol} {metrics.thisWeekSales.toFixed(2)}
+          </div>
+          <div className="text-[10px] text-[#8c8273] truncate">
+            {metrics.thisWeekTransactions} checkouts this week
+          </div>
+        </div>
+
+        {/* Metric 4: This Month's Sales */}
+        <div className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              This Month&apos;s Sales
+            </span>
+            <Layers className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+          </div>
+          <div className="text-xl font-bold font-mono text-[#f5d77f] truncate">
+            {settings.currencySymbol} {metrics.thisMonthSales.toFixed(2)}
+          </div>
+          <div className="text-[10px] text-[#8c8273] truncate">
+            {metrics.thisMonthTransactions} monthly sales
+          </div>
+        </div>
+
+        {/* Metric 5: Total Products Sold */}
+        <div className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 hover:border-[#d4af37]/40 transition-colors">
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Total Units Sold
+            </span>
+            <Package className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+          </div>
+          <div className="text-xl font-bold font-mono text-[#f4efe8]">
+            {metrics.totalProductsSold}
+          </div>
+          <div className="text-[10px] text-[#8c8273] truncate">
+            Catalog items sold
+          </div>
+        </div>
+
+        {/* Metric 6: Low Stock Products */}
         <div
           onClick={() => onNavigate('inventory')}
-          className="p-4 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 cursor-pointer hover:border-amber-500/70 transition-colors"
+          className="p-3.5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 cursor-pointer hover:border-amber-500/70 transition-colors"
         >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#a39c90]">
-              Low Stock Warnings
+          <div className="flex items-center justify-between text-[#a39c90]">
+            <span className="text-[10px] font-semibold uppercase tracking-wider truncate">
+              Low-Stock Warnings
             </span>
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           </div>
-          <div className="text-2xl font-bold font-mono text-amber-400">
-            {lowStockItems.length}
+          <div className="text-xl font-bold font-mono text-amber-400">
+            {metrics.lowStockCount}
           </div>
-          <div className="text-[11px] text-[#8c8273]">
-            Items at or below reorder threshold
-          </div>
-        </div>
-
-        {/* Metric 4 */}
-        <div
-          onClick={() => onNavigate('inventory')}
-          className="p-4 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-1 cursor-pointer hover:border-[#d4af37]/60 transition-colors"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#a39c90]">
-              Catalog Inventory SKUs
-            </span>
-            <Package className="w-4 h-4 text-[#d4af37]" />
-          </div>
-          <div className="text-2xl font-bold font-mono text-[#f5d77f]">
-            {products.length}
-          </div>
-          <div className="text-[11px] text-[#8c8273]">
-            Active stationery items tracked
+          <div className="text-[10px] text-[#8c8273] truncate">
+            At/below threshold
           </div>
         </div>
       </div>
@@ -907,13 +935,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="p-5 rounded-2xl bg-[#141417] border border-[#2a261f] shadow-2xs space-y-3">
           <div className="flex items-center justify-between">
             <div className="font-bold text-sm text-[#f4efe8]">
-              Recent Register Transactions
+              Recent Recorded Sales
             </div>
             <button
               onClick={() => onNavigate('sales')}
-              className="text-xs font-semibold text-[#f5d77f] hover:underline flex items-center gap-1"
+              className="text-xs font-semibold text-[#f5d77f] hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>View Sales Ledger</span>
+              <span>View Sales History</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -922,14 +950,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             {recentSales.map((sale) => (
               <div
                 key={sale.id}
-                className="py-2.5 flex items-center justify-between text-xs"
+                onClick={() => onNavigate('sales')}
+                className="py-2.5 flex items-center justify-between text-xs hover:bg-white/[0.02] px-2 rounded-xl transition-colors cursor-pointer"
               >
                 <div className="min-w-0 flex-1 pr-2">
                   <div className="font-mono font-bold text-[#f5d77f]">
-                    {sale.receiptNumber}
+                    {sale.transactionId || sale.receiptNumber}
                   </div>
                   <div className="text-[10px] text-[#8c8273]">
-                    {sale.customerName || 'Walk-in'} · {sale.items.length} items · {new Date(sale.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {sale.customerName || 'Walk-in'} · {sale.items.length} {sale.items.length === 1 ? 'item' : 'items'} · {new Date(sale.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
 
@@ -937,13 +966,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <span className="font-mono font-bold text-[#f5d77f]">
                     {settings.currencySymbol} {sale.total.toFixed(2)}
                   </span>
-                  <button
-                    onClick={() => onOpenReceipt(sale)}
-                    title="Print Receipt"
-                    className="p-1 rounded-lg text-[#8c8273] hover:text-[#f5d77f]"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                  </button>
+                  <span className="text-[10px] px-2 py-0.5 rounded bg-[#1f1f26] text-[#c4bbb0] border border-[#2a261f]">
+                    {sale.payments.map((p) => p.method.replace('_', ' ')).join(', ')}
+                  </span>
                 </div>
               </div>
             ))}

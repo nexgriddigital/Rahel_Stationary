@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBag,
-  Receipt,
+  History,
   CreditCard,
   Wallet,
   Barcode,
@@ -18,7 +18,8 @@ import {
   Shield,
   CircleDollarSign,
   Maximize2,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { storage } from '../services/storage';
 
@@ -76,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badge: parkedCarts.length > 0 ? `${parkedCarts.length} held` : cartItemCount > 0 ? `${cartItemCount}` : undefined,
       badgeColor: parkedCarts.length > 0 ? 'bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30' : 'bg-[#d4af37] text-black font-bold'
     },
-    { id: 'sales', label: 'Sales Ledger', icon: Receipt },
+    { id: 'sales', label: 'Sales History', icon: History },
     {
       id: 'credit',
       label: 'Credit Tab',

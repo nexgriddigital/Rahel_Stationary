@@ -24,14 +24,14 @@ import {
 } from 'lucide-react';
 
 interface PosRegisterViewProps {
-  onOpenReceipt: (sale: Sale) => void;
+  onNavigateToHistory?: () => void;
   onOpenScanner: () => void;
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
 }
 
 export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
-  onOpenReceipt,
+  onNavigateToHistory,
   onOpenScanner,
   cart,
   setCart
@@ -43,6 +43,13 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   const [holdNote, setHoldNote] = useState('');
   const [customerName, setCustomerName] = useState('Walk-in Customer');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [splitError, setSplitError] = useState<string | null>(null);
+  const [barcodeToast, setBarcodeToast] = useState<{
+    productName: string;
+    retailPrice: number;
+    barcode: string;
+  } | null>(null);
+  const [lastRecordedSale, setLastRecordedSale] = useState<Sale | null>(null);
 
   // Payment splits state
   const [payments, setPayments] = useState<PaymentSplit[]>([
@@ -174,13 +181,17 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   const handleCompleteSale = () => {
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     if (Math.abs(totalPaid - totalAmount) > 0.05) {
-      alert(`Split payments total ($${totalPaid.toFixed(2)}) must match order total ($${totalAmount.toFixed(2)}).`);
+      setSplitError(`Split payments total (${settings.currencySymbol} ${totalPaid.toFixed(2)}) must match order total (${settings.currencySymbol} ${totalAmount.toFixed(2)}).`);
       return;
     }
+    setSplitError(null);
+
+    const transactionId = 'TXN-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
 
     const sale: Sale = {
       id: 'sale_' + Date.now(),
-      receiptNumber: 'REC-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000),
+      transactionId,
+      receiptNumber: transactionId,
       timestamp: new Date().toISOString(),
       cashierId: activeUser.id,
       cashierName: activeUser.name,
@@ -207,10 +218,32 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
       customerPhone: customerPhone || undefined
     };
 
+    // Record sale in database and decrement stock for all sold items
     storage.completeSale(sale);
     setCart([]);
     setShowCheckoutModal(false);
-    onOpenReceipt(sale);
+    setLastRecordedSale(sale);
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const query = searchTerm.trim();
+      if (!query) return;
+      const matched = products.find(
+        p => p.barcode === query || p.sku.toLowerCase() === query.toLowerCase()
+      );
+      if (matched) {
+        e.preventDefault();
+        addToCart(matched);
+        setSearchTerm('');
+        setBarcodeToast({
+          productName: matched.name,
+          retailPrice: matched.retailPrice,
+          barcode: matched.barcode
+        });
+        setTimeout(() => setBarcodeToast(null), 3500);
+      }
+    }
   };
 
   // Filter products by category & search
@@ -224,7 +257,19 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   });
 
   return (
-    <div className="h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-hidden bg-[#0a0a0c] text-[#f4efe8]">
+    <div className="h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-hidden bg-[#0a0a0c] text-[#f4efe8] relative">
+      {/* Barcode Scanned Notification Toast */}
+      {barcodeToast && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl bg-[#141417] border border-[#d4af37] shadow-xl text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle className="w-4 h-4 text-[#d4af37]" />
+          <div>
+            <span className="font-bold text-[#f5d77f]">{barcodeToast.productName}</span>
+            <span className="text-[#a39c90]"> added to sale ({settings.currencySymbol} {barcodeToast.retailPrice.toFixed(2)})</span>
+            <span className="ml-2 font-mono text-[10px] text-[#8c8273]">[{barcodeToast.barcode}]</span>
+          </div>
+        </div>
+      )}
+
       {/* Left Area: Product Catalog & Category Filters */}
       <div className="flex-1 flex flex-col border-r border-[#26221c] overflow-hidden">
         {/* Search & Quick Actions Bar */}
@@ -233,9 +278,10 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8273]" />
             <input
               type="text"
-              placeholder="Search items, SKU, or scan barcode..."
+              placeholder="Search items, SKU, or scan barcode (Press Enter)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-[#18181d] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60"
             />
           </div>
@@ -243,7 +289,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenScanner}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 transition-all shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 transition-all shrink-0 cursor-pointer"
             >
               <Camera className="w-3.5 h-3.5 text-black" />
               <span>Scan Barcode</span>
@@ -694,13 +740,24 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Payment Split Error Banner */}
+              {splitError && (
+                <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{splitError}</span>
+                </div>
+              )}
             </div>
 
             {/* Modal Bottom Actions */}
             <div className="p-4 bg-[#18181d] border-t border-[#26221c] flex items-center justify-between gap-3">
               <button
                 type="button"
-                onClick={() => setShowCheckoutModal(false)}
+                onClick={() => {
+                  setShowCheckoutModal(false);
+                  setSplitError(null);
+                }}
                 className="px-3 py-2 text-xs font-semibold rounded-xl text-[#8c8273] hover:text-[#f4efe8]"
               >
                 Back to Register
@@ -709,11 +766,131 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
               <button
                 type="button"
                 onClick={handleCompleteSale}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black font-bold text-xs flex items-center gap-2 shadow-sm shadow-[#d4af37]/20 transition-all"
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black font-bold text-xs flex items-center gap-2 shadow-sm shadow-[#d4af37]/20 transition-all cursor-pointer"
               >
                 <CheckCircle className="w-4 h-4 text-black" />
-                <span>Complete Checkout & Print</span>
+                <span>Complete & Record Sale</span>
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sale Recorded Success Confirmation Modal (NO RECEIPTS) */}
+      {lastRecordedSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="w-full max-w-md rounded-3xl bg-[#141417] text-[#f4efe8] border border-[#2a261f] shadow-2xl overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="p-5 border-b border-[#26221c] bg-[#18181d] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#f5d77f]">Sale Recorded Successfully</h3>
+                  <p className="text-[11px] text-[#8c8273]">
+                    Transaction logged in database & inventory stock updated
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setLastRecordedSale(null)}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8c8273] hover:text-[#f4efe8]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Transaction Overview Body */}
+            <div className="p-5 space-y-4">
+              <div className="p-4 rounded-2xl bg-[#18181d] border border-[#26221c] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#8c8273]">Transaction ID</span>
+                  <span className="font-mono font-bold text-[#f5d77f]">
+                    {lastRecordedSale.transactionId || lastRecordedSale.receiptNumber}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#8c8273]">Date & Time</span>
+                  <span className="text-[#c4bbb0]">
+                    {new Date(lastRecordedSale.timestamp).toLocaleString([], {
+                      dateStyle: 'medium',
+                      timeStyle: 'short'
+                    })}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#8c8273]">Staff Member</span>
+                  <span className="text-[#f4efe8] font-medium">{lastRecordedSale.cashierName}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#8c8273]">Customer</span>
+                  <span className="text-[#f4efe8]">{lastRecordedSale.customerName || 'Walk-in'}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs pt-2 border-t border-[#26221c]">
+                  <span className="text-xs font-semibold text-[#8c8273]">Total Sale Amount</span>
+                  <span className="font-mono font-extrabold text-base text-[#f5d77f]">
+                    {settings.currencySymbol} {lastRecordedSale.total.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Items Summary */}
+              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
+                <div className="text-[11px] font-semibold uppercase tracking-wider text-[#8c8273]">
+                  Items Sold ({lastRecordedSale.items.reduce((s, i) => s + i.quantity, 0)} units)
+                </div>
+                {lastRecordedSale.items.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-2.5 rounded-xl bg-[#18181d]/60 border border-[#26221c] flex items-center justify-between text-xs"
+                  >
+                    <div>
+                      <div className="font-medium text-[#f4efe8] truncate max-w-[220px]">
+                        {item.productName}
+                      </div>
+                      <div className="text-[10px] text-[#8c8273] font-mono">
+                        {item.quantity} × {settings.currencySymbol} {item.unitPrice.toFixed(2)}
+                        {item.discountPercent > 0 && ` (${item.discountPercent}% off)`}
+                      </div>
+                    </div>
+                    <span className="font-mono font-bold text-[#f5d77f]">
+                      {settings.currencySymbol} {item.total.toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Payment Methods */}
+              <div className="p-2.5 rounded-xl bg-[#18181d] border border-[#26221c] text-xs flex items-center justify-between">
+                <span className="text-[#8c8273]">Payment Tendered:</span>
+                <span className="font-medium text-[#f5d77f] capitalize">
+                  {lastRecordedSale.payments.map(p => `${p.method.replace('_', ' ')} (${settings.currencySymbol} ${p.amount.toFixed(2)})`).join(', ')}
+                </span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 bg-[#18181d] border-t border-[#26221c] flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setLastRecordedSale(null)}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:brightness-110 cursor-pointer"
+              >
+                <span>Record Next Sale</span>
+              </button>
+              {onNavigateToHistory && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLastRecordedSale(null);
+                    onNavigateToHistory();
+                  }}
+                  className="px-4 py-2.5 rounded-xl bg-[#24242c] hover:bg-[#2e2e38] text-xs font-semibold text-[#f5d77f] border border-[#2a261f] cursor-pointer"
+                >
+                  Sales History
+                </button>
+              )}
             </div>
           </div>
         </div>

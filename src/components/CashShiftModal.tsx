@@ -26,6 +26,7 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
   // Drop fields
   const [dropAmount, setDropAmount] = useState('');
   const [dropReason, setDropReason] = useState('Safe deposit transfer');
+  const [dropError, setDropError] = useState<string | null>(null);
 
   // Reconciliation cash count breakdown
   const [actualCountedCash, setActualCountedCash] = useState('');
@@ -43,14 +44,16 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
 
   const handleCashDrop = (e: React.FormEvent) => {
     e.preventDefault();
+    setDropError(null);
     if (!activeShift) return;
     const dropVal = parseFloat(dropAmount) || 0;
     if (dropVal <= 0 || dropVal > activeShift.expectedCash) {
-      alert('Drop amount must be greater than zero and cannot exceed current expected cash in drawer.');
+      setDropError(`Drop amount must be greater than zero and cannot exceed current drawer cash (${settings.currencySymbol} ${activeShift.expectedCash.toFixed(2)}).`);
       return;
     }
     storage.addCashDrop(activeShift.id, dropVal, dropReason);
     setDropAmount('');
+    setDropError(null);
     onShiftUpdated?.();
     setMode('overview');
   };
@@ -288,6 +291,11 @@ export const CashShiftModal: React.FC<CashShiftModalProps> = ({
                   className="w-full px-3 py-2 text-xs rounded-xl bg-[#141417] border border-amber-700/60 text-[#f4efe8] focus:outline-none focus:border-amber-500"
                 />
               </div>
+              {dropError && (
+                <div className="p-2.5 rounded-lg bg-rose-950/50 border border-rose-800 text-rose-300 text-xs">
+                  {dropError}
+                </div>
+              )}
               <div className="flex justify-end gap-2 pt-1">
                 <button
                   type="button"

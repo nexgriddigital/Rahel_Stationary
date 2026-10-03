@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Product, ProductCategory } from '../types';
 import { storage } from '../services/storage';
+import { printHtmlViaIframe } from '../services/printHelper';
 import { BarcodeRenderer } from '../components/BarcodeRenderer';
 import { BulkImportModal } from '../components/BulkImportModal';
+import { ProductBarcodeModal } from '../components/ProductBarcodeModal';
 import {
   Package,
   Plus,
@@ -17,7 +19,14 @@ import {
   CheckCircle2,
   X,
   Filter,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Copy,
+  Printer,
+  Eye,
+  Check,
+  CheckSquare,
+  Square,
+  AlertCircle
 } from 'lucide-react';
 
 interface InventoryViewProps {
@@ -31,11 +40,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
   const [search, setSearch] = useState('');
   const settings = storage.getSettings();
 
+  // Barcode and Selection states
+  const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
+  const [copiedBarcodeId, setCopiedBarcodeId] = useState<string | null>(null);
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+
   // Modals
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [successNotification, setSuccessNotification] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
   const [adjustQuantity, setAdjustQuantity] = useState('10');
   const [adjustType, setAdjustType] = useState<'IN' | 'OUT' | 'AUDIT' | 'RETURN' | 'DAMAGE'>('IN');
@@ -71,6 +86,76 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
     setProducts(storage.getProducts());
   };
 
+  const copyBarcode = async (barcode: string, prodId: string) => {
+    try {
+      await navigator.clipboard.writeText(barcode);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = barcode;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    setCopiedBarcodeId(prodId);
+    setTimeout(() => setCopiedBarcodeId(null), 1800);
+  };
+
+  const handlePrintBatchLabels = (items: Product[]) => {
+    if (items.length === 0) return;
+
+    const labelsHtml = items
+      .map(
+        p => `
+        <div class="label-card">
+          <div class="store-name">${settings.storeName.toUpperCase()}</div>
+          <div class="item-name">${p.name}</div>
+          <div class="barcode-container">
+            <svg class="barcode-svg" jsbarcode-value="${p.barcode}" jsbarcode-format="CODE128" jsbarcode-width="1.8" jsbarcode-height="45" jsbarcode-fontsize="11" jsbarcode-margin="0"></svg>
+          </div>
+          <div class="footer-meta">
+            <span class="sku">SKU: ${p.sku}</span>
+            <span class="price">${settings.currencySymbol} ${p.retailPrice.toFixed(2)}</span>
+          </div>
+        </div>
+      `
+      )
+      .join('');
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Print Barcode Labels - ${settings.storeName}</title>
+          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          <style>
+            @page { size: auto; margin: 10mm; }
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 10px; background: #fff; color: #000; }
+            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+            .label-card { border: 1px dashed #aaa; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; page-break-inside: avoid; }
+            .store-name { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; color: #444; margin-bottom: 2px; }
+            .item-name { font-size: 11px; font-weight: 700; line-height: 1.2; max-height: 28px; overflow: hidden; margin-bottom: 4px; }
+            .barcode-container { margin: 4px 0; }
+            .footer-meta { width: 100%; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 11px; border-top: 1px solid #eee; padding-top: 4px; margin-top: 2px; }
+            .price { font-weight: 800; font-size: 12px; }
+            @media print { .no-print { display: none; } body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="grid">${labelsHtml}</div>
+          <script>
+            window.onload = function() {
+              JsBarcode(".barcode-svg").init();
+              setTimeout(function() { window.print(); }, 200);
+            };
+          </script>
+        </body>
+      </html>
+    `;
+
+    printHtmlViaIframe(htmlContent);
+  };
+
   const handleOpenAdd = () => {
     const autoBarcode = storage.generateBarcodeNumber();
     const autoSku = storage.generateSku('Paper & Notebooks', 'New Item');
@@ -86,12 +171,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       unit: 'pcs',
       description: ''
     });
+    setFormError(null);
     setEditingProduct(null);
     setIsAddModalOpen(true);
   };
 
   const handleOpenEdit = (p: Product) => {
     setFormData({ ...p });
+    setFormError(null);
     setEditingProduct(p);
     setIsAddModalOpen(true);
   };
@@ -104,18 +191,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       sku: autoSku,
       barcode: autoBarcode
     }));
+    setFormError(null);
   };
 
   const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.sku || !formData.barcode) return;
+    setFormError(null);
+    if (!formData.name || !formData.sku) return;
+
+    let barcodeValue = (formData.barcode || '').trim();
+    if (!barcodeValue) {
+      barcodeValue = storage.generateBarcodeNumber();
+    }
+
+    // Verify barcode uniqueness
+    if (!storage.isBarcodeUnique(barcodeValue, editingProduct?.id)) {
+      const duplicateProduct = products.find(p => p.id !== editingProduct?.id && p.barcode.trim() === barcodeValue);
+      setFormError(`Barcode '${barcodeValue}' is already assigned to "${duplicateProduct?.name}". Every item must have its own unique barcode.`);
+      return;
+    }
 
     const productToSave: Product = {
       id: editingProduct ? editingProduct.id : 'prod_' + Date.now(),
       name: formData.name,
       category: formData.category as ProductCategory,
       sku: formData.sku,
-      barcode: formData.barcode,
+      barcode: barcodeValue,
       costPrice: Number(formData.costPrice) || 0,
       retailPrice: Number(formData.retailPrice) || 0,
       stock: Number(formData.stock) || 0,
@@ -125,9 +226,16 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       updatedAt: new Date().toISOString()
     };
 
-    storage.saveProduct(productToSave);
+    const res = storage.saveProduct(productToSave);
+    if (!res.success) {
+      setFormError(res.error || 'Failed to save product.');
+      return;
+    }
+
     refreshList();
     setIsAddModalOpen(false);
+    setSuccessNotification(`Saved "${productToSave.name}" with unique barcode ${productToSave.barcode}`);
+    setTimeout(() => setSuccessNotification(null), 3500);
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
@@ -265,14 +373,35 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       </div>
 
       {/* Inventory Table Container */}
-      <div className="flex-1 rounded-2xl border border-[#26221c] bg-[#121215] overflow-hidden flex flex-col shadow-2xs">
+      <div className="flex-1 rounded-2xl border border-[#26221c] bg-[#121215] overflow-hidden flex flex-col shadow-2xs relative">
         <div className="flex-1 overflow-x-auto overflow-y-auto">
           <table className="w-full text-left text-xs">
-            <thead className="sticky top-0 bg-[#18181d] text-[#a39c90] font-medium border-b border-[#26221c] z-10">
+            <thead className="sticky top-0 bg-[#18181d] text-[#a39c90] font-medium border-b border-[#26221c] z-10 select-none">
               <tr>
+                <th className="py-2.5 px-3 w-10 text-center">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedProductIds.size === filtered.length && filtered.length > 0) {
+                        setSelectedProductIds(new Set());
+                      } else {
+                        setSelectedProductIds(new Set(filtered.map(p => p.id)));
+                      }
+                    }}
+                    title={selectedProductIds.size === filtered.length ? 'Deselect all' : 'Select all items'}
+                    className="p-1 rounded text-[#998b7a] hover:text-[#f5d77f] transition-colors cursor-pointer"
+                  >
+                    {filtered.length > 0 && selectedProductIds.size === filtered.length ? (
+                      <CheckSquare className="w-4 h-4 text-[#d4af37]" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="py-2.5 px-4">Item & Description</th>
                 <th className="py-2.5 px-3">Category</th>
-                <th className="py-2.5 px-3 font-mono">SKU / Barcode</th>
+                <th className="py-2.5 px-3 font-mono">SKU</th>
+                <th className="py-2.5 px-3 font-mono">Unique Barcode</th>
                 <th className="py-2.5 px-3 text-right">Cost</th>
                 <th className="py-2.5 px-3 text-right">Retail</th>
                 <th className="py-2.5 px-3 text-right">Margin</th>
@@ -283,7 +412,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
             <tbody className="divide-y divide-[#26221c] text-[#f4efe8]">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-[#8c8273]">
+                  <td colSpan={10} className="py-12 text-center text-[#8c8273]">
                     <div className="flex flex-col items-center justify-center gap-2">
                       <p>No inventory records match the current filters.</p>
                       <button
@@ -299,6 +428,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
               ) : (
                 filtered.map((prod) => {
                   const isLow = prod.stock <= prod.minThreshold;
+                  const isSelected = selectedProductIds.has(prod.id);
                   const marginPercent =
                     prod.retailPrice > 0
                       ? (((prod.retailPrice - prod.costPrice) / prod.retailPrice) * 100).toFixed(0)
@@ -307,8 +437,30 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                   return (
                     <tr
                       key={prod.id}
-                      className="hover:bg-[#d4af37]/5 transition-colors"
+                      className={`hover:bg-[#d4af37]/5 transition-colors ${
+                        isSelected ? 'bg-[#d4af37]/10' : ''
+                      }`}
                     >
+                      <td className="py-2.5 px-3 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedProductIds(prev => {
+                              const next = new Set(prev);
+                              if (next.has(prod.id)) next.delete(prod.id);
+                              else next.add(prod.id);
+                              return next;
+                            });
+                          }}
+                          className="p-1 rounded text-[#998b7a] hover:text-[#f5d77f] transition-colors cursor-pointer"
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-[#d4af37]" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
                       <td className="py-2.5 px-4">
                         <div className="font-semibold text-xs text-[#f4efe8]">
                           {prod.name}
@@ -322,9 +474,55 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                       <td className="py-2.5 px-3 text-[11px] text-[#a39c90]">
                         {prod.category}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px]">
-                        <div className="text-[#f4efe8]">{prod.sku}</div>
-                        <div className="text-[10px] text-[#8c8273]">{prod.barcode}</div>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#c4bbb0]">
+                        {prod.sku}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setBarcodeModalProduct(prod)}
+                            title="Click to view & print barcode"
+                            className="group text-left cursor-pointer"
+                          >
+                            <div className="font-mono text-xs font-bold text-[#f5d77f] group-hover:underline flex items-center gap-1.5">
+                              <Barcode className="w-3.5 h-3.5 text-[#d4af37]" />
+                              <span>{prod.barcode}</span>
+                            </div>
+                            <div className="text-[10px] text-[#8c8273]">Code-128 Retail</div>
+                          </button>
+
+                          <div className="flex items-center gap-0.5 ml-1">
+                            <button
+                              type="button"
+                              onClick={() => copyBarcode(prod.barcode, prod.id)}
+                              title="Copy Barcode Value"
+                              className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
+                            >
+                              {copiedBarcodeId === prod.id ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBarcodeModalProduct(prod)}
+                              title="View & Print Barcode Label"
+                              className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePrintBatchLabels([prod])}
+                              title="Print Single Barcode Label"
+                              className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
+                            >
+                              <Printer className="w-3 h-3" />
+                            </button>
+                          </div>
+                        </div>
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-[#8c8273]">
                         {settings.currencySymbol} {prod.costPrice.toFixed(2)}
@@ -364,21 +562,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                               setAdjustType('IN');
                             }}
                             title="Quick Stock In / Out Adjustment"
-                            className="p-1 rounded-lg text-[#f5d77f] hover:bg-[#d4af37]/20"
+                            className="p-1 rounded-lg text-[#f5d77f] hover:bg-[#d4af37]/20 cursor-pointer"
                           >
                             <ArrowUpDown className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleOpenEdit(prod)}
                             title="Edit Product Details"
-                            className="p-1 rounded-lg text-[#8c8273] hover:text-[#f4efe8] hover:bg-[#d4af37]/10"
+                            className="p-1 rounded-lg text-[#8c8273] hover:text-[#f4efe8] hover:bg-[#d4af37]/10 cursor-pointer"
                           >
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => handleDeleteProduct(prod.id, prod.name)}
                             title="Delete Product"
-                            className="p-1 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40"
+                            className="p-1 rounded-lg text-rose-400 hover:text-rose-300 hover:bg-rose-950/40 cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -391,6 +589,51 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
             </tbody>
           </table>
         </div>
+
+        {/* Floating Multi-select Batch Barcode Print Toolbar */}
+        {selectedProductIds.size > 0 && (
+          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 px-4 py-2.5 rounded-2xl bg-[#18181c] border border-[#d4af37]/50 shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-150">
+            <span className="text-xs font-semibold text-[#f5d77f] flex items-center gap-1.5">
+              <CheckSquare className="w-4 h-4 text-[#d4af37]" />
+              <span>{selectedProductIds.size} items selected</span>
+            </span>
+
+            <div className="h-4 w-px bg-[#26221c]" />
+
+            <button
+              type="button"
+              onClick={() => {
+                const selectedList = products.filter(p => selectedProductIds.has(p.id));
+                handlePrintBatchLabels(selectedList);
+              }}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] text-black text-xs font-bold flex items-center gap-1.5 hover:brightness-110 shadow-sm transition-all cursor-pointer"
+            >
+              <Printer className="w-3.5 h-3.5 text-black" />
+              <span>Print Barcode Labels ({selectedProductIds.size})</span>
+            </button>
+
+            {onNavigateToBarcodeStudio && (
+              <button
+                type="button"
+                onClick={() => {
+                  onNavigateToBarcodeStudio(Array.from(selectedProductIds));
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#3a3224] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Barcode className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>Barcode Studio Sheet</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setSelectedProductIds(new Set())}
+              className="text-xs text-[#8c8273] hover:text-[#f4efe8] px-1 cursor-pointer"
+            >
+              Clear
+            </button>
+          </div>
+        )}
 
         {/* Footer Meta Summary */}
         <div className="p-3 bg-[#18181d] border-t border-[#26221c] flex items-center justify-between text-xs text-[#8c8273]">
