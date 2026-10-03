@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rahel Stationary POS & Inventory</title>
+    <meta name="description" content="Production-grade offline-first Point of Sale (POS) and inventory management system for stationery & printing retail stores." />
+    <meta property="og:title" content="Rahel Stationary POS & Inventory" />
+    <meta property="og:description" content="Production-grade offline-first Point of Sale (POS) and inventory management system for stationery & printing retail stores." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#09090b" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Rahel POS" />
+    <!-- Fonts: Plus Jakarta Sans & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet" />
+    <script>
+      // 1. Ensure trailing slash on GitHub Pages repository root paths so relative ./assets load properly
+      (function() {
+        var path = window.location.pathname;
+        if (!path.endsWith('/') && !path.split('/').pop().includes('.')) {
+          window.location.replace(path + '/' + window.location.search + window.location.hash);
+        }
+      })();
+      // 2. Decode SPA redirected path from 404.html if present
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        var redirectPath = params.get('p');
+        if (redirectPath) {
+          params.delete('p');
+          var newSearch = params.toString() ? '?' + params.toString() : '';
+          var newHash = window.location.hash;
+          window.history.replaceState(null, null, window.location.pathname.replace(/\/$/, '') + redirectPath + newSearch + newHash);
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="./assets/index-DwtZlfxw.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-COqloly_.css">
+  </head>
+  <body class="bg-[#09090b] text-[#f4efe8] font-sans antialiased selection:bg-[#d4af37]/30 selection:text-[#f5d77f]">
+    <div id="root">
+      <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#09090b;color:#d4af37;font-family:sans-serif;padding:24px;text-align:center;">
+        <div style="font-size:20px;font-weight:700;letter-spacing:0.05em;margin-bottom:8px;">RAHEL STATIONARY POS</div>
+        <div style="font-size:13px;color:#a89f91;">Loading workstation...</div>
+      </div>
+    </div>
+  </body>
+</html>
+
