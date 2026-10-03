@@ -97,8 +97,7 @@ export default function App() {
     const discountFactor = 1 - (item.appliedDiscountPercent || 0) / 100;
     return acc + price * item.quantity * discountFactor;
   }, 0);
-  const taxAmount = (cartSubtotal * initialSettings.taxRatePercent) / 100;
-  const cartTotal = cartSubtotal + taxAmount;
+  const cartTotal = cartSubtotal;
 
   // Add product to cart helper
   const handleAddToCart = (product: Product) => {

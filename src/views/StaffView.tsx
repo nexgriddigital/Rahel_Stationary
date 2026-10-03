@@ -88,7 +88,7 @@ export const StaffView: React.FC = () => {
     {
       title: 'Store Settings & ETB Currency Config',
       icon: Settings,
-      description: 'Master administrative permission to manage store details, receipt header/footer messages, tax rates, and ETB currency formatting.'
+      description: 'Master administrative permission to manage store details, receipt header/footer messages, and ETB currency formatting.'
     },
     {
       title: 'System Security & Activity Audit',

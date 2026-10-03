@@ -76,8 +76,8 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     return acc + price * item.quantity * discountFactor;
   }, 0);
 
-  const taxAmount = Number(((subtotal * settings.taxRatePercent) / 100).toFixed(2));
-  const totalAmount = Number((subtotal + taxAmount).toFixed(2));
+  const taxAmount = 0;
+  const totalAmount = Number(subtotal.toFixed(2));
 
   // Initialize tender payment amount when opening checkout
   useEffect(() => {
@@ -197,8 +197,8 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         discountPercent: i.appliedDiscountPercent || 0
       })),
       subtotal,
-      taxAmount,
-      taxPercent: settings.taxRatePercent,
+      taxAmount: 0,
+      taxPercent: 0,
       discountAmount: Number((cart.reduce((s, i) => s + i.product.retailPrice * i.quantity, 0) - subtotal).toFixed(2)),
       total: totalAmount,
       payments,
@@ -457,10 +457,6 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             <div className="flex justify-between text-[#8c8273]">
               <span>Subtotal:</span>
               <span className="font-mono text-[#f4efe8]">{settings.currencySymbol} {subtotal.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-[#8c8273]">
-              <span>VAT / Tax ({settings.taxRatePercent}%):</span>
-              <span className="font-mono text-[#f4efe8]">{settings.currencySymbol} {taxAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-base font-bold text-[#f5d77f] pt-1 border-t border-[#26221c]">
               <span>Payable Total:</span>

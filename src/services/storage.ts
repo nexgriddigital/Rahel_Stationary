@@ -33,8 +33,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
   tagline: "Stationery, Fine Papers & Commercial Printing",
   address: "Suite 104, Commerce Plaza, Retail District",
   phone: "+1 (555) 382-9011",
-  taxNumber: "TAX-2026-ST-8819",
-  taxRatePercent: 8.5,
+  taxNumber: "",
+  taxRatePercent: 0,
   currencySymbol: "ETB",
   receiptHeader: "Thank you for shopping at Rahel Stationary!\nSpecialist Print & Office Supplies",
   receiptFooter: "Goods once sold can be exchanged within 7 days with valid receipt.\nNo cash refunds on custom printing services.",
@@ -422,14 +422,14 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 21.75,
-    taxAmount: 1.85,
-    taxPercent: 8.5,
+    taxAmount: 0,
+    taxPercent: 0,
     discountAmount: 0,
-    total: 23.60,
+    total: 21.75,
     payments: [
       {
         method: 'cash',
-        amount: 23.60
+        amount: 21.75
       }
     ],
     status: 'completed',
@@ -467,14 +467,14 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 42.50,
-    taxAmount: 3.61,
-    taxPercent: 8.5,
-    discountAmount: 2.11, // 5% promotional discount
-    total: 44.00,
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 2.13, // 5% promotional discount
+    total: 40.37,
     payments: [
       {
         method: 'card',
-        amount: 44.00,
+        amount: 40.37,
         reference: 'AUTH-VISA-9941'
       }
     ],
@@ -503,11 +503,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 104.00,
-    taxAmount: 8.84,
-    taxPercent: 8.5,
+    taxAmount: 0,
+    taxPercent: 0,
     discountAmount: 0,
-    total: 112.84,
-    payments: [{ method: 'card', amount: 112.84, reference: 'CBE-POS-4412' }],
+    total: 104.00,
+    payments: [{ method: 'card', amount: 104.00, reference: 'CBE-POS-4412' }],
     status: 'completed',
     customerName: 'Addis Commercial Bank'
   },
@@ -543,11 +543,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 97.50,
-    taxAmount: 8.29,
-    taxPercent: 8.5,
-    discountAmount: 5.79,
-    total: 100.00,
-    payments: [{ method: 'cash', amount: 100.00 }],
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 0,
+    total: 97.50,
+    payments: [{ method: 'cash', amount: 97.50 }],
     status: 'completed',
     customerName: 'Yared Stationery'
   },
@@ -584,11 +584,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 157.50,
-    taxAmount: 13.39,
-    taxPercent: 8.5,
+    taxAmount: 0,
+    taxPercent: 0,
     discountAmount: 0,
-    total: 170.89,
-    payments: [{ method: 'mobile_transfer', amount: 170.89, reference: 'TELEBIRR-8891' }],
+    total: 157.50,
+    payments: [{ method: 'mobile_transfer', amount: 157.50, reference: 'TELEBIRR-8891' }],
     status: 'completed',
     customerName: 'Bethlehem Studio'
   },
@@ -625,11 +625,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 253.00,
-    taxAmount: 21.51,
-    taxPercent: 8.5,
-    discountAmount: 9.51,
-    total: 265.00,
-    payments: [{ method: 'cash', amount: 265.00 }],
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 0,
+    total: 253.00,
+    payments: [{ method: 'cash', amount: 253.00 }],
     status: 'completed',
     customerName: 'St. George Academy'
   },
@@ -666,11 +666,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 175.00,
-    taxAmount: 14.88,
-    taxPercent: 8.5,
+    taxAmount: 0,
+    taxPercent: 0,
     discountAmount: 0,
-    total: 189.88,
-    payments: [{ method: 'card', amount: 189.88, reference: 'AWASH-9912' }],
+    total: 175.00,
+    payments: [{ method: 'card', amount: 175.00, reference: 'AWASH-9912' }],
     status: 'completed',
     customerName: 'Fineline Architects'
   },
@@ -707,11 +707,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 237.50,
-    taxAmount: 20.19,
-    taxPercent: 8.5,
-    discountAmount: 12.69,
-    total: 245.00,
-    payments: [{ method: 'cash', amount: 245.00 }],
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 0,
+    total: 237.50,
+    payments: [{ method: 'cash', amount: 237.50 }],
     status: 'completed',
     customerName: 'National Printing Bureau'
   },
@@ -748,11 +748,11 @@ const SEED_SALES: Sale[] = [
       }
     ],
     subtotal: 162.00,
-    taxAmount: 13.77,
-    taxPercent: 8.5,
+    taxAmount: 0,
+    taxPercent: 0,
     discountAmount: 0,
-    total: 175.77,
-    payments: [{ method: 'mobile_transfer', amount: 175.77, reference: 'TELEBIRR-7701' }],
+    total: 162.00,
+    payments: [{ method: 'mobile_transfer', amount: 162.00, reference: 'TELEBIRR-7701' }],
     status: 'completed',
     customerName: 'Elias Worku'
   }
@@ -809,9 +809,9 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
             discountPercent: 0
           }
         ],
-        subtotal: Number((baseTotal * 0.92).toFixed(2)),
-        taxAmount: Number((baseTotal * 0.08).toFixed(2)),
-        taxPercent: 8.5,
+        subtotal: baseTotal,
+        taxAmount: 0,
+        taxPercent: 0,
         discountAmount: 0,
         total: baseTotal,
         payments: [{ method: d % 2 === 0 ? 'card' : 'cash', amount: baseTotal }],
@@ -848,9 +848,9 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
             discountPercent: 0
           }
         ],
-        subtotal: Number((baseTotal * 0.92).toFixed(2)),
-        taxAmount: Number((baseTotal * 0.08).toFixed(2)),
-        taxPercent: 8.5,
+        subtotal: baseTotal,
+        taxAmount: 0,
+        taxPercent: 0,
         discountAmount: 0,
         total: baseTotal,
         payments: [{ method: 'cash', amount: baseTotal }],
@@ -957,8 +957,17 @@ class StorageService {
   // Settings
   public getSettings(): StoreSettings {
     const s = this.get<StoreSettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+    let changed = false;
     if (!s.currencySymbol || s.currencySymbol === '$') {
       s.currencySymbol = 'ETB';
+      changed = true;
+    }
+    if (s.taxRatePercent !== 0 || s.taxNumber) {
+      s.taxRatePercent = 0;
+      s.taxNumber = '';
+      changed = true;
+    }
+    if (changed) {
       this.set(STORAGE_KEYS.SETTINGS, s);
     }
     return s;

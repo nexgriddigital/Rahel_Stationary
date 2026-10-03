@@ -40,14 +40,13 @@ export const ReportsView: React.FC = () => {
     .slice(0, 6);
 
   const exportSalesCsv = () => {
-    const headers = ['Receipt #', 'Date', 'Cashier', 'Customer', 'Subtotal', 'Tax', 'Total', 'Payment Methods'];
+    const headers = ['Receipt #', 'Date', 'Cashier', 'Customer', 'Subtotal', 'Total', 'Payment Methods'];
     const rows = sales.map((s) => [
       s.receiptNumber,
       new Date(s.timestamp).toISOString(),
       s.cashierName,
       s.customerName || 'Walk-in',
       s.subtotal.toFixed(2),
-      s.taxAmount.toFixed(2),
       s.total.toFixed(2),
       s.payments.map((p) => `${p.method}:${p.amount}`).join(';')
     ]);
@@ -156,13 +155,13 @@ export const ReportsView: React.FC = () => {
 
         <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-1">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-[#998b7a]">
-            Tax Collected (FY 2026)
+            Completed Transactions
           </span>
           <div className="text-2xl font-bold font-mono text-[#f4efe8]">
-            {settings.currencySymbol} {totalTax.toFixed(2)}
+            {sales.length}
           </div>
           <div className="text-[11px] text-[#998b7a]">
-            Based on {settings.taxRatePercent}% store tax rate
+            0% tax policy (tax-free sales)
           </div>
         </div>
       </div>

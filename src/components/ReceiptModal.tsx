@@ -41,7 +41,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       doc.setFontSize(8);
       doc.text(settings.tagline, 40, 14, { align: 'center' });
       doc.text(settings.address, 40, 18, { align: 'center' });
-      doc.text(`Tel: ${settings.phone} | TIN: ${settings.taxNumber}`, 40, 22, { align: 'center' });
+      doc.text(`Tel: ${settings.phone}${settings.taxNumber ? ` | TIN: ${settings.taxNumber}` : ''}`, 40, 22, { align: 'center' });
 
       doc.setLineDashPattern([1, 1], 0);
       doc.line(5, 25, 75, 25);
@@ -93,9 +93,11 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         doc.text(`-${settings.currencySymbol} ${sale.discountAmount.toFixed(2)}`, 75, currentY, { align: 'right' });
       }
 
-      currentY += 4;
-      doc.text(`Tax (${sale.taxPercent}%):`, 45, currentY);
-      doc.text(`${settings.currencySymbol} ${sale.taxAmount.toFixed(2)}`, 75, currentY, { align: 'right' });
+      if (sale.taxAmount > 0) {
+        currentY += 4;
+        doc.text(`Tax (${sale.taxPercent}%):`, 45, currentY);
+        doc.text(`${settings.currencySymbol} ${sale.taxAmount.toFixed(2)}`, 75, currentY, { align: 'right' });
+      }
 
       currentY += 5;
       doc.setFont('helvetica', 'bold');
@@ -169,7 +171,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <div className="text-base font-bold tracking-tight text-black">{settings.storeName}</div>
               <div className="text-[10px] text-slate-600 mt-0.5">{settings.tagline}</div>
               <div className="text-[9px] text-slate-500 mt-0.5">{settings.address}</div>
-              <div className="text-[9px] text-slate-500">Tel: {settings.phone} · TIN: {settings.taxNumber}</div>
+              <div className="text-[9px] text-slate-500">Tel: {settings.phone}{settings.taxNumber ? ` · TIN: ${settings.taxNumber}` : ''}</div>
             </div>
 
             {/* Receipt Meta */}
@@ -231,10 +233,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   <span>-{settings.currencySymbol} {sale.discountAmount.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-[10px] text-slate-600">
-                <span>Tax ({sale.taxPercent}%):</span>
-                <span>{settings.currencySymbol} {sale.taxAmount.toFixed(2)}</span>
-              </div>
+              {sale.taxAmount > 0 && (
+                <div className="flex justify-between text-[10px] text-slate-600">
+                  <span>Tax ({sale.taxPercent}%):</span>
+                  <span>{settings.currencySymbol} {sale.taxAmount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm font-bold pt-1 border-t border-slate-300 text-black">
                 <span>TOTAL:</span>
                 <span>{settings.currencySymbol} {sale.total.toFixed(2)}</span>

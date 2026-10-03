@@ -67,7 +67,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
             Store Profile & Configuration
           </h2>
           <p className="text-xs text-[#a89f91]">
-            Retail branding, tax rates, thermal receipt templates, Firestore sync & JSON database backup.
+            Retail branding, currency standards, thermal receipt templates, Firestore sync & JSON database backup.
           </p>
         </div>
 
@@ -141,39 +141,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
           </div>
         </div>
 
-        {/* Card 2: Taxes & Currencies */}
+        {/* Card 2: Monetary Standards & Currency */}
         <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4">
-          <h3 className="font-bold text-sm text-[#f5d77f] border-b border-[#26221c] pb-2">
-            Tax Rates & Monetary Standards
-          </h3>
+          <div className="flex items-center justify-between border-b border-[#26221c] pb-2">
+            <h3 className="font-bold text-sm text-[#f5d77f]">
+              Monetary Standards & Currency
+            </h3>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
+              0% Tax (Tax-Free Store)
+            </span>
+          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
-                Tax Identification Number (TIN)
-              </label>
-              <input
-                type="text"
-                value={settings.taxNumber}
-                onChange={(e) => setSettings({ ...settings, taxNumber: e.target.value })}
-                className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
-                Standard Tax / VAT Rate (%)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0"
-                value={settings.taxRatePercent}
-                onChange={(e) => setSettings({ ...settings, taxRatePercent: parseFloat(e.target.value) || 0 })}
-                className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-              />
-            </div>
-
+          <div className="max-w-md space-y-3">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium text-[#c4bbb0]">
@@ -184,8 +163,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
                     <button
                       key={sym}
                       type="button"
-                      onClick={() => setSettings({ ...settings, currencySymbol: sym })}
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors ${
+                      onClick={() => setSettings({ ...settings, currencySymbol: sym, taxRatePercent: 0, taxNumber: '' })}
+                      className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors cursor-pointer ${
                         settings.currencySymbol === sym
                           ? 'bg-[#d4af37] text-black'
                           : 'bg-[#141417] text-[#998b7a] hover:text-[#f4efe8] border border-[#2a261f]'
@@ -200,10 +179,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
                 type="text"
                 placeholder="ETB"
                 value={settings.currencySymbol}
-                onChange={(e) => setSettings({ ...settings, currencySymbol: e.target.value })}
+                onChange={(e) => setSettings({ ...settings, currencySymbol: e.target.value, taxRatePercent: 0, taxNumber: '' })}
                 className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f5d77f] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
               />
             </div>
+            <p className="text-[11px] text-[#8c8273]">
+              Default currency across registers, credit tabs, and reports. All prices are calculated with <strong>0% tax</strong>.
+            </p>
           </div>
         </div>
 
