@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Expense } from '../types';
 import { storage } from '../services/storage';
-import { Wallet, Plus, Trash2, Tag, Calendar, X, AlertCircle } from 'lucide-react';
+import { Wallet, Plus, Trash2, Tag, Calendar, X, AlertCircle, FileText } from 'lucide-react';
+import { exportExpenseReportPDF } from '../services/pdfReportGenerator';
 
 export const ExpenseTrackerView: React.FC = () => {
   const [expenses, setExpenses] = useState<Expense[]>(storage.getExpenses());
@@ -75,14 +76,24 @@ export const ExpenseTrackerView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="px-3.5 py-1.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs font-semibold">
             Total Operational Costs: <strong className="font-mono text-sm text-[#d4af37]">{settings.currencySymbol} {totalExpense.toFixed(2)}</strong>
           </div>
 
           <button
+            type="button"
+            onClick={() => exportExpenseReportPDF(expenses, settings)}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37] cursor-pointer"
+            title="Download Store Overhead & Expenses Report as PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+            <span>Export Expenses PDF</span>
+          </button>
+
+          <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Record New Expense</span>

@@ -15,8 +15,10 @@ import {
   CreditCard,
   Package,
   ShoppingBag,
-  ArrowRight
+  ArrowRight,
+  FileText
 } from 'lucide-react';
+import { exportSalesHistoryPDF } from '../services/pdfReportGenerator';
 
 interface SalesLedgerViewProps {
   onNavigateToPOS?: () => void;
@@ -167,6 +169,22 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
               {settings.currencySymbol} {totalFilteredRevenue.toFixed(2)}
             </strong>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const filterLabel =
+                dateFilterMode === 'all'
+                  ? 'All Recorded Sales Transactions'
+                  : `Sales History (${dateFilterMode}${customDate ? `: ${customDate}` : ''})`;
+              exportSalesHistoryPDF(filteredSales, filterLabel, settings);
+            }}
+            className="col-span-2 sm:col-span-1 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-95 shrink-0"
+            title="Download filtered Sales History as PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-black" />
+            <span>Export History PDF</span>
+          </button>
         </div>
       </div>
 

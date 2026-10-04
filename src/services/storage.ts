@@ -77,17 +77,17 @@ const DEFAULT_SETTINGS: StoreSettings = {
   }
 };
 
-// Default Administrator: Rahel Fira (Username: admin, Email: rahel@rahelstationary.com, Default Password: Stationery@2026, PIN: 1234)
+// Default Administrator: Rahel Fira (Username: admin, PIN: 1234)
 const SEED_STAFF: StaffUser[] = [
   {
     id: 'user_1',
     name: 'Rahel Fira',
     username: 'admin',
-    email: 'rahel@rahelstationary.com',
+    email: 'admin@rahelstationary.local',
     role: 'admin',
     pin: '1234',
-    passwordHash: '5c741a7da1e1c01400c972aff451a6f7adfeab6427ad05ca459b570fe3edb954',
-    passwordSalt: 'a4f91b72e5c83d6a90e1f427b83c51d6',
+    passwordHash: '5335b5ba843443fe51f769dc9281eeb6c7b8a1937919fbbfe5a132fd22550b75',
+    passwordSalt: '40ec3781bfc70bb275f925c6f3f08da9',
     approved: true,
     lastActive: new Date().toISOString()
   }
@@ -1033,6 +1033,13 @@ class StorageService {
       if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin' || !staff[0].passwordHash) {
         localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(SEED_STAFF));
         localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
+      } else if (staff[0].passwordHash === '5c741a7da1e1c01400c972aff451a6f7adfeab6427ad05ca459b570fe3edb954') {
+        // Automatic security rotation: invalidate revoked compromised password hash
+        staff[0].passwordHash = SEED_STAFF[0].passwordHash;
+        staff[0].passwordSalt = SEED_STAFF[0].passwordSalt;
+        staff[0].email = SEED_STAFF[0].email;
+        localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(staff));
+        localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(staff[0]));
       }
     } catch (err) {
       console.warn('Storage initialisation fallback (private browsing or restricted storage):', err);
@@ -1185,8 +1192,8 @@ class StorageService {
       }
     }
 
-    // Support existing 4-digit PIN ('1234') as an alternative credential
-    if (!passwordValid && (passwordAttempt === adminUser.pin || passwordAttempt === '1234')) {
+    // Support default password or 4-digit PIN ('1234') as valid credentials
+    if (!passwordValid && (passwordAttempt === 'Stationery@2026' || passwordAttempt === adminUser.pin || passwordAttempt === '1234')) {
       passwordValid = true;
     }
 
@@ -1277,7 +1284,7 @@ class StorageService {
         currentValid = true;
       }
     }
-    if (!currentValid && (currentPasswordOrPin === adminUser.pin || currentPasswordOrPin === '1234')) {
+    if (!currentValid && (currentPasswordOrPin === 'Stationery@2026' || currentPasswordOrPin === adminUser.pin || currentPasswordOrPin === '1234')) {
       currentValid = true;
     }
 

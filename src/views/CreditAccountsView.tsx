@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CustomerCreditAccount } from '../types';
 import { storage } from '../services/storage';
 import { CreditCard, Search, Plus, DollarSign, Printer, X, CheckCircle, FileText } from 'lucide-react';
+import { exportCreditAccountsReportPDF } from '../services/pdfReportGenerator';
 
 export const CreditAccountsView: React.FC = () => {
   const [accounts, setAccounts] = useState<CustomerCreditAccount[]>(storage.getCreditAccounts());
@@ -77,14 +78,24 @@ export const CreditAccountsView: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="px-3.5 py-1.5 rounded-xl bg-rose-950/40 border border-rose-800/40 text-rose-300 text-xs font-semibold">
             Total Outstanding: <strong className="font-mono text-sm">{settings.currencySymbol} {totalOutstanding.toFixed(2)}</strong>
           </div>
 
           <button
+            type="button"
+            onClick={() => exportCreditAccountsReportPDF(accounts, settings)}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37] cursor-pointer"
+            title="Download Customer Credit & Receivables Report as PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+            <span>Export Credit PDF</span>
+          </button>
+
+          <button
             onClick={() => setShowAddAccountModal(true)}
-            className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20"
+            className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Open Credit Account</span>

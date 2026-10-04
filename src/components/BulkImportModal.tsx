@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Product, ProductCategory } from '../types';
 import { storage } from '../services/storage';
+import { downloadExcelImportTemplate } from '../services/excelTemplateGenerator';
 import * as XLSX from 'xlsx';
 import * as pdfjsLib from 'pdfjs-dist';
 import jsPDF from 'jspdf';
@@ -301,6 +302,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
   // Parsed Items
   const [parsedItems, setParsedItems] = useState<ParsedImportRow[]>([]);
+  const [excludedExamplesCount, setExcludedExamplesCount] = useState<number>(0);
   const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [isExecutingImport, setIsExecutingImport] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
@@ -362,36 +364,180 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     const existingProducts = storage.getProducts();
     if (sourceName) setSelectedFileName(sourceName);
 
-    // Track SKU occurrences within this batch to catch in-file duplicate SKUs
+    // Track occurrences within this batch to catch in-file duplicate SKUs and Barcodes
     const skuOccurrenceMap: Record<string, number> = {};
-    rows.forEach(row => {
-      const rawSku = String(row.sku || row.code || row.item_code || row.product_code || '').trim().toLowerCase();
+    const barcodeOccurrenceMap: Record<string, number> = {};
+
+    // 1. Detect and filter out template example rows so they are not accidentally imported
+    let exampleCount = 0;
+    const realRows = rows.filter(row => {
+      const name = String(
+        row['Product Name'] ||
+        row['product_name'] ||
+        row['item_name'] ||
+        row.name ||
+        row.title ||
+        row.product ||
+        row.item ||
+        ''
+      ).trim();
+
+      const sku = String(
+        row['SKU'] ||
+        row.sku ||
+        row.code ||
+        row.item_code ||
+        row.product_code ||
+        ''
+      ).trim();
+
+      if (
+        name.startsWith('[EXAMPLE]') ||
+        name.toLowerCase().includes('[example]') ||
+        sku.toLowerCase().startsWith('[example]')
+      ) {
+        exampleCount++;
+        return false;
+      }
+      return true;
+    });
+
+    setExcludedExamplesCount(exampleCount);
+
+    realRows.forEach(row => {
+      const rawSku = String(
+        row['SKU'] ||
+        row.sku ||
+        row.code ||
+        row.item_code ||
+        row.product_code ||
+        ''
+      ).trim().toLowerCase();
+
       if (rawSku) {
         skuOccurrenceMap[rawSku] = (skuOccurrenceMap[rawSku] || 0) + 1;
       }
+
+      const rawBarcode = String(
+        row['Barcode'] ||
+        row.barcode ||
+        row.upc ||
+        row.ean ||
+        row.barcode_number ||
+        ''
+      ).trim();
+
+      if (rawBarcode) {
+        barcodeOccurrenceMap[rawBarcode] = (barcodeOccurrenceMap[rawBarcode] || 0) + 1;
+      }
     });
 
-    const parsed: ParsedImportRow[] = rows.map((row, idx) => {
+    const parsed: ParsedImportRow[] = realRows.map((row, idx) => {
       const errors: string[] = [];
 
-      // Flexible column aliases
-      const name = String(row.name || row.title || row.product || row.item || row.product_name || row.item_name || '').trim();
-      const rawCategory = String(row.category || row.cat || row.department || 'Paper & Notebooks');
+      // Support standardized Excel template headers and common aliases
+      const name = String(
+        row['Product Name'] ||
+        row['product_name'] ||
+        row['item_name'] ||
+        row.name ||
+        row.title ||
+        row.product ||
+        row.item ||
+        ''
+      ).trim();
+
+      const rawCategory = String(
+        row['Category'] ||
+        row.category ||
+        row.cat ||
+        row.department ||
+        'Paper & Notebooks'
+      );
       const category = normalizeCategory(rawCategory);
 
-      let rawSku = String(row.sku || row.code || row.item_code || row.product_code || '').trim();
+      let rawSku = String(
+        row['SKU'] ||
+        row.sku ||
+        row.code ||
+        row.item_code ||
+        row.product_code ||
+        ''
+      ).trim();
       const originalSku = rawSku;
-      let barcode = String(row.barcode || row.upc || row.ean || row.barcode_number || '').trim();
 
-      const costPrice = Math.max(0, parseFloat(String(row.costPrice ?? row.cost ?? row.cost_price ?? row.buying_price ?? 0)) || 0);
-      const retailPrice = Math.max(0, parseFloat(String(row.retailPrice ?? row.price ?? row.retail ?? row.retail_price ?? row.selling_price ?? 0)) || 0);
-      const stock = Math.max(0, parseInt(String(row.stock ?? row.qty ?? row.quantity ?? row.inventory ?? 0), 10) || 0);
-      const minThreshold = Math.max(1, parseInt(String(row.minThreshold ?? row.min ?? row.threshold ?? row.alert_stock ?? 5), 10) || 5);
-      const unit = String(row.unit || row.uom || 'pcs').trim() || 'pcs';
-      const description = String(row.description || row.desc || row.details || '').trim();
+      let barcode = String(
+        row['Barcode'] ||
+        row.barcode ||
+        row.upc ||
+        row.ean ||
+        row.barcode_number ||
+        ''
+      ).trim();
 
+      const rawCost =
+        row['Buying Price (ETB)'] ??
+        row['Buying Price'] ??
+        row['Purchase Price'] ??
+        row.costPrice ??
+        row.cost ??
+        row.cost_price ??
+        row.buying_price;
+
+      const rawRetail =
+        row['Selling Price (ETB)'] ??
+        row['Selling Price'] ??
+        row['Retail Price'] ??
+        row.retailPrice ??
+        row.price ??
+        row.retail ??
+        row.retail_price ??
+        row.selling_price;
+
+      const rawStock =
+        row['Current Stock'] ??
+        row['Stock'] ??
+        row.stock ??
+        row.qty ??
+        row.quantity ??
+        row.inventory;
+
+      const rawMin =
+        row['Minimum Stock'] ??
+        row['Min Stock'] ??
+        row['Reorder Level'] ??
+        row.minThreshold ??
+        row.min ??
+        row.threshold ??
+        row.alert_stock;
+
+      const costPrice = Math.max(0, parseFloat(String(rawCost ?? 0)) || 0);
+      const retailPrice = parseFloat(String(rawRetail ?? 0));
+      const stock = parseInt(String(rawStock ?? 0), 10);
+      const minThreshold = Math.max(1, parseInt(String(rawMin ?? 5), 10) || 5);
+      const unit = String(row['Unit'] || row.unit || row.uom || 'pcs').trim() || 'pcs';
+      const description = String(
+        row['Description'] || row.description || row.desc || row.details || ''
+      ).trim();
+
+      // Required Field 1: Product Name
       if (!name) {
-        errors.push('Missing product title or name');
+        errors.push('Missing product name (required)');
+      }
+
+      // Required Field 2: Selling Price
+      if (rawRetail === undefined || rawRetail === '' || isNaN(retailPrice) || retailPrice <= 0) {
+        errors.push('Missing or invalid selling price (must be greater than 0 ETB)');
+      }
+
+      // Buying Price Check
+      if (rawCost !== undefined && rawCost !== '' && (isNaN(costPrice) || costPrice < 0)) {
+        errors.push('Invalid buying price (cannot be negative)');
+      }
+
+      // Stock Check
+      if (rawStock !== undefined && rawStock !== '' && (isNaN(stock) || stock < 0)) {
+        errors.push('Invalid current stock (cannot be negative)');
       }
 
       let skuStatus: SkuValidationStatus = 'new_sku';
@@ -416,11 +562,33 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       const normalizedSku = rawSku.trim().toLowerCase();
       const isDuplicateInFile = normalizedSku && (skuOccurrenceMap[normalizedSku] || 0) > 1;
 
+      // Check for duplicate barcode within the file
+      const isDuplicateBarcodeInFile = barcode && (barcodeOccurrenceMap[barcode] || 0) > 1;
+
+      // Check for barcode conflict with a DIFFERENT product in existing inventory
+      const existingWithBarcode = barcode
+        ? existingProducts.find(
+            p =>
+              p.barcode.trim() === barcode.trim() &&
+              p.sku.trim().toLowerCase() !== rawSku.trim().toLowerCase()
+          )
+        : null;
+
+      if (isDuplicateInFile) {
+        skuStatus = 'duplicate_in_file';
+        errors.push(`Duplicate SKU '${rawSku}' appears multiple times in this file`);
+      }
+
+      if (isDuplicateBarcodeInFile) {
+        errors.push(`Duplicate barcode '${barcode}' appears multiple times in this file`);
+      }
+
+      if (existingWithBarcode) {
+        errors.push(`Barcode already assigned to '${existingWithBarcode.name}' (SKU: ${existingWithBarcode.sku})`);
+      }
+
       if (errors.length > 0) {
         skuStatus = 'invalid';
-      } else if (isDuplicateInFile) {
-        skuStatus = 'duplicate_in_file';
-        errors.push(`Duplicate SKU '${rawSku}' appears multiple times in this file.`);
       } else if (existingMatch) {
         skuStatus = 'existing_match';
       } else if (skuStatus !== 'auto_generated') {
@@ -428,7 +596,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       }
 
       let status: 'new' | 'update' | 'invalid' = 'new';
-      if (errors.length > 0 && !name) {
+      if (errors.length > 0) {
         status = 'invalid';
       } else if (existingMatch) {
         status = 'update';
@@ -441,13 +609,13 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         sku: rawSku,
         originalSku,
         barcode,
-        costPrice,
-        retailPrice,
-        stock,
+        costPrice: isNaN(costPrice) ? 0 : costPrice,
+        retailPrice: isNaN(retailPrice) ? 0 : retailPrice,
+        stock: isNaN(stock) ? 0 : stock,
         minThreshold,
         unit,
         description,
-        selected: status !== 'invalid',
+        selected: status !== 'invalid' && errors.length === 0,
         status,
         skuStatus,
         existingMatch,
@@ -785,64 +953,11 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   };
 
   /**
-   * 1-Click Excel Template Export (.xlsx)
+   * Standardized Excel Template Download (.xlsx)
+   * Includes Products entry sheet + Instructions reference sheet
    */
   const handleDownloadExcelTemplate = () => {
-    const templateData = [
-      {
-        name: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
-        category: 'Paper & Notebooks',
-        sku: 'PPR-A4-80G',
-        barcode: '890123456001',
-        costPrice: 4.20,
-        retailPrice: 7.50,
-        stock: 50,
-        minThreshold: 15,
-        unit: 'ream',
-        description: 'Multi-purpose acid-free copy paper'
-      },
-      {
-        name: 'Uni-ball Eye Fine Rollerball Pen 0.7mm Black',
-        category: 'Writing & Pens',
-        sku: 'PEN-UNIB-07B',
-        barcode: '890123456002',
-        costPrice: 1.15,
-        retailPrice: 2.50,
-        stock: 60,
-        minThreshold: 12,
-        unit: 'pcs',
-        description: 'Smooth liquid ink rollerball'
-      },
-      {
-        name: 'Wirebound Spiral Notebook A5 (160 Pages)',
-        category: 'Paper & Notebooks',
-        sku: 'PPR-SPIR-A51',
-        barcode: '890123456003',
-        costPrice: 1.80,
-        retailPrice: 3.99,
-        stock: 35,
-        minThreshold: 10,
-        unit: 'pcs',
-        description: 'Durable polypropylene frosted cover'
-      },
-      {
-        name: 'Plastic Comb Binding Spines 14mm (Pack of 100)',
-        category: 'Binding & Lamination',
-        sku: 'BND-COMB-14B',
-        barcode: '890123456004',
-        costPrice: 7.20,
-        retailPrice: 13.50,
-        stock: 20,
-        minThreshold: 5,
-        unit: 'pack',
-        description: 'Holds up to 105 pages report binding'
-      }
-    ];
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    XLSX.utils.book_append_sheet(wb, ws, 'Inventory_Import');
-    XLSX.writeFile(wb, 'rahel_stationery_inventory_template.xlsx');
+    downloadExcelImportTemplate();
   };
 
   /**
@@ -938,6 +1053,26 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     return parsedItems.filter(i => i.status === 'invalid' || i.errors.length > 0).length;
   }, [parsedItems]);
 
+  const validItemsCount = useMemo(() => {
+    return parsedItems.filter(i => i.status !== 'invalid' && i.errors.length === 0).length;
+  }, [parsedItems]);
+
+  const duplicateBarcodeCount = useMemo(() => {
+    return parsedItems.filter(i => i.errors.some(e => e.toLowerCase().includes('barcode'))).length;
+  }, [parsedItems]);
+
+  const missingPriceCount = useMemo(() => {
+    return parsedItems.filter(i => i.errors.some(e => e.toLowerCase().includes('selling price'))).length;
+  }, [parsedItems]);
+
+  const missingNameCount = useMemo(() => {
+    return parsedItems.filter(i => i.errors.some(e => e.toLowerCase().includes('product name'))).length;
+  }, [parsedItems]);
+
+  const selectedValidCount = useMemo(() => {
+    return parsedItems.filter(i => i.selected && i.status !== 'invalid' && i.errors.length === 0).length;
+  }, [parsedItems]);
+
   const selectedCount = parsedItems.filter(i => i.selected).length;
 
   // Filter preview table items
@@ -1027,7 +1162,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                   Bulk Import Inventory Items
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30">
-                  Excel (.xlsx) · PDF (.pdf) · CSV
+                  Excel (.xlsx) · PDF (.pdf)
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/50">
                   SKU Conflict Validation
@@ -1040,14 +1175,15 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Download Templates Dropdown/Buttons */}
+            {/* Download Excel Template Button */}
             <button
+              type="button"
               onClick={handleDownloadExcelTemplate}
-              className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#f5d77f] border border-[#26221c] hover:border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs"
+              className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black hover:brightness-110 flex items-center gap-1.5 transition-all shadow-sm shadow-[#d4af37]/20 cursor-pointer"
               title="Download standardized Excel template (.xlsx)"
             >
-              <Download className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>Excel Template</span>
+              <Download className="w-3.5 h-3.5 text-black" />
+              <span>Download Excel Template (.xlsx)</span>
             </button>
 
             <button
@@ -1185,13 +1321,43 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
                 {/* Upload Excel or PDF Dropzone */}
                 {activeTab === 'upload' && (
-                  <div className="max-w-xl mx-auto w-full">
+                  <div className="max-w-xl mx-auto w-full space-y-4">
+                    {/* Step 1: Download Excel Template Banner */}
+                    <div className="p-4 rounded-2xl bg-[#18181d] border border-[#d4af37]/35 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-[#d4af37]/20 border border-[#d4af37]/40 flex items-center justify-center shrink-0">
+                          <FileSpreadsheet className="w-5 h-5 text-[#f5d77f]" />
+                        </div>
+                        <div>
+                          <div className="font-bold text-xs text-[#f5d77f] flex items-center gap-2">
+                            <span>Step 1: Download Excel Template</span>
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-[#d4af37]/25 text-[#f5d77f] border border-[#d4af37]/40">
+                              .xlsx Ready
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-[#a89f91] mt-0.5">
+                            Pre-configured columns with required fields, 4 realistic examples, and Instructions sheet.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleDownloadExcelTemplate}
+                        className="px-3.5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black hover:brightness-110 flex items-center justify-center gap-1.5 transition-all shrink-0 shadow-sm shadow-[#d4af37]/20 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5 text-black" />
+                        <span>Download Excel Template (.xlsx)</span>
+                      </button>
+                    </div>
+
+                    {/* Step 2: Upload Dropzone */}
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`cursor-pointer border-2 border-dashed rounded-2xl p-8 text-center transition-all flex flex-col items-center justify-center shadow-xs ${
+                      className={`cursor-pointer border-2 border-dashed rounded-2xl p-7 text-center transition-all flex flex-col items-center justify-center shadow-xs ${
                         dragOver
                           ? 'border-[#d4af37] bg-[#d4af37]/10'
                           : 'border-[#26221c] bg-[#1a1a20] hover:border-[#d4af37]/60 hover:bg-[#202026]'
@@ -1205,25 +1371,25 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                             handleFile(e.target.files[0]);
                           }
                         }}
-                        accept=".xlsx,.xls,.pdf,.csv,.tsv,.txt,.json"
+                        accept=".xlsx,.xls,.pdf"
                         className="hidden"
                       />
 
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 rounded-2xl bg-[#d4af37]/20 text-[#f5d77f] flex items-center justify-center shadow-2xs border border-[#d4af37]/30">
-                          <FileSpreadsheet className="w-6 h-6" />
+                      <div className="flex items-center gap-3 mb-2.5">
+                        <div className="w-11 h-11 rounded-2xl bg-[#d4af37]/20 text-[#f5d77f] flex items-center justify-center shadow-2xs border border-[#d4af37]/30">
+                          <FileSpreadsheet className="w-5 h-5" />
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-rose-950/70 text-rose-400 flex items-center justify-center shadow-2xs border border-rose-800/40">
-                          <FileType className="w-6 h-6" />
+                        <div className="w-11 h-11 rounded-2xl bg-rose-950/70 text-rose-400 flex items-center justify-center shadow-2xs border border-rose-800/40">
+                          <FileType className="w-5 h-5" />
                         </div>
                       </div>
 
                       <div className="font-bold text-sm text-[#f4efe8] mb-1">
-                        Click or drag & drop Excel workbook or PDF invoice
+                        Step 2: Upload Completed Excel Workbook or PDF Invoice
                       </div>
-                      <p className="text-xs text-[#a89f91] max-w-sm mb-4">
-                        Supported: <strong className="text-[#f5d77f] font-bold">.xlsx, .xls (Excel)</strong>,{' '}
-                        <strong className="text-rose-400 font-bold">.pdf (PDF Invoices/Catalogs)</strong>, and .csv.
+                      <p className="text-xs text-[#a89f91] max-w-sm mb-3">
+                        Supported: <strong className="text-[#f5d77f] font-bold">.xlsx, .xls (Excel)</strong> and{' '}
+                        <strong className="text-rose-400 font-bold">.pdf (Vendor Invoices)</strong>.
                       </p>
 
                       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1400,6 +1566,46 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                       <option value="skip">Skip Existing SKUs (Keep current)</option>
                       <option value="generate_new">Auto-generate New Unique SKUs</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Validation Summary Alert Banner */}
+                <div className="px-5 py-2.5 bg-[#18181d] border-b border-[#26221c] flex flex-wrap items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-[#f5d77f]">
+                      {parsedItems.length} items found:
+                    </span>
+                    <span className="font-bold text-emerald-400">
+                      {validItemsCount} valid
+                    </span>
+                    {invalidRowsCount > 0 && (
+                      <>
+                        <span className="text-[#8e8271]">&bull;</span>
+                        <span className="font-semibold text-rose-400">
+                          {invalidRowsCount} with errors
+                        </span>
+                        <span className="text-[#8e8271] text-[11px]">
+                          ({[
+                            duplicateBarcodeCount > 0 ? `${duplicateBarcodeCount} duplicate barcodes` : '',
+                            missingPriceCount > 0 ? `${missingPriceCount} missing selling price` : '',
+                            duplicateInFileCount > 0 ? `${duplicateInFileCount} duplicate SKUs` : '',
+                            missingNameCount > 0 ? `${missingNameCount} missing product names` : ''
+                          ].filter(Boolean).join(', ')})
+                        </span>
+                      </>
+                    )}
+                    {excludedExamplesCount > 0 && (
+                      <>
+                        <span className="text-[#8e8271]">&bull;</span>
+                        <span className="text-[#8e8271] italic text-[11px]">
+                          ({excludedExamplesCount} template example rows automatically excluded)
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="text-[11px] text-[#8e8271]">
+                    Review rows below &bull; Errors must be resolved before import
                   </div>
                 </div>
 

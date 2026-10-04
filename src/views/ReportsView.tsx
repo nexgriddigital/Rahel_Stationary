@@ -13,7 +13,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Layers,
-  ArrowUpRight
+  ArrowUpRight,
+  FileText,
+  Wallet,
+  AlertTriangle,
+  Receipt
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -24,10 +28,21 @@ import {
   CartesianGrid,
   Tooltip
 } from 'recharts';
+import {
+  exportDailySalesReportPDF,
+  exportWeeklySalesReportPDF,
+  exportMonthlySalesReportPDF,
+  exportSalesHistoryPDF,
+  exportInventoryReportPDF,
+  exportLowStockReportPDF,
+  exportExpenseReportPDF,
+  exportCreditAccountsReportPDF,
+  exportPaymentMethodsReportPDF
+} from '../services/pdfReportGenerator';
 
 export const ReportsView: React.FC = () => {
   const settings = storage.getSettings();
-  const [reportTab, setReportTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [reportTab, setReportTab] = useState<'daily' | 'weekly' | 'monthly' | 'export_hub'>('daily');
 
   // Daily Report State (default today)
   const [dailyDate, setDailyDate] = useState<string>(() => storage.toLocalDateString(new Date()));
@@ -53,109 +68,46 @@ export const ReportsView: React.FC = () => {
     return storage.getMonthlyReport(monthlyYear, monthlyMonth);
   }, [monthlyYear, monthlyMonth]);
 
-  // CSV Exporters for the specific reports
-  const exportDailyCsv = () => {
-    const headers = ['Product Name', 'SKU', 'Barcode', 'Category', 'Quantity Sold', 'Total Revenue', 'Avg Unit Price'];
-    const rows = dailyReport.productBreakdown.map((p) => [
-      `"${p.productName.replace(/"/g, '""')}"`,
-      p.sku,
-      p.barcode,
-      `"${p.category}"`,
-      p.quantitySold,
-      p.totalRevenue.toFixed(2),
-      p.averagePrice.toFixed(2)
-    ]);
-    const summary = [
-      [],
-      ['Summary', '', '', '', '', '', ''],
-      ['Date', dailyReport.date, '', '', '', '', ''],
-      ['Total Transactions', dailyReport.totalTransactions, '', '', '', '', ''],
-      ['Total Items Sold', dailyReport.totalItemsSold, '', '', '', '', ''],
-      ['Total Revenue', dailyReport.totalRevenue.toFixed(2), '', '', '', '', '']
-    ];
-    const csvContent = [headers.join(','), ...rows.map((r) => r.join(',')), ...summary.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Daily-Sales-Report-${dailyReport.date}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const allProducts = useMemo(() => storage.getProducts(), []);
+  const allSales = useMemo(() => storage.getSales(), []);
+  const allExpenses = useMemo(() => storage.getExpenses(), []);
+  const allCreditAccounts = useMemo(() => storage.getCreditAccounts(), []);
+
+  // Structured PDF Exporters for all reports
+  const handleExportDailyPDF = () => {
+    exportDailySalesReportPDF(dailyReport, settings);
   };
 
-  const exportWeeklyCsv = () => {
-    const headers = ['Day', 'Date', 'Transactions', 'Items Sold', 'Total Revenue'];
-    const rows = weeklyReport.dailyTotals.map((d) => [
-      d.dayName,
-      d.date,
-      d.totalTransactions,
-      d.totalItemsSold,
-      d.totalRevenue.toFixed(2)
-    ]);
-    const prodHeaders = ['', '', '', '', ''];
-    const prodTitle = ['Product Sales Breakdown', '', '', '', ''];
-    const prodCols = ['Product Name', 'SKU', 'Barcode', 'Quantity Sold', 'Total Revenue'];
-    const prodRows = weeklyReport.productBreakdown.map((p) => [
-      `"${p.productName.replace(/"/g, '""')}"`,
-      p.sku,
-      p.barcode,
-      p.quantitySold,
-      p.totalRevenue.toFixed(2)
-    ]);
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((r) => r.join(',')),
-      prodHeaders.join(','),
-      prodTitle.join(','),
-      prodCols.join(','),
-      ...prodRows.map((r) => r.join(','))
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Weekly-Sales-Report-${weeklyReport.startDate}_to_${weeklyReport.endDate}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportWeeklyPDF = () => {
+    exportWeeklySalesReportPDF(weeklyReport, settings);
   };
 
-  const exportMonthlyCsv = () => {
-    const headers = ['Date', 'Day', 'Transactions', 'Items Sold', 'Revenue'];
-    const rows = monthlyReport.dailyBreakdown.map((d) => [
-      d.date,
-      d.dayName,
-      d.totalTransactions,
-      d.totalItemsSold,
-      d.totalRevenue.toFixed(2)
-    ]);
-    const prodHeaders = ['', '', '', '', ''];
-    const prodTitle = ['Product Sales Breakdown', '', '', '', ''];
-    const prodCols = ['Product Name', 'SKU', 'Barcode', 'Quantity Sold', 'Total Revenue'];
-    const prodRows = monthlyReport.productBreakdown.map((p) => [
-      `"${p.productName.replace(/"/g, '""')}"`,
-      p.sku,
-      p.barcode,
-      p.quantitySold,
-      p.totalRevenue.toFixed(2)
-    ]);
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((r) => r.join(',')),
-      prodHeaders.join(','),
-      prodTitle.join(','),
-      prodCols.join(','),
-      ...prodRows.map((r) => r.join(','))
-    ].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Monthly-Sales-Report-${monthlyYear}-${String(monthlyMonth).padStart(2, '0')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportMonthlyPDF = () => {
+    exportMonthlySalesReportPDF(monthlyReport, settings);
+  };
+
+  const handleExportSalesHistoryPDF = () => {
+    exportSalesHistoryPDF(allSales, 'Complete Transaction Ledger (All Time)', settings);
+  };
+
+  const handleExportInventoryPDF = () => {
+    exportInventoryReportPDF(allProducts, settings);
+  };
+
+  const handleExportLowStockPDF = () => {
+    exportLowStockReportPDF(allProducts, settings);
+  };
+
+  const handleExportExpensePDF = () => {
+    exportExpenseReportPDF(allExpenses, settings);
+  };
+
+  const handleExportCreditAccountsPDF = () => {
+    exportCreditAccountsReportPDF(allCreditAccounts, settings);
+  };
+
+  const handleExportPaymentMethodsPDF = () => {
+    exportPaymentMethodsReportPDF(allSales, 'All Recorded Transactions', settings);
   };
 
   return (
@@ -170,16 +122,17 @@ export const ReportsView: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-[#998b7a] mt-0.5">
-            Real-time daily, weekly, and monthly reports calculated directly from recorded sales transactions.
+            Real-time daily, weekly, monthly, and catalog reports calculated directly from recorded retail transactions.
           </p>
         </div>
 
         {/* Report Tab Selector */}
-        <div className="grid grid-cols-3 sm:flex items-center bg-[#141417] p-1 rounded-2xl border border-[#26221c] w-full sm:w-auto">
+        <div className="grid grid-cols-2 sm:flex items-center bg-[#141417] p-1 rounded-2xl border border-[#26221c] w-full sm:w-auto gap-1">
           {[
             { id: 'daily', label: 'Daily Report' },
             { id: 'weekly', label: 'Weekly Report' },
-            { id: 'monthly', label: 'Monthly Report' }
+            { id: 'monthly', label: 'Monthly Report' },
+            { id: 'export_hub', label: 'All PDF Reports Hub' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -233,11 +186,13 @@ export const ReportsView: React.FC = () => {
                 {dailyReport.formattedDate}
               </span>
               <button
-                onClick={exportDailyCsv}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer"
+                type="button"
+                onClick={handleExportDailyPDF}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-95"
+                title="Download formatted Daily Sales PDF Report"
               >
-                <Download className="w-3.5 h-3.5 text-black" />
-                <span>Export Daily CSV</span>
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Daily PDF</span>
               </button>
             </div>
           </div>
@@ -464,11 +419,13 @@ export const ReportsView: React.FC = () => {
                 Week: {weeklyReport.label}
               </span>
               <button
-                onClick={exportWeeklyCsv}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer"
+                type="button"
+                onClick={handleExportWeeklyPDF}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-95"
+                title="Download formatted Weekly Sales PDF Report"
               >
-                <Download className="w-3.5 h-3.5 text-black" />
-                <span>Export Weekly CSV</span>
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Weekly PDF</span>
               </button>
             </div>
           </div>
@@ -724,11 +681,13 @@ export const ReportsView: React.FC = () => {
                 {monthlyReport.monthName}
               </span>
               <button
-                onClick={exportMonthlyCsv}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer"
+                type="button"
+                onClick={handleExportMonthlyPDF}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center gap-1.5 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-95"
+                title="Download formatted Monthly Sales PDF Report"
               >
-                <Download className="w-3.5 h-3.5 text-black" />
-                <span>Export Monthly CSV</span>
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Monthly PDF</span>
               </button>
             </div>
           </div>
@@ -917,6 +876,309 @@ export const ReportsView: React.FC = () => {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* 4. ALL PDF REPORTS HUB SECTION */}
+      {/* ======================================================== */}
+      {reportTab === 'export_hub' && (
+        <div className="space-y-6 animate-in fade-in duration-150 pb-8">
+          {/* Header Banner */}
+          <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-2xs">
+            <div>
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-[#f5d77f]" />
+                <h3 className="text-base font-bold text-[#f5d77f]">PDF Export Center</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
+                  All Reports PDF
+                </span>
+              </div>
+              <p className="text-xs text-[#998b7a] mt-1">
+                Download publication-ready, professional PDF documents formatted specifically for printing, financial audits, and store management.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#8c8273]">
+                Standard format: <strong className="text-[#f4efe8]">A4 Portrait PDF</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Grid of Report Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 1. Daily Sales PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Daily
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Daily Sales Report</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Gross revenue, order counts, units dispensed, tender channel breakdowns, and item-by-item sales ledger.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Selected: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{dailyReport.formattedDate}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportDailyPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-2 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Daily PDF</span>
+              </button>
+            </div>
+
+            {/* 2. Weekly Sales PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <BarChart3 className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Weekly
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Weekly Sales Report</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  7-day revenue performance, daily pacing, payment breakdown, top stationery lines, and cashier productivity.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Period: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">Week {weeklyReport.label}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportWeeklyPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-2 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Weekly PDF</span>
+              </button>
+            </div>
+
+            {/* 3. Monthly Sales PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Monthly
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Monthly Sales Report</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Full calendar month sales audit with daily revenue breakdown, category shares, and monthly staff revenue rankings.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Month: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{monthlyReport.monthName}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportMonthlyPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-2 shadow-2xs hover:brightness-110 cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-black" />
+                <span>Export Monthly PDF</span>
+              </button>
+            </div>
+
+            {/* 4. Sales History & Ledger PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <ShoppingBag className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Ledger
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Sales History & Transaction Ledger</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Comprehensive audit trail of transactions, customer IDs, cashier names, items sold, and payment methods.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Total Records: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{allSales.length} Transactions</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportSalesHistoryPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+                <span>Export Sales History PDF</span>
+              </button>
+            </div>
+
+            {/* 5. Inventory & Catalog PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Catalog
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Inventory & Stock Valuation</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Active merchandise list, product SKU, barcode numbers, unit cost, retail price, stock levels, and total retail valuation.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Total Catalog: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{allProducts.length} Items</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportInventoryPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+                <span>Export Inventory PDF</span>
+              </button>
+            </div>
+
+            {/* 6. Critical Low Stock Report PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400 border border-amber-500/30">
+                    <AlertTriangle className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-amber-400">
+                    Urgent
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Low Stock & Reorder Alert</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Filtered procurement sheet highlighting stationery items at or below reorder threshold with suggested order units.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Below Threshold: </span>
+                  <span className="text-[11px] font-semibold text-amber-400">
+                    {allProducts.filter((p) => p.stock <= p.minThreshold).length} items
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportLowStockPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-amber-300 border border-amber-500/30 hover:border-amber-400/60 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-amber-300" />
+                <span>Export Low Stock PDF</span>
+              </button>
+            </div>
+
+            {/* 7. Store Operational Expenses PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Expenses
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Store Expenses & Overhead</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Operational expenditure records, ink & toner refills, utility bills, maintenance disbursements, and cash register payouts.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Total Expenses: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{allExpenses.length} Records</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportExpensePDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+                <span>Export Expense PDF</span>
+              </button>
+            </div>
+
+            {/* 8. Customer Credit Accounts PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <CreditCard className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Credit
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Customer Credit & Receivables</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Client debtor ledgers, credit limits, available balances, payment histories, and total outstanding receivables.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Registered Accounts: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">{allCreditAccounts.length} Customers</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportCreditAccountsPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+                <span>Export Credit Accounts PDF</span>
+              </button>
+            </div>
+
+            {/* 9. Payment Methods Breakdown PDF */}
+            <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] flex flex-col justify-between shadow-2xs hover:border-[#d4af37]/40 transition-colors space-y-4">
+              <div className="space-y-2">
+                <div className="flex items-start justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-[#d4af37]/15 flex items-center justify-center text-[#f5d77f] border border-[#d4af37]/30">
+                    <Receipt className="w-4 h-4" />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#18181d] border border-[#2a261f] text-[#8c8273]">
+                    Tender
+                  </span>
+                </div>
+                <h4 className="font-bold text-sm text-[#f4efe8]">Payment Channels Breakdown</h4>
+                <p className="text-xs text-[#8c8273] leading-relaxed">
+                  Detailed distribution across Cash, CBE, Telebirr, Awash Bank, Dashen Bank, and Bank of Abyssinia with volume shares.
+                </p>
+                <div className="pt-1">
+                  <span className="text-[11px] text-[#8c8273]">Payment Channels: </span>
+                  <span className="text-[11px] font-semibold text-[#f5d77f]">6 Supported Methods</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleExportPaymentMethodsPDF}
+                className="w-full py-2.5 px-3 rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 font-bold text-xs flex items-center justify-center gap-2 shadow-2xs cursor-pointer transition-all active:scale-98"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+                <span>Export Payment Methods PDF</span>
+              </button>
             </div>
           </div>
         </div>

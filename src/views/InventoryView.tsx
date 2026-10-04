@@ -26,8 +26,10 @@ import {
   Check,
   CheckSquare,
   Square,
-  AlertCircle
+  AlertCircle,
+  FileText
 } from 'lucide-react';
+import { exportInventoryReportPDF, exportLowStockReportPDF } from '../services/pdfReportGenerator';
 
 interface InventoryViewProps {
   onNavigateToBarcodeStudio?: (productIds: string[]) => void;
@@ -297,10 +299,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
           <button
             onClick={() => setIsBulkImportOpen(true)}
             className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37]"
-            title="Bulk import products from Excel (.xlsx, .xls), PDF invoices, or CSV"
+            title="Bulk import products from Excel (.xlsx, .xls) or PDF invoices"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-[#f5d77f]" />
-            <span>Bulk Import (Excel / PDF)</span>
+            <span>Bulk Import</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => exportInventoryReportPDF(products, settings)}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37]"
+            title="Download full Inventory and Price Catalog as PDF"
+          >
+            <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
+            <span>Export Catalog PDF</span>
           </button>
 
           <button
