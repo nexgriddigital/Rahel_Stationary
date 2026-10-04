@@ -186,33 +186,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
           </div>
         </div>
 
-        {/* Card 3: Thermal Receipt Templates */}
+        {/* Card 3: Store Policy & Transaction Audit Notes */}
         <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4">
-          <h3 className="font-bold text-sm text-[#f5d77f] border-b border-[#26221c] pb-2">
-            Thermal 80mm Receipt Header & Footer Copy
-          </h3>
+          <div>
+            <h3 className="font-bold text-sm text-[#f5d77f] border-b border-[#26221c] pb-2">
+              Store Policy & Transaction Audit Record
+            </h3>
+            <p className="text-[11px] text-[#a39c90] mt-1.5 leading-relaxed">
+              Sales transactions are permanently committed directly to the database and live reporting engine. Customer paper receipts are disabled.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
-                Receipt Header Notes
+                Store Terms & Policies
               </label>
               <textarea
                 rows={3}
                 value={settings.receiptHeader}
                 onChange={(e) => setSettings({ ...settings, receiptHeader: e.target.value })}
+                placeholder="Stationery & Printing Retail Policies"
                 className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
               />
             </div>
 
             <div>
               <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
-                Receipt Footer Notes (Return Policy)
+                Return & Exchange Terms (Internal Audit)
               </label>
               <textarea
                 rows={3}
                 value={settings.receiptFooter}
                 onChange={(e) => setSettings({ ...settings, receiptFooter: e.target.value })}
+                placeholder="Returns accepted within 7 days with transaction reference ID."
                 className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
               />
             </div>

@@ -19,7 +19,9 @@ import {
   PaymentMethodStat,
   StaffSaleStat,
   DaySaleSummary,
-  PaymentMethod
+  PaymentMethod,
+  ETHIOPIAN_PAYMENT_METHODS,
+  getPaymentMethodLabel
 } from '../types';
 
 const STORAGE_KEYS = {
@@ -422,11 +424,11 @@ const SEED_SALES: Sale[] = [
   // Today's Sales
   {
     id: 'sale_1',
-    receiptNumber: 'REC-2026-8840',
+    transactionId: 'TXN-2026-8840',
+    receiptNumber: 'TXN-2026-8840',
     timestamp: new Date(Date.now() - 10800000).toISOString(),
     cashierId: 'user_1',
     cashierName: 'Rahel Fira',
-    shiftId: 'shift_101',
     items: [
       {
         productId: 'prod_1',
@@ -435,8 +437,8 @@ const SEED_SALES: Sale[] = [
         barcode: '890123456001',
         unitPrice: 7.50,
         costPrice: 4.20,
-        quantity: 2,
-        total: 15.00,
+        quantity: 10,
+        total: 75.00,
         discountPercent: 0
       },
       {
@@ -446,20 +448,32 @@ const SEED_SALES: Sale[] = [
         barcode: '890123456002',
         unitPrice: 2.25,
         costPrice: 1.10,
-        quantity: 3,
-        total: 6.75,
+        quantity: 10,
+        total: 22.50,
+        discountPercent: 0
+      },
+      {
+        productId: 'prod_3',
+        productName: 'Casio FX-991EX Scientific Calculator',
+        sku: 'CAL-CAS-991',
+        barcode: '890123456003',
+        unitPrice: 30.00,
+        costPrice: 18.00,
+        quantity: 2,
+        total: 60.00,
         discountPercent: 0
       }
     ],
-    subtotal: 21.75,
+    subtotal: 157.50,
     taxAmount: 0,
     taxPercent: 0,
     discountAmount: 0,
-    total: 21.75,
+    total: 157.50,
+    paymentMethod: 'Cash',
     payments: [
       {
         method: 'cash',
-        amount: 21.75
+        amount: 157.50
       }
     ],
     status: 'completed',
@@ -467,11 +481,11 @@ const SEED_SALES: Sale[] = [
   },
   {
     id: 'sale_2',
-    receiptNumber: 'REC-2026-8841',
+    transactionId: 'TXN-2026-8841',
+    receiptNumber: 'TXN-2026-8841',
     timestamp: new Date(Date.now() - 5400000).toISOString(),
     cashierId: 'user_1',
     cashierName: 'Rahel Fira',
-    shiftId: 'shift_101',
     items: [
       {
         productId: 'prod_4',
@@ -501,24 +515,24 @@ const SEED_SALES: Sale[] = [
     taxPercent: 0,
     discountAmount: 2.13, // 5% promotional discount
     total: 40.37,
+    paymentMethod: 'CBE',
     payments: [
       {
-        method: 'card',
+        method: 'cbe',
         amount: 40.37,
-        reference: 'AUTH-VISA-9941'
+        reference: 'CBE-TXN-9941'
       }
     ],
     status: 'completed',
     customerName: 'Sara Alem'
   },
-  // 1 Day Ago (Yesterday)
   {
-    id: 'sale_prev_1a',
-    receiptNumber: 'REC-2026-8835',
-    timestamp: new Date(Date.now() - 86400000 - 7200000).toISOString(),
+    id: 'sale_today_3',
+    transactionId: 'TXN-2026-8842',
+    receiptNumber: 'TXN-2026-8842',
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
     cashierId: 'user_1',
     cashierName: 'Rahel Fira',
-    shiftId: 'shift_100',
     items: [
       {
         productId: 'prod_5',
@@ -527,7 +541,44 @@ const SEED_SALES: Sale[] = [
         barcode: '890123456005',
         unitPrice: 52.00,
         costPrice: 32.00,
-        quantity: 2,
+        quantity: 4,
+        total: 208.00,
+        discountPercent: 0
+      }
+    ],
+    subtotal: 208.00,
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 0,
+    total: 208.00,
+    paymentMethod: 'Awash Bank',
+    payments: [
+      {
+        method: 'awash_bank',
+        amount: 208.00,
+        reference: 'AWASH-8842'
+      }
+    ],
+    status: 'completed',
+    customerName: 'Fineline Architects'
+  },
+  // 1 Day Ago (Yesterday)
+  {
+    id: 'sale_prev_1a',
+    transactionId: 'TXN-2026-8835',
+    receiptNumber: 'TXN-2026-8835',
+    timestamp: new Date(Date.now() - 86400000 - 7200000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    items: [
+      {
+        productId: 'prod_5',
+        productName: 'Thermal Receipt Paper Roll 80x80mm (Box of 50)',
+        sku: 'POS-ROL-8080',
+        barcode: '890123456005',
+        unitPrice: 20.80,
+        costPrice: 12.00,
+        quantity: 5,
         total: 104.00,
         discountPercent: 0
       }
@@ -537,13 +588,15 @@ const SEED_SALES: Sale[] = [
     taxPercent: 0,
     discountAmount: 0,
     total: 104.00,
-    payments: [{ method: 'card', amount: 104.00, reference: 'CBE-POS-4412' }],
+    paymentMethod: 'Telebirr',
+    payments: [{ method: 'telebirr', amount: 104.00, reference: 'TELEBIRR-8835' }],
     status: 'completed',
     customerName: 'Addis Commercial Bank'
   },
   {
     id: 'sale_prev_1b',
-    receiptNumber: 'REC-2026-8836',
+    transactionId: 'TXN-2026-8836',
+    receiptNumber: 'TXN-2026-8836',
     timestamp: new Date(Date.now() - 86400000 - 14400000).toISOString(),
     cashierId: 'user_1',
     cashierName: 'Rahel Fira',
@@ -808,13 +861,16 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
       const dayOfWeek = dateObj.getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
       const baseTotal = Number((140 + ((d * 23) % 190) + (isWeekend ? 65 : 0)).toFixed(2));
+      const paymentMethodsList = ETHIOPIAN_PAYMENT_METHODS;
+      const chosenPayment = paymentMethodsList[d % paymentMethodsList.length];
+      const txnRef = `TXN-${prevYear}-${String(prevMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`;
       sales.push({
         id: `sale_hist_${prevYear}_${prevMonth + 1}_${d}`,
-        receiptNumber: `REC-${prevYear}-${String(prevMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`,
+        transactionId: txnRef,
+        receiptNumber: txnRef,
         timestamp: dateObj.toISOString(),
         cashierId: 'user_1',
         cashierName: 'Rahel Fira',
-        shiftId: `shift_p${prevMonth + 1}`,
         items: [
           {
             productId: 'prod_1',
@@ -844,7 +900,12 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
         taxPercent: 0,
         discountAmount: 0,
         total: baseTotal,
-        payments: [{ method: d % 2 === 0 ? 'card' : 'cash', amount: baseTotal }],
+        paymentMethod: chosenPayment.label,
+        payments: [{
+          method: chosenPayment.id,
+          amount: baseTotal,
+          reference: chosenPayment.id === 'cash' ? undefined : `${chosenPayment.shortLabel}-TXN-${d * 117}`
+        }],
         status: 'completed',
         customerName: d % 3 === 0 ? 'Commercial Client' : 'Walk-in Retail'
       });
@@ -858,13 +919,16 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
     const existing = sales.some(s => new Date(s.timestamp).toDateString() === dateStr);
     if (!existing) {
       const baseTotal = Number((160 + ((d * 31) % 210)).toFixed(2));
+      const paymentMethodsList = ETHIOPIAN_PAYMENT_METHODS;
+      const curChosen = paymentMethodsList[(d + 2) % paymentMethodsList.length];
+      const curTxnRef = `TXN-${currentYear}-${String(currentMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`;
       sales.push({
         id: `sale_curr_${currentYear}_${currentMonth + 1}_${d}`,
-        receiptNumber: `REC-${currentYear}-${String(currentMonth + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`,
+        transactionId: curTxnRef,
+        receiptNumber: curTxnRef,
         timestamp: dateObj.toISOString(),
         cashierId: 'user_1',
         cashierName: 'Rahel Fira',
-        shiftId: `shift_c${currentMonth + 1}`,
         items: [
           {
             productId: 'prod_4',
@@ -883,7 +947,12 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
         taxPercent: 0,
         discountAmount: 0,
         total: baseTotal,
-        payments: [{ method: 'cash', amount: baseTotal }],
+        paymentMethod: curChosen.label,
+        payments: [{
+          method: curChosen.id,
+          amount: baseTotal,
+          reference: curChosen.id === 'cash' ? undefined : `${curChosen.shortLabel}-TXN-${d * 219}`
+        }],
         status: 'completed',
         customerName: 'Store Client'
       });
@@ -1532,10 +1601,18 @@ class StorageService {
   public getSales(): Sale[] {
     const list = this.get<Sale[]>(STORAGE_KEYS.SALES, ALL_SEED_SALES);
     const effectiveList = (!list || list.length < 25) ? ALL_SEED_SALES : list;
-    return effectiveList.map(s => ({
-      ...s,
-      transactionId: s.transactionId || (s.receiptNumber ? (s.receiptNumber.startsWith('TXN-') ? s.receiptNumber : s.receiptNumber.replace(/^REC-/, 'TXN-')) : `TXN-2026-${s.id.slice(-4)}`)
-    }));
+    return effectiveList.map(s => {
+      const txnId = s.transactionId || (s.receiptNumber ? (s.receiptNumber.startsWith('TXN-') ? s.receiptNumber : s.receiptNumber.replace(/^REC-/, 'TXN-')) : `TXN-2026-${s.id.slice(-4)}`);
+      let pm = s.paymentMethod;
+      if (!pm && s.payments && s.payments.length > 0) {
+        pm = getPaymentMethodLabel(s.payments[0].method);
+      }
+      return {
+        ...s,
+        transactionId: txnId,
+        paymentMethod: pm || 'Cash'
+      };
+    });
   }
 
   public completeSale(sale: Sale): void {
@@ -1552,6 +1629,13 @@ class StorageService {
       sale.receiptNumber = sale.transactionId;
     }
 
+    // Ensure paymentMethod is accurately recorded
+    if (!sale.paymentMethod && sale.payments && sale.payments.length > 0) {
+      sale.paymentMethod = getPaymentMethodLabel(sale.payments[0].method);
+    } else if (!sale.paymentMethod) {
+      sale.paymentMethod = 'Cash';
+    }
+
     sales.unshift(sale);
     this.set(STORAGE_KEYS.SALES, sales);
 
@@ -1560,19 +1644,7 @@ class StorageService {
       this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in transaction #${sale.transactionId}`);
     });
 
-    // Update active shift cash if cash was received
-    const activeShift = this.getActiveShift();
-    if (activeShift && activeShift.status === 'open') {
-      const cashPortion = sale.payments
-        .filter(p => p.method === 'cash')
-        .reduce((sum, p) => sum + p.amount, 0);
-      if (cashPortion > 0) {
-        activeShift.expectedCash = Number((activeShift.expectedCash + cashPortion).toFixed(2));
-        this.saveShift(activeShift);
-      }
-    }
-
-    // Handle store credit charges
+    // Handle store credit charges if customer credit tab was used
     const creditPortion = sale.payments.filter(p => p.method === 'store_credit');
     if (creditPortion.length > 0 && sale.customerName) {
       creditPortion.forEach(payment => {
@@ -1580,7 +1652,7 @@ class StorageService {
       });
     }
 
-    this.logActivity('SALE_COMPLETED', 'sale', `Recorded transaction #${sale.transactionId} totaling ETB ${sale.total.toFixed(2)} (${sale.items.length} items)`);
+    this.logActivity('SALE_COMPLETED', 'sale', `Recorded transaction #${sale.transactionId} totaling ETB ${sale.total.toFixed(2)} (${sale.items.length} items) [${sale.paymentMethod}]`);
   }
 
   public refundSale(saleId: string, reason: string): void {
@@ -1631,6 +1703,62 @@ class StorageService {
   }
 
   /**
+   * Aggregates payment method breakdown for reports and dashboard
+   */
+  public aggregatePaymentBreakdown(sales: Sale[], totalRevenue: number): PaymentMethodStat[] {
+    const paymentMap: Record<string, { count: number; totalAmount: number; label: string }> = {
+      cash: { count: 0, totalAmount: 0, label: 'Cash' },
+      cbe: { count: 0, totalAmount: 0, label: 'Commercial Bank of Ethiopia (CBE)' },
+      telebirr: { count: 0, totalAmount: 0, label: 'Telebirr' },
+      awash_bank: { count: 0, totalAmount: 0, label: 'Awash Bank' },
+      dashen_bank: { count: 0, totalAmount: 0, label: 'Dashen Bank' },
+      bank_of_abyssinia: { count: 0, totalAmount: 0, label: 'Bank of Abyssinia' }
+    };
+
+    sales.forEach(sale => {
+      if (sale.payments && sale.payments.length > 0) {
+        sale.payments.forEach(p => {
+          let m: string = p.method;
+          if (m === 'card') m = 'cbe';
+          else if (m === 'mobile_transfer') m = 'telebirr';
+
+          if (!paymentMap[m]) {
+            paymentMap[m] = {
+              count: 0,
+              totalAmount: 0,
+              label: getPaymentMethodLabel(m)
+            };
+          }
+          paymentMap[m].count += 1;
+          paymentMap[m].totalAmount = Number((paymentMap[m].totalAmount + p.amount).toFixed(2));
+        });
+      } else if (sale.paymentMethod) {
+        const pmLower = sale.paymentMethod.toLowerCase();
+        let m = 'cash';
+        if (pmLower.includes('cbe')) m = 'cbe';
+        else if (pmLower.includes('telebirr')) m = 'telebirr';
+        else if (pmLower.includes('awash')) m = 'awash_bank';
+        else if (pmLower.includes('dashen')) m = 'dashen_bank';
+        else if (pmLower.includes('abyssinia')) m = 'bank_of_abyssinia';
+
+        paymentMap[m].count += 1;
+        paymentMap[m].totalAmount = Number((paymentMap[m].totalAmount + sale.total).toFixed(2));
+      }
+    });
+
+    return Object.entries(paymentMap).map(([method, data]) => {
+      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
+      return {
+        method: method as PaymentMethod,
+        label: data.label,
+        count: data.count,
+        totalAmount: Number(data.totalAmount.toFixed(2)),
+        percentage
+      };
+    });
+  }
+
+  /**
    * Generates a Daily Sales Report calculated from actual recorded transactions for the specified date
    */
   public getDailyReport(dateStr?: string): DailyReport {
@@ -1655,13 +1783,6 @@ class StorageService {
 
     const productMap = new Map<string, ProductSaleStat>();
     const staffMap = new Map<string, StaffSaleStat>();
-    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
-      cash: { count: 0, totalAmount: 0, label: 'Cash' },
-      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
-      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
-      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
-    };
-
     const catalog = this.getProducts();
 
     daySales.forEach(sale => {
@@ -1710,34 +1831,13 @@ class StorageService {
           itemsSold: itemsInThisSale
         });
       }
-
-      // Payment Breakdown
-      sale.payments.forEach(p => {
-        if (paymentMap[p.method]) {
-          paymentMap[p.method].count += 1;
-          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
-        }
-      });
     });
 
     totalRevenue = Number(totalRevenue.toFixed(2));
     const averageTransactionValue =
       totalTransactions > 0 ? Number((totalRevenue / totalTransactions).toFixed(2)) : 0;
 
-    // Convert payment map to array with percentages
-    const paymentMethodBreakdown: PaymentMethodStat[] = (
-      Object.keys(paymentMap) as PaymentMethod[]
-    ).map(method => {
-      const data = paymentMap[method];
-      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
-      return {
-        method,
-        label: data.label,
-        count: data.count,
-        totalAmount: data.totalAmount,
-        percentage
-      };
-    });
+    const paymentMethodBreakdown = this.aggregatePaymentBreakdown(daySales, totalRevenue);
 
     const productBreakdown = Array.from(productMap.values()).sort(
       (a, b) => b.quantitySold - a.quantitySold
@@ -1809,12 +1909,6 @@ class StorageService {
 
     const productMap = new Map<string, ProductSaleStat>();
     const staffMap = new Map<string, StaffSaleStat>();
-    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
-      cash: { count: 0, totalAmount: 0, label: 'Cash' },
-      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
-      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
-      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
-    };
     const catalog = this.getProducts();
 
     weekSales.forEach(sale => {
@@ -1861,13 +1955,6 @@ class StorageService {
           itemsSold: itemsInThisSale
         });
       }
-
-      sale.payments.forEach(p => {
-        if (paymentMap[p.method]) {
-          paymentMap[p.method].count += 1;
-          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
-        }
-      });
     });
 
     totalRevenue = Number(totalRevenue.toFixed(2));
@@ -1883,19 +1970,7 @@ class StorageService {
       (a, b) => b.totalRevenue - a.totalRevenue
     );
 
-    const paymentMethodBreakdown: PaymentMethodStat[] = (
-      Object.keys(paymentMap) as PaymentMethod[]
-    ).map(method => {
-      const data = paymentMap[method];
-      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
-      return {
-        method,
-        label: data.label,
-        count: data.count,
-        totalAmount: data.totalAmount,
-        percentage
-      };
-    });
+    const paymentMethodBreakdown = this.aggregatePaymentBreakdown(weekSales, totalRevenue);
 
     return {
       startDate,
@@ -1962,12 +2037,6 @@ class StorageService {
 
     const productMap = new Map<string, ProductSaleStat>();
     const staffMap = new Map<string, StaffSaleStat>();
-    const paymentMap: Record<PaymentMethod, { count: number; totalAmount: number; label: string }> = {
-      cash: { count: 0, totalAmount: 0, label: 'Cash' },
-      card: { count: 0, totalAmount: 0, label: 'Card / Debit' },
-      mobile_transfer: { count: 0, totalAmount: 0, label: 'Mobile Transfer' },
-      store_credit: { count: 0, totalAmount: 0, label: 'Store Credit' }
-    };
     const catalog = this.getProducts();
 
     monthSales.forEach(sale => {
@@ -2014,13 +2083,6 @@ class StorageService {
           itemsSold: itemsInThisSale
         });
       }
-
-      sale.payments.forEach(p => {
-        if (paymentMap[p.method]) {
-          paymentMap[p.method].count += 1;
-          paymentMap[p.method].totalAmount = Number((paymentMap[p.method].totalAmount + p.amount).toFixed(2));
-        }
-      });
     });
 
     totalRevenue = Number(totalRevenue.toFixed(2));
@@ -2036,19 +2098,7 @@ class StorageService {
       (a, b) => b.totalRevenue - a.totalRevenue
     );
 
-    const paymentMethodBreakdown: PaymentMethodStat[] = (
-      Object.keys(paymentMap) as PaymentMethod[]
-    ).map(method => {
-      const data = paymentMap[method];
-      const percentage = totalRevenue > 0 ? Number(((data.totalAmount / totalRevenue) * 100).toFixed(1)) : 0;
-      return {
-        method,
-        label: data.label,
-        count: data.count,
-        totalAmount: data.totalAmount,
-        percentage
-      };
-    });
+    const paymentMethodBreakdown = this.aggregatePaymentBreakdown(monthSales, totalRevenue);
 
     return {
       year,

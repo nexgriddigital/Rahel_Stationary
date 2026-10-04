@@ -206,7 +206,7 @@ export const ExpenseTrackerView: React.FC = () => {
                   onChange={(e) => setPaidVia(e.target.value as Expense['paidVia'])}
                   className="w-full px-3 py-2 text-xs rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8]"
                 >
-                  <option value="Cash Register" className="bg-[#141417] text-[#f4efe8]">Cash Register Drawer (Auto-deduct from shift float)</option>
+                  <option value="Cash Register" className="bg-[#141417] text-[#f4efe8]">Store Cash / Register</option>
                   <option value="Store Bank Card" className="bg-[#141417] text-[#f4efe8]">Store Business Debit Card</option>
                   <option value="Petty Cash" className="bg-[#141417] text-[#f4efe8]">Petty Cash Box</option>
                 </select>

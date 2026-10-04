@@ -4,13 +4,19 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  History,
+  BarChart3,
+  Menu
+} from 'lucide-react';
 import { storage } from './services/storage';
 import { CartItem, Sale, Product } from './types';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { UserPinModal } from './components/UserPinModal';
-import { CashShiftModal } from './components/CashShiftModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { UrgentRestockToast } from './components/UrgentRestockToast';
@@ -40,7 +46,6 @@ export default function App() {
   // Modals
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [isShiftModalOpen, setIsShiftModalOpen] = useState(false);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -149,7 +154,6 @@ export default function App() {
       if (e.key === 'Escape') {
         setIsScannerOpen(false);
         setIsPinModalOpen(false);
-        setIsShiftModalOpen(false);
         setIsDownloadModalOpen(false);
         setIsShortcutsOpen(false);
         return;
@@ -214,7 +218,6 @@ export default function App() {
       <Sidebar
         currentTab={currentTab}
         onSelectTab={setCurrentTab}
-        onOpenShiftModal={() => setIsShiftModalOpen(true)}
         onOpenPinModal={() => setIsPinModalOpen(true)}
         onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
         onLogout={handleLogout}
@@ -276,7 +279,6 @@ export default function App() {
             <DashboardView
               onNavigate={setCurrentTab}
               onOpenScanner={() => setIsScannerOpen(true)}
-              onOpenShiftModal={() => setIsShiftModalOpen(true)}
             />
           )}
 
@@ -315,6 +317,64 @@ export default function App() {
 
           {currentTab === 'settings' && <SettingsView />}
         </main>
+
+        {/* Mobile Quick Bottom Navigation Bar (Smartphones & small screens) */}
+        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-[#0d0d0f]/95 dark:bg-[#09090b]/95 backdrop-blur-md border-t border-[#26221c] dark:border-[#221e17] px-2 flex items-center justify-around select-none shadow-2xl">
+          <button
+            onClick={() => setCurrentTab('dashboard')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
+              currentTab === 'dashboard' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
+            }`}
+          >
+            <LayoutDashboard className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentTab('pos')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors relative cursor-pointer ${
+              currentTab === 'pos' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
+            }`}
+          >
+            <div className="relative">
+              <ShoppingBag className="w-5 h-5" />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1.5 -right-2 px-1.5 py-0.2 rounded-full text-[9px] font-bold font-mono bg-[#d4af37] text-black">
+                  {cartItemCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] font-medium mt-1">Register</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentTab('sales')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
+              currentTab === 'sales' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
+            }`}
+          >
+            <History className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">History</span>
+          </button>
+
+          <button
+            onClick={() => setCurrentTab('reports')}
+            className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
+              currentTab === 'reports' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Reports</span>
+          </button>
+
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl text-[#8c8273] hover:text-[#f5d77f] transition-colors cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium mt-1">Menu</span>
+          </button>
+        </nav>
       </div>
 
       {/* Global Interactive Modals */}
@@ -330,11 +390,6 @@ export default function App() {
       <UserPinModal
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}
-      />
-
-      <CashShiftModal
-        isOpen={isShiftModalOpen}
-        onClose={() => setIsShiftModalOpen(false)}
       />
 
       <KeyboardShortcutsModal

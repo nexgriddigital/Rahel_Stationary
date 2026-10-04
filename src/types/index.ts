@@ -58,7 +58,50 @@ export interface CartItem {
   customPrice?: number;
 }
 
-export type PaymentMethod = 'cash' | 'card' | 'mobile_transfer' | 'store_credit';
+export type PaymentMethod =
+  | 'cash'
+  | 'cbe'
+  | 'telebirr'
+  | 'awash_bank'
+  | 'dashen_bank'
+  | 'bank_of_abyssinia'
+  | 'card'
+  | 'mobile_transfer'
+  | 'store_credit';
+
+export const ETHIOPIAN_PAYMENT_METHODS: { id: PaymentMethod; label: string; shortLabel: string }[] = [
+  { id: 'cash', label: 'Cash', shortLabel: 'Cash' },
+  { id: 'cbe', label: 'Commercial Bank of Ethiopia (CBE)', shortLabel: 'CBE' },
+  { id: 'telebirr', label: 'Telebirr', shortLabel: 'Telebirr' },
+  { id: 'awash_bank', label: 'Awash Bank', shortLabel: 'Awash Bank' },
+  { id: 'dashen_bank', label: 'Dashen Bank', shortLabel: 'Dashen Bank' },
+  { id: 'bank_of_abyssinia', label: 'Bank of Abyssinia', shortLabel: 'Bank of Abyssinia' }
+];
+
+export const getPaymentMethodLabel = (method: PaymentMethod | string): string => {
+  switch (method) {
+    case 'cash':
+      return 'Cash';
+    case 'cbe':
+      return 'CBE';
+    case 'telebirr':
+      return 'Telebirr';
+    case 'awash_bank':
+      return 'Awash Bank';
+    case 'dashen_bank':
+      return 'Dashen Bank';
+    case 'bank_of_abyssinia':
+      return 'Bank of Abyssinia';
+    case 'card':
+      return 'CBE';
+    case 'mobile_transfer':
+      return 'Telebirr';
+    case 'store_credit':
+      return 'Credit Tab';
+    default:
+      return String(method).replace(/_/g, ' ');
+  }
+};
 
 export interface PaymentSplit {
   method: PaymentMethod;
@@ -74,7 +117,7 @@ export interface Sale {
   timestamp: string;
   cashierId: string;
   cashierName: string;
-  shiftId: string;
+  shiftId?: string;
   items: {
     productId: string;
     productName: string;
@@ -91,6 +134,7 @@ export interface Sale {
   taxPercent: number;
   discountAmount: number;
   total: number;
+  paymentMethod?: string; // Direct selected payment method e.g. 'Cash', 'CBE', 'Telebirr', 'Awash Bank', 'Dashen Bank', 'Bank of Abyssinia'
   payments: PaymentSplit[];
   status: 'completed' | 'refunded' | 'partially_refunded';
   customerName?: string;

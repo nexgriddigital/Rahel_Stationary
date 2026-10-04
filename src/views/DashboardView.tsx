@@ -18,7 +18,8 @@ import {
   Flame,
   PlusCircle,
   Calendar,
-  Layers
+  Layers,
+  Wallet
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -39,17 +40,14 @@ import {
 interface DashboardViewProps {
   onNavigate: (tab: NavTab) => void;
   onOpenScanner: () => void;
-  onOpenShiftModal: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigate,
-  onOpenScanner,
-  onOpenShiftModal
+  onOpenScanner
 }) => {
   const sales = storage.getSales();
   const products = storage.getProducts();
-  const activeShift = storage.getActiveShift();
   const settings = storage.getSettings();
   const metrics = storage.getDashboardSalesMetrics();
 
@@ -61,6 +59,34 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
 
   const todayRevenue = todaySales.reduce((sum, s) => sum + s.total, 0);
+
+  // Payment method metrics breakdown for Today's Sales
+  const todayPaymentBreakdown = useMemo(() => {
+    const methods: Record<string, { label: string; count: number; amount: number; badgeColor: string }> = {
+      cash: { label: 'Cash', count: 0, amount: 0, badgeColor: 'text-emerald-400 bg-emerald-950/40 border-emerald-800/50' },
+      cbe: { label: 'CBE (Commercial Bank)', count: 0, amount: 0, badgeColor: 'text-purple-400 bg-purple-950/40 border-purple-800/50' },
+      telebirr: { label: 'Telebirr', count: 0, amount: 0, badgeColor: 'text-sky-400 bg-sky-950/40 border-sky-800/50' },
+      awash_bank: { label: 'Awash Bank', count: 0, amount: 0, badgeColor: 'text-amber-400 bg-amber-950/40 border-amber-800/50' },
+      dashen_bank: { label: 'Dashen Bank', count: 0, amount: 0, badgeColor: 'text-blue-400 bg-blue-950/40 border-blue-800/50' },
+      bank_of_abyssinia: { label: 'Bank of Abyssinia', count: 0, amount: 0, badgeColor: 'text-rose-400 bg-rose-950/40 border-rose-800/50' }
+    };
+
+    todaySales.forEach((sale) => {
+      sale.payments.forEach((p) => {
+        let key = p.method;
+        if (key === 'card') key = 'cbe';
+        if (key === 'mobile_transfer') key = 'telebirr';
+        if (!methods[key]) {
+          methods[key] = { label: p.method, count: 0, amount: 0, badgeColor: 'text-zinc-400 bg-zinc-900 border-zinc-700' };
+        }
+        methods[key].count += 1;
+        methods[key].amount += p.amount;
+      });
+    });
+
+    return Object.entries(methods).map(([key, data]) => ({ key, ...data }));
+  }, [todaySales]);
+
   const lowStockItems = products.filter((p) => p.stock <= p.minThreshold);
   const recentSales = sales.slice(0, 5);
 
@@ -287,11 +313,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
 
           <button
-            onClick={onOpenShiftModal}
-            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/30 flex items-center gap-1.5 shadow-2xs transition-colors"
+            onClick={() => onNavigate('sales')}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/30 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
-            <DollarSign className="w-3.5 h-3.5 text-[#d4af37]" />
-            <span>Cash Shift</span>
+            <History className="w-3.5 h-3.5 text-[#d4af37]" />
+            <span>Sales History</span>
           </button>
         </div>
       </div>
@@ -395,6 +421,63 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="text-[10px] text-[#8c8273] truncate">
             At/below threshold
           </div>
+        </div>
+      </div>
+
+      {/* Payment Methods Summary Breakdown (Today's Receipts by Channel) */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-3 hover:border-[#d4af37]/30 transition-colors">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-[#26221c]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] flex items-center justify-center shadow-2xs shrink-0">
+              <Wallet className="w-4 h-4 text-[#d4af37]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-[#f4efe8]">
+                  Today&apos;s Payment Channels
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/35">
+                  Live Tender Breakdown
+                </span>
+              </div>
+              <p className="text-xs text-[#a39c90]">
+                Breakdown of receipts across Cash, CBE, Telebirr, and private commercial banks.
+              </p>
+            </div>
+          </div>
+
+          <div className="text-right sm:border-l sm:border-[#26221c] sm:pl-4">
+            <div className="text-[10px] text-[#8c8273]">Today&apos;s Gross Collected</div>
+            <div className="font-mono font-bold text-base text-[#f5d77f]">
+              {settings.currencySymbol} {todayRevenue.toFixed(2)}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-1">
+          {todayPaymentBreakdown.map((pm) => (
+            <div
+              key={pm.key}
+              className="p-3 rounded-xl bg-[#18181c] border border-[#2a261f] space-y-1 hover:border-[#d4af37]/30 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-[#f4efe8] truncate">
+                  {pm.label}
+                </span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${pm.badgeColor}`}>
+                  {pm.count} txn
+                </span>
+              </div>
+              <div className="text-base font-bold font-mono text-[#f5d77f]">
+                {settings.currencySymbol} {pm.amount.toFixed(2)}
+              </div>
+              <div className="text-[10px] text-[#8c8273]">
+                {todayRevenue > 0
+                  ? `${((pm.amount / todayRevenue) * 100).toFixed(0)}% of today`
+                  : '0%'}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

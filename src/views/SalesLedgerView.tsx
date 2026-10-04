@@ -152,16 +152,16 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
         </div>
 
         {/* Aggregate KPI Badges */}
-        <div className="flex items-center gap-3">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
           <div className="px-3 py-1.5 rounded-xl bg-[#141417] border border-[#26221c] text-xs">
-            <span className="text-[#8c8273]">Recorded Sales: </span>
+            <span className="text-[#8c8273]">Recorded: </span>
             <strong className="font-mono text-[#f4efe8]">{filteredSales.length}</strong>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-[#141417] border border-[#26221c] text-xs">
             <span className="text-[#8c8273]">Items Sold: </span>
             <strong className="font-mono text-[#f4efe8]">{totalFilteredItems}</strong>
           </div>
-          <div className="px-3.5 py-1.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs font-semibold">
+          <div className="col-span-2 sm:col-span-1 px-3.5 py-1.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs font-semibold">
             <span>Total Sales: </span>
             <strong className="font-mono text-sm text-[#d4af37]">
               {settings.currencySymbol} {totalFilteredRevenue.toFixed(2)}
@@ -174,19 +174,19 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
       <div className="py-3 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {/* Search Input: Transaction ID, customer, item, SKU */}
-          <div className="relative flex-1 min-w-[260px] max-w-md">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8271]" />
             <input
               type="text"
               placeholder="Search by Transaction ID, product, cashier, or customer..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
             />
           </div>
 
           {/* Quick Date Filters */}
-          <div className="flex items-center gap-1 bg-[#141417] p-1 rounded-xl border border-[#26221c] text-xs flex-wrap">
+          <div className="flex items-center gap-1 bg-[#141417] p-1 rounded-xl border border-[#26221c] text-xs overflow-x-auto flex-nowrap scrollbar-none max-w-full">
             {[
               { id: 'all', label: 'All Time' },
               { id: 'today', label: 'Today' },
@@ -198,7 +198,7 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
               <button
                 key={tab.id}
                 onClick={() => setDateFilterMode(tab.id as typeof dateFilterMode)}
-                className={`px-2.5 py-1 rounded-lg font-medium transition-colors text-xs cursor-pointer ${
+                className={`px-2.5 py-1.5 rounded-lg font-medium transition-colors text-xs whitespace-nowrap cursor-pointer shrink-0 ${
                   dateFilterMode === tab.id
                     ? 'bg-[#d4af37] text-black font-bold shadow-xs'
                     : 'text-[#c4bbb0] hover:text-[#f4efe8] hover:bg-[#1f1f26]'
@@ -211,7 +211,7 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
 
           {/* Custom Date Picker if selected */}
           {dateFilterMode === 'custom' && (
-            <div className="flex items-center gap-1.5 bg-[#141417] px-2.5 py-1 rounded-xl border border-[#26221c] text-xs">
+            <div className="flex items-center gap-1.5 bg-[#141417] px-2.5 py-1.5 rounded-xl border border-[#26221c] text-xs">
               <Calendar className="w-3.5 h-3.5 text-[#d4af37]" />
               <input
                 type="date"
@@ -297,9 +297,77 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
         </div>
       </div>
 
-      {/* Sales History Table */}
+      {/* Sales History View: Mobile Cards & Desktop Table */}
       <div className="flex-1 rounded-2xl border border-[#26221c] bg-[#141417] overflow-hidden flex flex-col shadow-2xs">
-        <div className="flex-1 overflow-x-auto overflow-y-auto">
+        {/* Mobile View: High-contrast touch-friendly Cards (< md screens) */}
+        <div className="md:hidden flex-1 overflow-y-auto p-3 space-y-2.5">
+          {filteredSales.length === 0 ? (
+            <div className="py-14 text-center text-[#8e8271]">
+              <div className="flex flex-col items-center justify-center space-y-2">
+                <ShoppingBag className="w-8 h-8 opacity-40 text-[#d4af37]" />
+                <div className="font-semibold text-xs text-[#c4bbb0]">No transactions found</div>
+                <p className="text-[11px] text-[#7d7465]">
+                  No recorded sales match the applied date and filter criteria.
+                </p>
+              </div>
+            </div>
+          ) : (
+            filteredSales.map((s) => {
+              const txnId = s.transactionId || s.receiptNumber;
+              const itemsCount = s.items.reduce((acc, i) => acc + i.quantity, 0);
+              return (
+                <div
+                  key={s.id}
+                  onClick={() => setViewingSale(s)}
+                  className="p-3.5 rounded-2xl bg-[#18181d] border border-[#2a261f] hover:border-[#d4af37]/50 transition-colors shadow-2xs space-y-2.5 cursor-pointer active:scale-99"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="font-mono font-bold text-sm text-[#f5d77f]">
+                        {txnId}
+                      </div>
+                      <div className="text-[11px] text-[#8c8273]">
+                        {new Date(s.timestamp).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-black text-sm text-[#f5d77f]">
+                        {settings.currencySymbol} {s.total.toFixed(2)}
+                      </div>
+                      <span
+                        className={`inline-block px-2 py-0.2 rounded text-[10px] font-semibold mt-0.5 ${
+                          s.status === 'completed'
+                            ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
+                            : 'bg-rose-950/60 text-rose-300 border border-rose-800/40'
+                        }`}
+                      >
+                        {s.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-[#c4bbb0] flex items-center justify-between border-t border-[#26221c] pt-2">
+                    <span>By: <strong className="text-[#f4efe8]">{s.cashierName}</strong></span>
+                    <span className="text-[11px] text-[#a89f91] truncate max-w-[140px]">{s.customerName || 'Walk-in'}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs bg-[#141417] p-2 rounded-xl border border-[#26221c]">
+                    <span className="text-[11px] text-[#8c8273]">
+                      {itemsCount} {itemsCount === 1 ? 'item' : 'items'} ({s.payments.map((p) => p.method.replace('_', ' ')).join(', ')})
+                    </span>
+                    <span className="text-[11px] font-semibold text-[#f5d77f] flex items-center gap-1">
+                      <span>View Details</span>
+                      <Eye className="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop & Tablet Landscape View: Full Data Table (md: screens) */}
+        <div className="hidden md:block flex-1 overflow-x-auto overflow-y-auto">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-[#1a1a20] text-[#a89f91] font-medium border-b border-[#26221c] z-10">
               <tr>

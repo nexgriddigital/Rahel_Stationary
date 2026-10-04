@@ -372,9 +372,175 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
         </div>
       </div>
 
-      {/* Inventory Table Container */}
+      {/* Inventory Table & Mobile Cards Container */}
       <div className="flex-1 rounded-2xl border border-[#26221c] bg-[#121215] overflow-hidden flex flex-col shadow-2xs relative">
-        <div className="flex-1 overflow-x-auto overflow-y-auto">
+        {/* Mobile View: Responsive Cards (< md) */}
+        <div className="md:hidden flex-1 overflow-y-auto divide-y divide-[#26221c] p-2 space-y-2">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-[#8c8273]">
+              <p className="text-xs">No inventory records match the current filters.</p>
+              <button
+                onClick={() => setIsBulkImportOpen(true)}
+                className="mt-3 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black inline-flex items-center gap-1.5"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
+                <span>Bulk Import Items</span>
+              </button>
+            </div>
+          ) : (
+            filtered.map((prod) => {
+              const isLow = prod.stock <= prod.minThreshold;
+              const isSelected = selectedProductIds.has(prod.id);
+              const marginPercent =
+                prod.retailPrice > 0
+                  ? (((prod.retailPrice - prod.costPrice) / prod.retailPrice) * 100).toFixed(0)
+                  : '0';
+
+              return (
+                <div
+                  key={prod.id}
+                  className={`p-3.5 rounded-xl border border-[#26221c] space-y-3 transition-colors ${
+                    isSelected ? 'bg-[#d4af37]/10 border-[#d4af37]/40' : 'bg-[#16161b]'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProductIds(prev => {
+                            const next = new Set(prev);
+                            if (next.has(prod.id)) next.delete(prod.id);
+                            else next.add(prod.id);
+                            return next;
+                          });
+                        }}
+                        className="mt-0.5 p-1 rounded text-[#998b7a] hover:text-[#f5d77f] cursor-pointer"
+                        title={isSelected ? 'Deselect item' : 'Select item'}
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="w-4 h-4 text-[#d4af37]" />
+                        ) : (
+                          <Square className="w-4 h-4" />
+                        )}
+                      </button>
+                      <div>
+                        <div className="font-semibold text-xs text-[#f4efe8]">{prod.name}</div>
+                        <div className="text-[10px] text-[#998b7a] mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="px-1.5 py-0.5 rounded bg-[#1c1c22] text-[#d4af37] font-medium">
+                            {prod.category}
+                          </span>
+                          <span>SKU: {prod.sku || 'N/A'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-bold font-mono text-[#f5d77f]">
+                        {settings.currencySymbol} {prod.retailPrice.toFixed(2)}
+                      </div>
+                      <div className="text-[10px] text-[#8c8273]">
+                        Cost: {settings.currencySymbol} {prod.costPrice.toFixed(2)} ({marginPercent}%)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Barcode Strip with Eye (View Barcode Modal) button */}
+                  <div className="p-2 rounded-lg bg-[#111114] border border-[#23201a] flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setBarcodeModalProduct(prod)}
+                      className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#f5d77f] hover:underline truncate"
+                      title="View individual product barcode"
+                    >
+                      <Barcode className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                      <span className="truncate">{prod.barcode || 'No barcode'}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => copyBarcode(prod.barcode, prod.id)}
+                        className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-white/5 cursor-pointer"
+                        title="Copy Barcode"
+                      >
+                        {copiedBarcodeId === prod.id ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+
+                      {/* Eye (👁 View) Button */}
+                      <button
+                        type="button"
+                        onClick={() => setBarcodeModalProduct(prod)}
+                        className="p-1 rounded-md text-[#d4af37] hover:bg-[#d4af37]/15 cursor-pointer"
+                        title="View Barcode Preview Modal"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handlePrintBatchLabels([prod])}
+                        className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-white/5 cursor-pointer"
+                        title="Print Barcode Label"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stock status & Quick actions */}
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#23201a] text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[#8c8273] text-[11px]">Stock:</span>
+                      <span className={`font-mono font-bold ${isLow ? 'text-amber-400' : 'text-[#f4efe8]'}`}>
+                        {prod.stock} {prod.unit}
+                      </span>
+                      {isLow && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/40">
+                          Low
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setAdjustingProduct(prod)}
+                        className="px-2 py-1 rounded-lg bg-[#201d18] border border-[#2a241c] hover:border-[#d4af37]/40 text-[#f5d77f] text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowUpDown className="w-3 h-3 text-[#d4af37]" />
+                        <span>Adjust</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEdit(prod)}
+                        className="p-1.5 rounded-lg bg-[#201d18] border border-[#2a241c] text-[#8c8273] hover:text-[#f4efe8] cursor-pointer"
+                        title="Edit product"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProduct(prod.id, prod.name)}
+                        className="p-1.5 rounded-lg bg-[#201d18] border border-[#2a241c] text-rose-400 hover:bg-rose-950/40 cursor-pointer"
+                        title="Delete product"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop / Tablet View: Full Data Table (hidden on mobile, visible on md+) */}
+        <div className="hidden md:block flex-1 overflow-x-auto overflow-y-auto">
           <table className="w-full text-left text-xs">
             <thead className="sticky top-0 bg-[#18181d] text-[#a39c90] font-medium border-b border-[#26221c] z-10 select-none">
               <tr>
@@ -1020,6 +1186,19 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
           setTimeout(() => setSuccessNotification(null), 6000);
         }}
         onNavigateToBarcodeStudio={onNavigateToBarcodeStudio}
+      />
+
+      {/* Product Barcode Preview Modal (Eye button modal) */}
+      <ProductBarcodeModal
+        isOpen={Boolean(barcodeModalProduct)}
+        product={barcodeModalProduct}
+        onClose={() => setBarcodeModalProduct(null)}
+        onProductUpdated={(updated) => {
+          storage.saveProduct(updated);
+          refreshList();
+          setBarcodeModalProduct(updated);
+        }}
+        onNavigateToStudio={onNavigateToBarcodeStudio}
       />
     </div>
   );

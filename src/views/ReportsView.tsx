@@ -175,7 +175,7 @@ export const ReportsView: React.FC = () => {
         </div>
 
         {/* Report Tab Selector */}
-        <div className="flex items-center bg-[#141417] p-1 rounded-2xl border border-[#26221c]">
+        <div className="grid grid-cols-3 sm:flex items-center bg-[#141417] p-1 rounded-2xl border border-[#26221c] w-full sm:w-auto">
           {[
             { id: 'daily', label: 'Daily Report' },
             { id: 'weekly', label: 'Weekly Report' },
@@ -184,7 +184,7 @@ export const ReportsView: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setReportTab(tab.id as typeof reportTab)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`px-3 py-2 sm:px-3.5 sm:py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer text-center ${
                 reportTab === tab.id
                   ? 'bg-[#d4af37] text-black font-bold shadow-xs'
                   : 'text-[#c4bbb0] hover:text-[#f4efe8] hover:bg-[#1f1f26]'
@@ -243,7 +243,7 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* 4 Daily KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-1">
               <div className="flex items-center justify-between text-[#8c8273]">
                 <span className="text-[11px] font-semibold uppercase tracking-wider">Total Revenue</span>
@@ -474,7 +474,7 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* 4 Weekly KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-1">
               <div className="flex items-center justify-between text-[#8c8273]">
                 <span className="text-[11px] font-semibold uppercase tracking-wider">Weekly Revenue</span>
@@ -734,7 +734,7 @@ export const ReportsView: React.FC = () => {
           </div>
 
           {/* 4 Monthly KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             <div className="p-4 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-1">
               <div className="flex items-center justify-between text-[#8c8273]">
                 <span className="text-[11px] font-semibold uppercase tracking-wider">Monthly Revenue</span>

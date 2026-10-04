@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Product, CartItem, PaymentSplit, PaymentMethod, Sale, ParkedCart, ProductCategory } from '../types';
+import {
+  Product,
+  CartItem,
+  PaymentSplit,
+  PaymentMethod,
+  Sale,
+  ParkedCart,
+  ProductCategory,
+  ETHIOPIAN_PAYMENT_METHODS,
+  getPaymentMethodLabel
+} from '../types';
 import { storage } from '../services/storage';
 import {
   Search,
@@ -20,7 +30,8 @@ import {
   Camera,
   ShoppingBag,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Landmark
 } from 'lucide-react';
 
 interface PosRegisterViewProps {
@@ -38,6 +49,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [mobileTab, setMobileTab] = useState<'catalog' | 'ticket'>('catalog');
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showHeldCartsDrawer, setShowHeldCartsDrawer] = useState(false);
   const [holdNote, setHoldNote] = useState('');
@@ -59,7 +71,6 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
 
   const products = storage.getProducts();
   const settings = storage.getSettings();
-  const activeShift = storage.getActiveShift();
   const activeUser = storage.getActiveUser();
   const parkedCarts = storage.getParkedCarts();
   const creditAccounts = storage.getCreditAccounts();
@@ -195,7 +206,6 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
       timestamp: new Date().toISOString(),
       cashierId: activeUser.id,
       cashierName: activeUser.name,
-      shiftId: activeShift ? activeShift.id : 'unassigned',
       items: cart.map(i => ({
         productId: i.product.id,
         productName: i.product.name,
@@ -270,8 +280,41 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         </div>
       )}
 
+      {/* Mobile Screen Segmented Tab Header (Catalog vs Sale Ticket) */}
+      <div className="lg:hidden flex items-center p-2 bg-[#121215] border-b border-[#26221c] gap-2 select-none shrink-0">
+        <button
+          onClick={() => setMobileTab('catalog')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileTab === 'catalog'
+              ? 'bg-[#d4af37] text-black shadow-xs'
+              : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f]'
+          }`}
+        >
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Product Catalog</span>
+        </button>
+
+        <button
+          onClick={() => setMobileTab('ticket')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+            mobileTab === 'ticket'
+              ? 'bg-[#d4af37] text-black shadow-xs'
+              : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f]'
+          }`}
+        >
+          <span>Current Ticket</span>
+          <span className={`px-1.5 py-0.5 rounded-full font-mono text-[10px] ${
+            mobileTab === 'ticket' ? 'bg-black text-[#f5d77f]' : 'bg-[#d4af37]/20 text-[#f5d77f]'
+          }`}>
+            {cart.reduce((s, i) => s + i.quantity, 0)} • {settings.currencySymbol}{totalAmount.toFixed(2)}
+          </span>
+        </button>
+      </div>
+
       {/* Left Area: Product Catalog & Category Filters */}
-      <div className="flex-1 flex flex-col border-r border-[#26221c] overflow-hidden">
+      <div className={`flex-1 flex flex-col border-r border-[#26221c] overflow-hidden ${
+        mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
+      }`}>
         {/* Search & Quick Actions Bar */}
         <div className="p-3.5 border-b border-[#26221c] flex items-center justify-between gap-3 bg-[#121215]">
           <div className="relative flex-1 max-w-md">
@@ -289,7 +332,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onOpenScanner}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 transition-all shrink-0 cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 transition-all shrink-0 cursor-pointer min-h-[36px]"
             >
               <Camera className="w-3.5 h-3.5 text-black" />
               <span>Scan Barcode</span>
@@ -298,7 +341,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             {parkedCarts.length > 0 && (
               <button
                 onClick={() => setShowHeldCartsDrawer(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/35 text-[#f5d77f] text-xs font-semibold transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#d4af37]/15 hover:bg-[#d4af37]/25 border border-[#d4af37]/35 text-[#f5d77f] text-xs font-semibold transition-colors min-h-[36px]"
               >
                 <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
                 <span>{parkedCarts.length} Held</span>
@@ -313,7 +356,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors shrink-0 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
                 selectedCategory === cat
                   ? 'bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black font-bold shadow-xs'
                   : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
@@ -330,10 +373,10 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             const isLowStock = p.stock <= p.minThreshold;
             const inCart = cart.find(c => c.product.id === p.id);
             return (
-              <button
+              <div
                 key={p.id}
                 onClick={() => addToCart(p)}
-                className="group p-3 rounded-2xl bg-[#141417] hover:border-[#d4af37]/70 border border-[#2a261f] text-left transition-all hover:shadow-xs active:scale-98 flex flex-col justify-between relative overflow-hidden"
+                className="group p-3 rounded-2xl bg-[#141417] hover:border-[#d4af37]/70 border border-[#2a261f] text-left transition-all hover:shadow-xs active:scale-98 flex flex-col justify-between relative overflow-hidden cursor-pointer"
               >
                 {/* Active in cart indicator badge */}
                 {inCart && (
@@ -368,14 +411,45 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                     {isLowStock ? `Low: ${p.stock}` : `${p.stock} ${p.unit}`}
                   </span>
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
+
+        {/* Sticky Mobile Floating Cart Bar */}
+        {cart.length > 0 && (
+          <div className="lg:hidden p-3 bg-[#121215]/95 backdrop-blur-md border-t border-[#d4af37]/35 flex items-center justify-between gap-3 shadow-2xl z-20 shrink-0">
+            <div>
+              <div className="text-[10px] text-[#8c8273] uppercase font-bold tracking-wider">
+                {cart.reduce((s, i) => s + i.quantity, 0)} Items Selected
+              </div>
+              <div className="text-base font-mono font-black text-[#f5d77f]">
+                {settings.currencySymbol} {totalAmount.toFixed(2)}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setMobileTab('ticket')}
+                className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#24242c] hover:bg-[#2c2c36] text-[#f5d77f] border border-[#2a261f] cursor-pointer min-h-[38px]"
+              >
+                Review Cart
+              </button>
+              <button
+                onClick={() => setShowCheckoutModal(true)}
+                className="px-4 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black shadow-xs flex items-center gap-1.5 cursor-pointer min-h-[38px]"
+              >
+                <span>Complete Sale</span>
+                <ArrowRight className="w-3.5 h-3.5 text-black" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Right Area: POS Cart Ticket */}
-      <div className="w-full lg:w-96 flex flex-col bg-[#0d0d10] border-t lg:border-t-0 border-[#26221c] h-full">
+      <div className={`w-full lg:w-96 flex-col bg-[#0d0d10] border-t lg:border-t-0 border-[#26221c] h-full ${
+        mobileTab === 'ticket' ? 'flex' : 'hidden lg:flex'
+      }`}>
         {/* Ticket Header & Customer assignment */}
         <div className="p-3.5 border-b border-[#26221c] bg-[#121215] space-y-2">
           <div className="flex items-center justify-between">
@@ -449,28 +523,32 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    {/* Stepper */}
-                    <div className="flex items-center rounded-lg border border-[#2a261f] bg-[#1a1a20]">
+                    {/* Stepper with generous touch targets */}
+                    <div className="flex items-center rounded-xl border border-[#2a261f] bg-[#1a1a20]">
                       <button
                         onClick={() => updateQuantity(item.product.id, -1)}
-                        className="p-1 hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-l"
+                        className="w-8 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-l-xl cursor-pointer"
+                        title="Decrease quantity"
+                        aria-label="Decrease quantity"
                       >
-                        <Minus className="w-3 h-3" />
+                        <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="px-2 font-mono text-xs font-bold text-[#f4efe8]">
+                      <span className="px-2 font-mono text-xs font-bold text-[#f4efe8] min-w-6 text-center">
                         {item.quantity}
                       </span>
                       <button
                         onClick={() => updateQuantity(item.product.id, 1)}
-                        className="p-1 hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-r"
+                        className="w-8 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-r-xl cursor-pointer"
+                        title="Increase quantity"
+                        aria-label="Increase quantity"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     {/* Discount Input */}
                     <div className="flex items-center gap-1 text-[11px]">
-                      <Percent className="w-3 h-3 text-[#8c8273]" />
+                      <Percent className="w-3.5 h-3.5 text-[#8c8273]" />
                       <input
                         type="number"
                         min="0"
@@ -478,7 +556,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                         placeholder="0"
                         value={item.appliedDiscountPercent || ''}
                         onChange={(e) => updateItemDiscount(item.product.id, parseFloat(e.target.value) || 0)}
-                        className="w-10 px-1 py-0.5 text-center font-mono text-xs rounded border border-[#2a261f] bg-[#18181d] text-[#f4efe8]"
+                        className="w-12 px-1.5 py-1 text-center font-mono text-xs rounded-lg border border-[#2a261f] bg-[#18181d] text-[#f4efe8]"
                       />
                       <span className="text-[10px] text-[#8c8273]">% off</span>
                     </div>
@@ -486,9 +564,11 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                     {/* Delete Item */}
                     <button
                       onClick={() => removeItem(item.product.id)}
-                      className="p-1 text-[#8c8273] hover:text-rose-400 transition-colors"
+                      className="p-1.5 text-[#8c8273] hover:text-rose-400 hover:bg-rose-950/20 rounded-lg transition-colors cursor-pointer"
+                      title="Remove item from ticket"
+                      aria-label="Remove item"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

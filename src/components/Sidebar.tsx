@@ -16,7 +16,6 @@ import {
   Wifi,
   ChevronRight,
   Shield,
-  CircleDollarSign,
   Maximize2,
   LogOut,
   X
@@ -39,7 +38,6 @@ export type NavTab =
 interface SidebarProps {
   currentTab: NavTab;
   onSelectTab: (tab: NavTab) => void;
-  onOpenShiftModal: () => void;
   onOpenPinModal: () => void;
   onOpenDownloadModal: () => void;
   onLogout?: () => void;
@@ -51,7 +49,6 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   currentTab,
   onSelectTab,
-  onOpenShiftModal,
   onOpenPinModal,
   onOpenDownloadModal,
   onLogout,
@@ -61,7 +58,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [showSignHoverCard, setShowSignHoverCard] = useState(false);
   const activeUser = storage.getActiveUser();
-  const activeShift = storage.getActiveShift();
   const settings = storage.getSettings();
   const parkedCarts = storage.getParkedCarts();
   const creditAccounts = storage.getCreditAccounts();
@@ -135,57 +131,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
 
-          {/* Download App Sign with rich hover card */}
-          <div className="relative">
-            <button
-              onClick={onOpenDownloadModal}
-              onMouseEnter={() => setShowSignHoverCard(true)}
-              onMouseLeave={() => setShowSignHoverCard(false)}
-              className="group relative flex items-center gap-1 px-2 py-1 rounded-lg bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30 text-[10px] font-semibold transition-all shadow-2xs"
-            >
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f5d77f] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#d4af37]"></span>
-              </span>
-              <Download className="w-3 h-3 text-[#d4af37]" />
-              <span>App</span>
-            </button>
+          {/* Top Actions: Download App & Mobile Close */}
+          <div className="flex items-center gap-1.5">
+            {/* Download App Sign with rich hover card */}
+            <div className="relative">
+              <button
+                onClick={onOpenDownloadModal}
+                onMouseEnter={() => setShowSignHoverCard(true)}
+                onMouseLeave={() => setShowSignHoverCard(false)}
+                className="group relative flex items-center gap-1 px-2 py-1 rounded-lg bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30 text-[10px] font-semibold transition-all shadow-2xs"
+              >
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f5d77f] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#d4af37]"></span>
+                </span>
+                <Download className="w-3 h-3 text-[#d4af37]" />
+                <span>App</span>
+              </button>
 
-            {/* Floating Hover Card */}
-            {showSignHoverCard && (
-              <div className="absolute left-full top-0 ml-2 w-72 p-3.5 rounded-xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/30 z-50 text-xs pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-                <div className="font-bold text-xs text-[#f5d77f] mb-1 flex items-center gap-1.5">
-                  <Download className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>Rahel POS Desktop & Tablet App</span>
+              {/* Floating Hover Card */}
+              {showSignHoverCard && (
+                <div className="absolute left-full top-0 ml-2 w-72 p-3.5 rounded-xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/30 z-50 text-xs pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+                  <div className="font-bold text-xs text-[#f5d77f] mb-1 flex items-center gap-1.5">
+                    <Download className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Rahel POS Desktop & Tablet App</span>
+                  </div>
+                  <p className="text-[11px] text-[#a39c90] mb-2 leading-relaxed">
+                    Click to launch or install as a dedicated kiosk register with 4 essential hardware advantages:
+                  </p>
+                  <div className="space-y-1.5 text-[11px]">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[#f5d77f] font-bold">1.</span>
+                      <span><strong>100% Offline Protection:</strong> Register works and records transactions without store internet.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[#f5d77f] font-bold">2.</span>
+                      <span><strong>Dedicated Kiosk Workspace:</strong> Fullscreen window without browser address bar or tabs.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[#f5d77f] font-bold">3.</span>
+                      <span><strong>Hardware Acceleration:</strong> Faster barcode scanner camera and receipt thermal printer response.</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[#f5d77f] font-bold">4.</span>
+                      <span><strong>1-Click Fast Launch:</strong> Direct pin to taskbar, dock, or home screen.</span>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[11px] text-[#a39c90] mb-2 leading-relaxed">
-                  Click to launch or install as a dedicated kiosk register with 4 essential hardware advantages:
-                </p>
-                <div className="space-y-1.5 text-[11px]">
-                  <div className="flex items-start gap-1.5">
-                    <span className="text-[#f5d77f] font-bold">1.</span>
-                    <span><strong>100% Offline Protection:</strong> Register works and records transactions without store internet.</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="text-[#f5d77f] font-bold">2.</span>
-                    <span><strong>Dedicated Kiosk Workspace:</strong> Fullscreen window without browser address bar or tabs.</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="text-[#f5d77f] font-bold">3.</span>
-                    <span><strong>Hardware Acceleration:</strong> Faster barcode scanner camera and receipt thermal printer response.</span>
-                  </div>
-                  <div className="flex items-start gap-1.5">
-                    <span className="text-[#f5d77f] font-bold">4.</span>
-                    <span><strong>1-Click Fast Launch:</strong> Direct pin to taskbar, dock, or home screen.</span>
-                  </div>
-                </div>
-              </div>
+              )}
+            </div>
+
+            {/* Mobile Drawer Close Button */}
+            {onCloseMobile && (
+              <button
+                onClick={onCloseMobile}
+                className="p-1 rounded-lg text-[#a39c90] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 lg:hidden transition-colors cursor-pointer"
+                title="Close Navigation Drawer"
+                aria-label="Close Navigation"
+              >
+                <X className="w-5 h-5" />
+              </button>
             )}
           </div>
         </div>
 
         {/* Viewport-fitted 11 Core Navigation Tabs */}
-        <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto space-y-0.5">
+        <nav className="flex-1 px-2.5 py-1.5 overflow-y-auto space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -193,7 +204,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all group ${
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group min-h-[40px] cursor-pointer ${
                   isActive
                     ? 'bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold shadow-sm shadow-[#d4af37]/20'
                     : 'text-[#c2baa9] hover:bg-[#d4af37]/10 hover:text-[#f5d77f]'
@@ -201,7 +212,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Icon
-                    className={`w-3.5 h-3.5 shrink-0 ${
+                    className={`w-4 h-4 shrink-0 ${
                       isActive ? 'text-black' : 'text-[#8c8273] group-hover:text-[#f5d77f]'
                     }`}
                   />
@@ -210,7 +221,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
                 {item.badge && (
                   <span
-                    className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold leading-tight ${item.badgeColor || 'bg-black/40 text-[#f5d77f]'}`}
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono font-bold leading-tight ${item.badgeColor || 'bg-black/40 text-[#f5d77f]'}`}
                   >
                     {item.badge}
                   </span>
@@ -220,41 +231,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           })}
         </nav>
 
-        {/* Bottom Section: Shift Badge & Active User Card */}
-        <div className="p-2.5 border-t border-[#26221c] dark:border-[#221e17] space-y-2 bg-[#121215] dark:bg-[#0c0c0e]">
-          {/* Register Shift Badge */}
-          <div
-            onClick={onOpenShiftModal}
-            className="p-2 rounded-xl bg-[#18181c] border border-[#2a261f] cursor-pointer hover:border-[#d4af37]/60 transition-colors shadow-2xs"
-          >
-            <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-1.5 font-semibold text-[#f5d77f]">
-                <CircleDollarSign className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span>
-                  {activeShift ? `Shift #${activeShift.shiftNumber}` : 'Drawer Closed'}
-                </span>
-              </div>
-              <span
-                className={`px-1.5 py-0.2 rounded text-[10px] font-semibold ${
-                  activeShift
-                    ? 'bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30'
-                    : 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
-                }`}
-              >
-                {activeShift ? 'Open' : 'Reconciled'}
-              </span>
-            </div>
-            <div className="mt-1 flex items-center justify-between text-[10px] text-[#a39c90]">
-              <span>Drawer Expected:</span>
-              <span className="font-mono font-bold text-[#f5d77f]">
-                {settings.currencySymbol}
-                {activeShift ? activeShift.expectedCash.toFixed(2) : '0.00'}
-              </span>
-            </div>
-          </div>
-
+        {/* Bottom Section: Active User Profile Card */}
+        <div className="p-2.5 border-t border-[#26221c] dark:border-[#221e17] bg-[#121215] dark:bg-[#0c0c0e]">
           {/* Administrator Profile Card */}
-          <div className="flex items-center justify-between p-2 rounded-xl bg-[#18181c] border border-[#2a261f]">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#18181c] border border-[#2a261f]">
             <div
               onClick={onOpenPinModal}
               className="flex items-center gap-2 cursor-pointer flex-1 min-w-0"

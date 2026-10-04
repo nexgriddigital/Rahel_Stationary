@@ -15,7 +15,8 @@ import {
   ExternalLink,
   Tag,
   Package,
-  CheckCircle2
+  CheckCircle2,
+  Download
 } from 'lucide-react';
 
 interface ProductBarcodeModalProps {
@@ -23,7 +24,7 @@ interface ProductBarcodeModalProps {
   product: Product | null;
   onClose: () => void;
   onProductUpdated?: (updatedProduct: Product) => void;
-  onNavigateToStudio?: (productId: string) => void;
+  onNavigateToStudio?: (productIds: string[]) => void;
 }
 
 export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
@@ -39,11 +40,14 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [printCopies, setPrintCopies] = useState<number>(1);
   const [isEditing, setIsEditing] = useState(false);
-  const [newBarcode, setNewBarcode] = useState(product.barcode);
+  const [newBarcode, setNewBarcode] = useState(product.barcode || '');
   const [editError, setEditError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
 
+  const hasBarcode = Boolean(product.barcode && product.barcode.trim().length > 0);
+
   const handleCopy = async () => {
+    if (!product.barcode) return;
     try {
       await navigator.clipboard.writeText(product.barcode);
       setCopied(true);
@@ -61,10 +65,43 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
     }
   };
 
+  const handleDownload = () => {
+    if (!product.barcode) return;
+    const svgEl = document.querySelector('#preview-barcode-container svg') as SVGSVGElement | null;
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    const downloadLink = document.createElement('a');
+    downloadLink.href = svgUrl;
+    downloadLink.download = `barcode-${(product.sku || product.name || 'item').replace(/[^a-zA-Z0-9_-]/g, '_')}-${product.barcode}.svg`;
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(svgUrl);
+  };
+
   const handleGenerateNew = () => {
     const code = storage.generateBarcodeNumber();
     setNewBarcode(code);
     setEditError(null);
+  };
+
+  const handleAssignInitialBarcode = () => {
+    const generated = storage.generateBarcodeNumber();
+    const updatedProduct: Product = {
+      ...product,
+      barcode: generated,
+      updatedAt: new Date().toISOString()
+    };
+    const res = storage.saveProduct(updatedProduct);
+    if (res.success) {
+      setSaveSuccess('Generated and assigned unique barcode!');
+      if (onProductUpdated) onProductUpdated(updatedProduct);
+      setTimeout(() => setSaveSuccess(null), 3000);
+    } else {
+      setEditError(res.error || 'Failed to assign barcode.');
+    }
   };
 
   const handleSaveBarcode = (e: React.FormEvent) => {
@@ -101,6 +138,7 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
 
   // Dedicated Print individual barcode labels
   const handlePrint = () => {
+    if (!product.barcode) return;
     // Build labels HTML
     const labelsHtml = Array.from({ length: printCopies })
       .map(
@@ -112,7 +150,7 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
             <svg class="barcode-svg" jsbarcode-value="${product.barcode}" jsbarcode-format="CODE128" jsbarcode-width="1.8" jsbarcode-height="45" jsbarcode-fontsize="11" jsbarcode-margin="0"></svg>
           </div>
           <div class="footer-meta">
-            <span class="sku">SKU: ${product.sku}</span>
+            <span class="sku">SKU: ${product.sku || 'N/A'}</span>
             <span class="price">${settings.currencySymbol} ${product.retailPrice.toFixed(2)}</span>
           </div>
         </div>
@@ -212,20 +250,20 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-      <div className="w-full max-w-md rounded-3xl bg-[#141417] text-[#f4efe8] border border-[#2a261f] shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-md max-h-[92vh] rounded-3xl bg-[#141417] text-[#f4efe8] border border-[#2a261f] shadow-2xl overflow-y-auto flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#26221c] bg-[#18181c]">
+        <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#26221c] bg-[#18181c] sticky top-0 z-10">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#d4af37] to-[#aa8010] text-black flex items-center justify-center shadow-xs">
               <Barcode className="w-4 h-4 text-black" />
             </div>
             <div>
               <h3 className="font-bold text-sm text-[#f5d77f]">
-                Product Barcode & Identification
+                Product Barcode Preview
               </h3>
               <p className="text-[11px] text-[#998b7a]">
-                Unique Code-128 Retail Barcode
+                Scannable Code-128 Retail Barcode
               </p>
             </div>
           </div>
@@ -233,13 +271,14 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[#8e8271] hover:text-[#f4efe8] hover:bg-white/5 transition-colors cursor-pointer"
+            title="Close modal"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-5">
+        <div className="p-5 sm:p-6 space-y-4 sm:space-y-5">
           {/* Product Summary Header Card */}
           <div className="p-3.5 rounded-2xl bg-[#1a1714] border border-[#26221c] space-y-2">
             <div className="flex items-start justify-between gap-3">
@@ -262,7 +301,7 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
             </div>
 
             <div className="pt-2 border-t border-[#26221c] flex items-center justify-between text-xs text-[#998b7a] font-mono">
-              <span>SKU: <strong className="text-[#f4efe8]">{product.sku}</strong></span>
+              <span>SKU: <strong className="text-[#f4efe8]">{product.sku || 'N/A'}</strong></span>
               <span>Item ID: <strong className="text-[#c4bbb0]">{product.id}</strong></span>
             </div>
           </div>
@@ -282,157 +321,204 @@ export const ProductBarcodeModal: React.FC<ProductBarcodeModalProps> = ({
             </div>
           )}
 
-          {/* High-Contrast Scannable Barcode Plate */}
-          <div className="p-5 rounded-2xl bg-white border border-slate-300 shadow-inner flex flex-col items-center justify-center space-y-1">
-            <span className="text-[9px] font-extrabold tracking-widest uppercase text-slate-700">
-              {settings.storeName}
-            </span>
-            <div className="w-full flex justify-center py-1 overflow-hidden">
-              <BarcodeRenderer
-                value={product.barcode}
-                width={1.9}
-                height={55}
-                fontSize={12}
-                displayValue={false}
-              />
-            </div>
-            {/* Prominent Barcode Number under graphic */}
-            <div className="font-mono text-base font-bold tracking-widest text-slate-900 select-all">
-              {product.barcode}
-            </div>
-          </div>
-
-          {/* Barcode Actions: Copy, Quick Edit */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopy}
-              className="flex-1 py-2 px-3 rounded-xl bg-[#1a1714] border border-[#2a241c] hover:border-[#d4af37]/40 text-xs font-semibold text-[#f4efe8] flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copied to Clipboard!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>Copy Barcode</span>
-                </>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setIsEditing(!isEditing);
-                setNewBarcode(product.barcode);
-                setEditError(null);
-              }}
-              className="py-2 px-3 rounded-xl bg-[#1a1714] border border-[#2a241c] hover:border-[#d4af37]/40 text-xs font-semibold text-[#f5d77f] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <Edit2 className="w-3.5 h-3.5 text-[#d4af37]" />
-              <span>{isEditing ? 'Cancel Edit' : 'Edit Code'}</span>
-            </button>
-          </div>
-
-          {/* Edit Barcode Inline Form */}
-          {isEditing && (
-            <form onSubmit={handleSaveBarcode} className="p-3.5 rounded-2xl bg-[#1a1714] border border-[#d4af37]/40 space-y-3 animate-in fade-in duration-150">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-[#c4bbb0]">
-                  Edit or Assign Unique Barcode
-                </label>
-                <button
-                  type="button"
-                  onClick={handleGenerateNew}
-                  className="text-[11px] font-semibold text-[#f5d77f] hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Sparkles className="w-3 h-3 text-[#d4af37]" />
-                  <span>Generate New</span>
-                </button>
+          {/* Check if product has a barcode */}
+          {!hasBarcode ? (
+            <div className="p-6 rounded-2xl bg-[#1a1714] border border-amber-600/30 text-center space-y-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-amber-400">
+                <AlertCircle className="w-5 h-5" />
               </div>
-
-              <input
-                type="text"
-                required
-                value={newBarcode}
-                onChange={(e) => setNewBarcode(e.target.value)}
-                placeholder="Enter unique barcode value"
-                className="w-full px-3 py-2 text-xs font-mono font-bold tracking-wider rounded-xl bg-[#121215] border border-[#2a261f] text-[#f5d77f] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-              />
-
-              <div className="flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-3 py-1.5 text-xs text-[#998b7a] hover:text-[#f4efe8]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] text-black font-bold text-xs hover:brightness-110 cursor-pointer"
-                >
-                  Save New Barcode
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Printing Options */}
-          <div className="p-3.5 rounded-2xl bg-[#18181c] border border-[#26221c] flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <Printer className="w-4 h-4 text-[#d4af37]" />
               <div>
-                <div className="text-xs font-semibold text-[#f4efe8]">Print Labels</div>
-                <div className="text-[10px] text-[#998b7a]">Thermal / Adhesive Sheets</div>
+                <h5 className="text-sm font-bold text-[#f5d77f]">
+                  This product does not have a barcode yet.
+                </h5>
+                <p className="text-xs text-[#998b7a] mt-1">
+                  Assign or auto-generate a unique Code-128 retail barcode number for fast POS scanner lookups.
+                </p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={printCopies}
-                onChange={(e) => setPrintCopies(Number(e.target.value))}
-                className="px-2.5 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a241c] text-[#f4efe8] focus:outline-none cursor-pointer"
-              >
-                <option value={1}>1 Label</option>
-                <option value={4}>4 Labels</option>
-                <option value={10}>10 Labels</option>
-                <option value={24}>24 Labels (Sheet)</option>
-                <option value={product.stock}>Match Stock ({product.stock})</option>
-              </select>
-
               <button
                 type="button"
-                onClick={handlePrint}
-                className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f5d77f] to-[#aa8010] text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                onClick={handleAssignInitialBarcode}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] text-black font-bold text-xs shadow-md shadow-[#d4af37]/20 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
               >
-                <Printer className="w-3.5 h-3.5 text-black" />
-                <span>Print</span>
+                <Sparkles className="w-4 h-4 text-black" />
+                <span>Generate & Assign Barcode</span>
               </button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* High-Contrast Scannable Barcode Plate */}
+              <div className="p-5 rounded-2xl bg-white border border-slate-300 shadow-inner flex flex-col items-center justify-center space-y-1">
+                <span className="text-[9px] font-extrabold tracking-widest uppercase text-slate-700">
+                  {settings.storeName}
+                </span>
+                <div id="preview-barcode-container" className="w-full flex justify-center py-1 overflow-hidden">
+                  <BarcodeRenderer
+                    value={product.barcode}
+                    width={1.9}
+                    height={55}
+                    fontSize={12}
+                    displayValue={false}
+                  />
+                </div>
+                {/* Prominent Barcode Number under graphic */}
+                <div className="font-mono text-base font-bold tracking-widest text-slate-900 select-all">
+                  {product.barcode}
+                </div>
+              </div>
+
+              {/* Barcode Actions: Copy, Download, Edit */}
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="py-2.5 px-2 rounded-xl bg-[#1a1714] border border-[#2a241c] hover:border-[#d4af37]/40 text-xs font-semibold text-[#f4efe8] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Copy barcode to clipboard"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-400 text-[11px]">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-[#d4af37]" />
+                      <span className="text-[11px]">Copy Code</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="py-2.5 px-2 rounded-xl bg-[#1a1714] border border-[#2a241c] hover:border-[#d4af37]/40 text-xs font-semibold text-[#f4efe8] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Download barcode SVG file"
+                >
+                  <Download className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span className="text-[11px]">Download</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsEditing(!isEditing);
+                    setNewBarcode(product.barcode);
+                    setEditError(null);
+                  }}
+                  className="py-2.5 px-2 rounded-xl bg-[#1a1714] border border-[#2a241c] hover:border-[#d4af37]/40 text-xs font-semibold text-[#f5d77f] flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  title="Edit or change barcode number"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-[#d4af37]" />
+                  <span className="text-[11px]">{isEditing ? 'Cancel' : 'Edit'}</span>
+                </button>
+              </div>
+
+              {/* Edit Barcode Inline Form */}
+              {isEditing && (
+                <form onSubmit={handleSaveBarcode} className="p-3.5 rounded-2xl bg-[#1a1714] border border-[#d4af37]/40 space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-[#c4bbb0]">
+                      Edit or Assign Unique Barcode
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleGenerateNew}
+                      className="text-[11px] font-semibold text-[#f5d77f] hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      <Sparkles className="w-3 h-3 text-[#d4af37]" />
+                      <span>Generate New</span>
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    required
+                    value={newBarcode}
+                    onChange={(e) => setNewBarcode(e.target.value)}
+                    placeholder="Enter unique barcode value"
+                    className="w-full px-3 py-2 text-xs font-mono font-bold tracking-wider rounded-xl bg-[#121215] border border-[#2a261f] text-[#f5d77f] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                  />
+
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="px-3 py-1.5 text-xs text-[#998b7a] hover:text-[#f4efe8]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] text-black font-bold text-xs hover:brightness-110 cursor-pointer"
+                    >
+                      Save Barcode
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Printing Options */}
+              <div className="p-3.5 rounded-2xl bg-[#18181c] border border-[#26221c] flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Printer className="w-4 h-4 text-[#d4af37]" />
+                  <div>
+                    <div className="text-xs font-semibold text-[#f4efe8]">Print Barcode</div>
+                    <div className="text-[10px] text-[#998b7a]">Adhesive Labels & Tags</div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                  <select
+                    value={printCopies}
+                    onChange={(e) => setPrintCopies(Number(e.target.value))}
+                    className="px-2.5 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a241c] text-[#f4efe8] focus:outline-none cursor-pointer"
+                  >
+                    <option value={1}>1 Label</option>
+                    <option value={4}>4 Labels</option>
+                    <option value={10}>10 Labels</option>
+                    <option value={24}>24 Labels (Sheet)</option>
+                    <option value={product.stock}>Match Stock ({product.stock})</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    onClick={handlePrint}
+                    className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f5d77f] to-[#aa8010] text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5 text-black" />
+                    <span>Print Barcode</span>
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Footer */}
-        {onNavigateToStudio && (
-          <div className="px-6 py-3 bg-[#18181c] border-t border-[#26221c] flex items-center justify-between text-xs">
-            <span className="text-[#998b7a] text-[11px]">Need customized multi-product A4 layouts?</span>
+        {/* Footer Actions: Close & Barcode Studio */}
+        <div className="px-5 sm:px-6 py-3.5 bg-[#18181c] border-t border-[#26221c] flex items-center justify-between gap-2 mt-auto">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-[#26221c] hover:bg-[#342e26] text-xs font-semibold text-[#f4efe8] transition-colors cursor-pointer"
+          >
+            Close
+          </button>
+
+          {onNavigateToStudio && (
             <button
               type="button"
               onClick={() => {
                 onClose();
-                onNavigateToStudio(product.id);
+                onNavigateToStudio([product.id]);
               }}
               className="text-[#f5d77f] hover:underline font-semibold flex items-center gap-1 text-xs cursor-pointer"
             >
               <span>Open in Barcode Studio</span>
               <ExternalLink className="w-3 h-3 text-[#d4af37]" />
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
