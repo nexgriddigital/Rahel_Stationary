@@ -240,9 +240,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     if (e.key === 'Enter') {
       const query = searchTerm.trim();
       if (!query) return;
-      const matched = products.find(
-        p => p.barcode === query || p.sku.toLowerCase() === query.toLowerCase()
-      );
+      const matched = storage.findProductByCode(query);
       if (matched) {
         e.preventDefault();
         addToCart(matched);
@@ -250,7 +248,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         setBarcodeToast({
           productName: matched.name,
           retailPrice: matched.retailPrice,
-          barcode: matched.barcode
+          barcode: matched.qrCode || matched.sku
         });
         setTimeout(() => setBarcodeToast(null), 3500);
       }
@@ -263,13 +261,14 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.qrCode && p.qrCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
       p.barcode.includes(searchTerm);
     return matchesCat && matchesSearch;
   });
 
   return (
     <div className="h-[calc(100vh-3.5rem)] flex flex-col lg:flex-row overflow-hidden bg-[#0a0a0c] text-[#f4efe8] relative">
-      {/* Barcode Scanned Notification Toast */}
+      {/* QR Code Scanned Notification Toast */}
       {barcodeToast && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 px-4 py-2 rounded-2xl bg-[#141417] border border-[#d4af37] shadow-xl text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
           <CheckCircle className="w-4 h-4 text-[#d4af37]" />
@@ -322,7 +321,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8c8273]" />
             <input
               type="text"
-              placeholder="Search items, SKU, or scan barcode (Press Enter)..."
+              placeholder="Search items, SKU, or scan QR code (Press Enter)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
@@ -336,7 +335,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] hover:brightness-110 text-black text-xs font-bold shadow-sm shadow-[#d4af37]/20 transition-all shrink-0 cursor-pointer min-h-[36px]"
             >
               <Camera className="w-3.5 h-3.5 text-black" />
-              <span>Scan Barcode</span>
+              <span>Scan QR Code</span>
             </button>
 
             {parkedCarts.length > 0 && (

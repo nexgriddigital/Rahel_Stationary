@@ -113,15 +113,16 @@ export default function App() {
   const cartTotal = cartSubtotal;
 
   // Add product to cart helper
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: Product, quantity: number = 1) => {
     setCart((prev) => {
       const idx = prev.findIndex((item) => item.product.id === product.id);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + 1 };
+        const newQty = Math.max(1, copy[idx].quantity + quantity);
+        copy[idx] = { ...copy[idx], quantity: newQty };
         return copy;
       }
-      return [...prev, { product, quantity: 1, appliedDiscountPercent: 0 }];
+      return [...prev, { product, quantity: Math.max(1, quantity), appliedDiscountPercent: 0 }];
     });
   };
 
@@ -159,7 +160,7 @@ export default function App() {
         return;
       }
 
-      // Hardware Barcode Laser Wedge Listener (rapid character input ending with Enter)
+      // Hardware Barcode/QR Laser Wedge Listener (rapid character input ending with Enter)
       if (!isInput) {
         const now = Date.now();
         if (now - lastKeyTimeRef.current > 100) {
@@ -187,12 +188,9 @@ export default function App() {
   }, []);
 
   const handleBarcodeScanned = (code: string) => {
-    const products = storage.getProducts();
-    const product = products.find(
-      (p) => p.barcode === code || p.sku.toLowerCase() === code.toLowerCase()
-    );
+    const product = storage.findProductByCode(code);
     if (product) {
-      handleAddToCart(product);
+      handleAddToCart(product, 1);
       setCurrentTab('pos');
     } else {
       setBarcodeNotFound(code);
@@ -257,10 +255,10 @@ export default function App() {
 
         {/* View Router */}
         <main className="flex-1 overflow-hidden relative">
-          {/* Barcode not found toast */}
+          {/* QR Code not found toast */}
           {barcodeNotFound && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-rose-950/90 border border-rose-700 text-rose-200 text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
-              <span className="font-bold">Barcode Not Found:</span>
+              <span className="font-bold">QR Code Not Found:</span>
               <span className="font-mono text-white">[{barcodeNotFound}]</span>
               <span>is not in the catalog.</span>
               <button
@@ -268,7 +266,7 @@ export default function App() {
                   setBarcodeNotFound(null);
                   setCurrentTab('inventory');
                 }}
-                className="ml-2 px-2 py-0.5 rounded bg-rose-800 text-white font-semibold hover:bg-rose-700 text-[11px]"
+                className="ml-2 px-2 py-0.5 rounded bg-rose-800 text-white font-semibold hover:bg-rose-700 text-[11px] cursor-pointer"
               >
                 Add to Inventory
               </button>
@@ -381,9 +379,13 @@ export default function App() {
       <BarcodeScannerModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
-        onScan={(code) => {
-          handleBarcodeScanned(code);
-          setIsScannerOpen(false);
+        onScan={(code, product, quantity) => {
+          if (product) {
+            handleAddToCart(product, quantity || 1);
+            setCurrentTab('pos');
+          } else {
+            handleBarcodeScanned(code);
+          }
         }}
       />
 

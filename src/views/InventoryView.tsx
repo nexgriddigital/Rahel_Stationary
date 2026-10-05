@@ -5,6 +5,7 @@ import { printHtmlViaIframe } from '../services/printHelper';
 import { BarcodeRenderer } from '../components/BarcodeRenderer';
 import { BulkImportModal } from '../components/BulkImportModal';
 import { ProductBarcodeModal } from '../components/ProductBarcodeModal';
+import QRCode from 'qrcode';
 import {
   Package,
   Plus,
@@ -15,6 +16,7 @@ import {
   Trash2,
   Sparkles,
   Barcode,
+  QrCode,
   History,
   CheckCircle2,
   X,
@@ -103,22 +105,42 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
     setTimeout(() => setCopiedBarcodeId(null), 1800);
   };
 
-  const handlePrintBatchLabels = (items: Product[]) => {
+  const handlePrintBatchLabels = async (items: Product[]) => {
     if (items.length === 0) return;
 
-    const labelsHtml = items
+    // Generate high quality QR code data URLs for each product
+    const labelsData = await Promise.all(
+      items.map(async (p) => {
+        const qrVal = (p.qrCode || p.sku || `QR-${p.id}`).trim();
+        const dataUrl = await QRCode.toDataURL(qrVal, {
+          width: 300,
+          margin: 1,
+          errorCorrectionLevel: 'M',
+          color: { dark: '#000000', light: '#ffffff' }
+        });
+        return {
+          product: p,
+          qrVal,
+          dataUrl
+        };
+      })
+    );
+
+    const storeTitle = (settings.storeName || 'RAHEL STATIONARY').toUpperCase();
+    const currency = settings.currencySymbol || 'ETB';
+
+    const labelsHtml = labelsData
       .map(
-        p => `
-        <div class="label-card">
-          <div class="store-name">${settings.storeName.toUpperCase()}</div>
-          <div class="item-name">${p.name}</div>
-          <div class="barcode-container">
-            <svg class="barcode-svg" jsbarcode-value="${p.barcode}" jsbarcode-format="CODE128" jsbarcode-width="1.8" jsbarcode-height="45" jsbarcode-fontsize="11" jsbarcode-margin="0"></svg>
+        ({ product: p, qrVal, dataUrl }) => `
+        <div class="qr-label-card">
+          <div class="store-name">${storeTitle}</div>
+          <div class="product-name">${p.name}</div>
+          <div class="sku-text">SKU: ${p.sku}</div>
+          <div class="qr-container">
+            <img src="${dataUrl}" alt="QR Code" />
           </div>
-          <div class="footer-meta">
-            <span class="sku">SKU: ${p.sku}</span>
-            <span class="price">${settings.currencySymbol} ${p.retailPrice.toFixed(2)}</span>
-          </div>
+          <div class="qr-code-text">${qrVal}</div>
+          <div class="price-row">${currency} ${p.retailPrice.toFixed(2)}</div>
         </div>
       `
       )
@@ -128,29 +150,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Print Barcode Labels - ${settings.storeName}</title>
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          <meta charset="utf-8" />
+          <title>Print QR Code Labels - ${storeTitle}</title>
           <style>
-            @page { size: auto; margin: 10mm; }
+            @page { size: auto; margin: 6mm; }
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 10px; background: #fff; color: #000; }
-            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-            .label-card { border: 1px dashed #aaa; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; align-items: center; text-align: center; page-break-inside: avoid; }
-            .store-name { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; color: #444; margin-bottom: 2px; }
-            .item-name { font-size: 11px; font-weight: 700; line-height: 1.2; max-height: 28px; overflow: hidden; margin-bottom: 4px; }
-            .barcode-container { margin: 4px 0; }
-            .footer-meta { width: 100%; display: flex; justify-content: space-between; align-items: center; font-family: monospace; font-size: 11px; border-top: 1px solid #eee; padding-top: 4px; margin-top: 2px; }
-            .price { font-weight: 800; font-size: 12px; }
-            @media print { .no-print { display: none; } body { padding: 0; } }
+            .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(58mm, 1fr)); gap: 4mm; justify-items: center; }
+            .qr-label-card { width: 58mm; padding: 4mm 3mm; border: 1px dashed #999; border-radius: 4px; display: flex; flex-direction: column; align-items: center; text-align: center; page-break-inside: avoid; box-sizing: border-box; min-height: 52mm; justify-content: space-between; }
+            .store-name { font-size: 8pt; font-weight: 800; letter-spacing: 0.6px; color: #222; margin-bottom: 2px; }
+            .product-name { font-size: 8.5pt; font-weight: 700; line-height: 1.15; max-height: 22pt; overflow: hidden; margin-bottom: 2px; }
+            .sku-text { font-family: ui-monospace, monospace; font-size: 7.5pt; font-weight: 700; color: #444; margin-bottom: 2px; }
+            .qr-container { margin: 2px auto; }
+            .qr-container img { width: 28mm; height: 28mm; display: block; image-rendering: pixelated; }
+            .qr-code-text { font-family: ui-monospace, monospace; font-size: 7pt; font-weight: 600; color: #555; letter-spacing: 0.5px; }
+            .price-row { font-size: 9.5pt; font-weight: 800; color: #000; margin-top: 2px; }
+            @media print { body { padding: 0; } }
           </style>
         </head>
         <body>
           <div class="grid">${labelsHtml}</div>
-          <script>
-            window.onload = function() {
-              JsBarcode(".barcode-svg").init();
-              setTimeout(function() { window.print(); }, 200);
-            };
-          </script>
         </body>
       </html>
     `;
@@ -218,6 +236,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       name: formData.name,
       category: formData.category as ProductCategory,
       sku: formData.sku,
+      qrCode: editingProduct?.qrCode || formData.sku.trim(),
       barcode: barcodeValue,
       costPrice: Number(formData.costPrice) || 0,
       retailPrice: Number(formData.retailPrice) || 0,
@@ -457,24 +476,24 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                     </div>
                   </div>
 
-                  {/* Barcode Strip with Eye (View Barcode Modal) button */}
+                  {/* QR Code Strip with Eye (View QR Code Modal) button */}
                   <div className="p-2 rounded-lg bg-[#111114] border border-[#23201a] flex items-center justify-between gap-2">
                     <button
                       type="button"
                       onClick={() => setBarcodeModalProduct(prod)}
                       className="flex items-center gap-1.5 font-mono text-xs font-bold text-[#f5d77f] hover:underline truncate"
-                      title="View individual product barcode"
+                      title="View individual product QR Code"
                     >
-                      <Barcode className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
-                      <span className="truncate">{prod.barcode || 'No barcode'}</span>
+                      <QrCode className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                      <span className="truncate">{prod.qrCode || prod.sku}</span>
                     </button>
 
                     <div className="flex items-center gap-1 shrink-0">
                       <button
                         type="button"
-                        onClick={() => copyBarcode(prod.barcode, prod.id)}
+                        onClick={() => copyBarcode(prod.qrCode || prod.sku, prod.id)}
                         className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-white/5 cursor-pointer"
-                        title="Copy Barcode"
+                        title="Copy QR Code ID"
                       >
                         {copiedBarcodeId === prod.id ? (
                           <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -488,7 +507,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                         type="button"
                         onClick={() => setBarcodeModalProduct(prod)}
                         className="p-1 rounded-md text-[#d4af37] hover:bg-[#d4af37]/15 cursor-pointer"
-                        title="View Barcode Preview Modal"
+                        title="View QR Code Preview Modal"
                       >
                         <Eye className="w-3.5 h-3.5" />
                       </button>
@@ -497,7 +516,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                         type="button"
                         onClick={() => handlePrintBatchLabels([prod])}
                         className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-white/5 cursor-pointer"
-                        title="Print Barcode Label"
+                        title="Print QR Code Label"
                       >
                         <Printer className="w-3.5 h-3.5" />
                       </button>
@@ -579,7 +598,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                 <th className="py-2.5 px-4">Item & Description</th>
                 <th className="py-2.5 px-3">Category</th>
                 <th className="py-2.5 px-3 font-mono">SKU</th>
-                <th className="py-2.5 px-3 font-mono">Unique Barcode</th>
+                <th className="py-2.5 px-3 font-mono">QR Code ID</th>
                 <th className="py-2.5 px-3 text-right">Cost</th>
                 <th className="py-2.5 px-3 text-right">Retail</th>
                 <th className="py-2.5 px-3 text-right">Margin</th>
@@ -660,21 +679,21 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                           <button
                             type="button"
                             onClick={() => setBarcodeModalProduct(prod)}
-                            title="Click to view & print barcode"
+                            title="Click to view & print QR code"
                             className="group text-left cursor-pointer"
                           >
                             <div className="font-mono text-xs font-bold text-[#f5d77f] group-hover:underline flex items-center gap-1.5">
-                              <Barcode className="w-3.5 h-3.5 text-[#d4af37]" />
-                              <span>{prod.barcode}</span>
+                              <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
+                              <span>{prod.qrCode || prod.sku}</span>
                             </div>
-                            <div className="text-[10px] text-[#8c8273]">Code-128 Retail</div>
+                            <div className="text-[10px] text-[#8c8273]">Unique QR ID</div>
                           </button>
 
                           <div className="flex items-center gap-0.5 ml-1">
                             <button
                               type="button"
-                              onClick={() => copyBarcode(prod.barcode, prod.id)}
-                              title="Copy Barcode Value"
+                              onClick={() => copyBarcode(prod.qrCode || prod.sku, prod.id)}
+                              title="Copy QR Code ID"
                               className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
                             >
                               {copiedBarcodeId === prod.id ? (
@@ -686,7 +705,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                             <button
                               type="button"
                               onClick={() => setBarcodeModalProduct(prod)}
-                              title="View & Print Barcode Label"
+                              title="View & Print QR Code"
                               className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
                             >
                               <Eye className="w-3 h-3" />
@@ -694,7 +713,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                             <button
                               type="button"
                               onClick={() => handlePrintBatchLabels([prod])}
-                              title="Print Single Barcode Label"
+                              title="Print Single QR Code Label"
                               className="p-1 rounded-md text-[#8c8273] hover:text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
                             >
                               <Printer className="w-3 h-3" />
@@ -787,7 +806,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
               className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] text-black text-xs font-bold flex items-center gap-1.5 hover:brightness-110 shadow-sm transition-all cursor-pointer"
             >
               <Printer className="w-3.5 h-3.5 text-black" />
-              <span>Print Barcode Labels ({selectedProductIds.size})</span>
+              <span>Print QR Code Labels ({selectedProductIds.size})</span>
             </button>
 
             {onNavigateToBarcodeStudio && (
@@ -798,8 +817,8 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                 }}
                 className="px-3 py-1.5 rounded-xl bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#3a3224] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
-                <Barcode className="w-3.5 h-3.5 text-[#d4af37]" />
-                <span>Barcode Studio Sheet</span>
+                <QrCode className="w-3.5 h-3.5 text-[#d4af37]" />
+                <span>QR Code Studio Sheet</span>
               </button>
             )}
 

@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Product, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
-import { BarcodeRenderer } from '../components/BarcodeRenderer';
+import { QrCodeRenderer } from '../components/QrCodeRenderer';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
+import QRCode from 'qrcode';
 import {
-  Barcode,
+  QrCode,
   Printer,
   Search,
   CheckSquare,
@@ -206,7 +207,7 @@ export const BarcodeStudioView: React.FC = () => {
   };
 
   // PDF Export
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     try {
       const doc = new jsPDF({
         orientation: 'portrait',
@@ -216,7 +217,7 @@ export const BarcodeStudioView: React.FC = () => {
 
       const cols = labelLayout === 'roll_5030' ? 2 : labelLayout === 'pen_tag' ? 4 : 3;
       const labelW = cols === 2 ? 85 : cols === 4 ? 45 : 64;
-      const labelH = cols === 4 ? 22 : 32;
+      const labelH = cols === 4 ? 26 : 38;
       const startX = 8;
       const startY = 10;
       const gapX = 4;
@@ -226,7 +227,8 @@ export const BarcodeStudioView: React.FC = () => {
       let currentY = startY;
       let colIdx = 0;
 
-      labelsToRender.forEach((prod, index) => {
+      for (let index = 0; index < labelsToRender.length; index++) {
+        const prod = labelsToRender[index];
         doc.setDrawColor(200, 200, 200);
         doc.setLineDashPattern([1, 1], 0);
         doc.rect(currentX, currentY, labelW, labelH);
@@ -244,21 +246,35 @@ export const BarcodeStudioView: React.FC = () => {
         const nameShort = prod.name.length > 28 ? prod.name.substring(0, 26) + '...' : prod.name;
         doc.text(nameShort, currentX + labelW / 2, currentY + (showStoreName ? 7 : 5), { align: 'center' });
 
+        const qrVal = (prod.qrCode || prod.sku || `QR-${prod.id}`).trim();
+        try {
+          const qrDataUrl = await QRCode.toDataURL(qrVal, {
+            width: 160,
+            margin: 1,
+            errorCorrectionLevel: 'M'
+          });
+          const qrSize = cols === 4 ? 12 : 16;
+          doc.addImage(qrDataUrl, 'PNG', currentX + (labelW - qrSize) / 2, currentY + (showStoreName ? 8.5 : 6.5), qrSize, qrSize);
+        } catch (e) {
+          console.warn('QR data url generation failed for PDF', e);
+        }
+
         doc.setFont('courier', 'normal');
-        doc.setFontSize(7.5);
-        doc.text(`* ${prod.barcode} *`, currentX + labelW / 2, currentY + (showStoreName ? 17 : 15), { align: 'center' });
+        doc.setFontSize(6.5);
+        doc.setTextColor(50, 50, 50);
+        doc.text(qrVal, currentX + labelW / 2, currentY + labelH - 5.5, { align: 'center' });
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6.5);
         doc.setTextColor(60, 60, 60);
         if (showSku) {
-          doc.text(`SKU: ${prod.sku}`, currentX + 2.5, currentY + labelH - 2.5);
+          doc.text(`SKU: ${prod.sku}`, currentX + 2.5, currentY + labelH - 2);
         }
         if (showPrice) {
           doc.setFont('helvetica', 'bold');
-          doc.setFontSize(8);
+          doc.setFontSize(7.5);
           doc.setTextColor(0, 0, 0);
-          doc.text(`$${prod.retailPrice.toFixed(2)}`, currentX + labelW - 2.5, currentY + labelH - 2.5, { align: 'right' });
+          doc.text(`${settings.currencySymbol || 'ETB'} ${prod.retailPrice.toFixed(2)}`, currentX + labelW - 2.5, currentY + labelH - 2, { align: 'right' });
         }
 
         colIdx++;
@@ -274,9 +290,9 @@ export const BarcodeStudioView: React.FC = () => {
         } else {
           currentX += labelW + gapX;
         }
-      });
+      }
 
-      doc.save(`Barcode-Batch-${new Date().toISOString().split('T')[0]}.pdf`);
+      doc.save(`QR-Code-Batch-${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (err) {
       console.error('PDF export error', err);
       window.print();
@@ -290,14 +306,14 @@ export const BarcodeStudioView: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-xl font-bold text-[#f5d77f]">
-              Barcode Studio & Label Generator
+              QR Code Studio & Label Generator
             </h2>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30">
-              jsbarcode Engine
+              High-Density QR Engine
             </span>
           </div>
           <p className="text-xs text-[#a89f91]">
-            Locate items using the dedicated SKU/Barcode filter, set copy counts, and trigger batch label printing.
+            Locate items using the dedicated SKU/QR Code ID filter, set copy counts, and trigger batch label printing.
           </p>
         </div>
 
@@ -316,7 +332,7 @@ export const BarcodeStudioView: React.FC = () => {
           <button
             onClick={() => setShowPreviewModal(true)}
             disabled={totalCopiesCount === 0}
-            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#26221c] disabled:opacity-40 flex items-center gap-1.5 shadow-2xs transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#26221c] disabled:opacity-40 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Preview</span>
@@ -325,7 +341,7 @@ export const BarcodeStudioView: React.FC = () => {
           <button
             onClick={handleDownloadPdf}
             disabled={totalCopiesCount === 0}
-            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#26221c] disabled:opacity-40 flex items-center gap-1.5 shadow-2xs transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#26221c] disabled:opacity-40 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">PDF</span>
@@ -333,7 +349,7 @@ export const BarcodeStudioView: React.FC = () => {
         </div>
       </div>
 
-      {/* Control Strip: General Search, DEDICATED SKU/Barcode Search Filter, Category, Bulk Copies, and Template */}
+      {/* Control Strip: General Search, DEDICATED SKU/QR Search Filter, Category, Bulk Copies, and Template */}
       <div className="py-3 flex flex-wrap items-center justify-between gap-2.5 border-b border-[#26221c]">
         <div className="flex flex-wrap items-center gap-2 flex-1 min-w-[320px]">
           {/* 1. General Product Name Search */}
@@ -348,12 +364,12 @@ export const BarcodeStudioView: React.FC = () => {
             />
           </div>
 
-          {/* 2. DEDICATED SEARCH FILTER SPECIFICALLY FOR SKU OR BARCODE */}
+          {/* 2. DEDICATED SEARCH FILTER SPECIFICALLY FOR SKU OR QR CODE */}
           <div className="relative flex-1 min-w-[230px]">
-            <Barcode className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#d4af37]" />
+            <QrCode className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#d4af37]" />
             <input
               type="text"
-              placeholder="Search specifically by SKU / Barcode..."
+              placeholder="Search specifically by SKU / QR Code ID..."
               value={skuBarcodeFilter}
               onChange={(e) => setSkuBarcodeFilter(e.target.value)}
               className="w-full pl-9 pr-14 py-1.5 text-xs font-mono rounded-xl bg-[#141417] border border-[#d4af37]/40 text-[#f4efe8] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60 placeholder:text-[#8e8271] shadow-2xs"
@@ -363,8 +379,8 @@ export const BarcodeStudioView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setSkuBarcodeFilter('')}
-                  className="p-1 rounded text-[#8e8271] hover:text-[#f4efe8] transition-colors"
-                  title="Clear SKU/Barcode search filter"
+                  className="p-1 rounded text-[#8e8271] hover:text-[#f4efe8] transition-colors cursor-pointer"
+                  title="Clear SKU/QR Code search filter"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -372,8 +388,8 @@ export const BarcodeStudioView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsScannerOpen(true)}
-                className="p-1 rounded-lg text-[#d4af37] hover:bg-[#d4af37]/15 transition-colors"
-                title="Scan barcode with camera to filter instantly (F4)"
+                className="p-1 rounded-lg text-[#d4af37] hover:bg-[#d4af37]/15 transition-colors cursor-pointer"
+                title="Scan QR code with camera to filter instantly (F4)"
               >
                 <Camera className="w-3.5 h-3.5" />
               </button>
@@ -462,13 +478,13 @@ export const BarcodeStudioView: React.FC = () => {
         </div>
       </div>
 
-      {/* Active SKU/Barcode Filter Alert Banner */}
+      {/* Active SKU/QR Code ID Filter Alert Banner */}
       {skuBarcodeFilter.trim() && (
         <div className="mt-2.5 px-3 py-1.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-xs flex items-center justify-between text-[#f5d77f]">
           <div className="flex items-center gap-2">
-            <Barcode className="w-4 h-4 text-[#d4af37]" />
+            <QrCode className="w-4 h-4 text-[#d4af37]" />
             <span>
-              Filtering specifically by SKU/Barcode: <strong className="font-mono">&ldquo;{skuBarcodeFilter}&rdquo;</strong>
+              Filtering specifically by SKU/QR Code ID: <strong className="font-mono">&ldquo;{skuBarcodeFilter}&rdquo;</strong>
               {' '}({filteredProducts.length} matching {filteredProducts.length === 1 ? 'item' : 'items'} found)
             </span>
           </div>
@@ -481,7 +497,7 @@ export const BarcodeStudioView: React.FC = () => {
                   const p = filteredProducts[0];
                   handleSetProductCopies(p.id, (selectedCopies[p.id] || 0) + 1);
                 }}
-                className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#d4af37] text-black hover:brightness-110 flex items-center gap-1 shadow-2xs"
+                className="px-2 py-0.5 rounded text-[11px] font-bold bg-[#d4af37] text-black hover:brightness-110 flex items-center gap-1 shadow-2xs cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 <span>Add 1 Copy of {filteredProducts[0].sku}</span>
@@ -490,7 +506,7 @@ export const BarcodeStudioView: React.FC = () => {
             <button
               type="button"
               onClick={() => setSkuBarcodeFilter('')}
-              className="text-xs font-semibold hover:underline text-[#8e8271]"
+              className="text-xs font-semibold hover:underline text-[#8e8271] cursor-pointer"
             >
               Reset Filter
             </button>
@@ -522,7 +538,7 @@ export const BarcodeStudioView: React.FC = () => {
                 </th>
                 <th className="py-2.5 px-3 font-mono">
                   <span className="flex items-center gap-1">
-                    <span>12-Digit Barcode</span>
+                    <span>QR Code ID</span>
                     {skuBarcodeFilter && <span className="w-1.5 h-1.5 rounded-full bg-[#d4af37] animate-pulse" />}
                   </span>
                 </th>
@@ -538,7 +554,7 @@ export const BarcodeStudioView: React.FC = () => {
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-[#8b7d6f]">
                     {skuBarcodeFilter
-                      ? `No inventory items match the SKU or Barcode "${skuBarcodeFilter}".`
+                      ? `No inventory items match the SKU or QR Code ID "${skuBarcodeFilter}".`
                       : 'No stationery products match the active search filters.'}
                   </td>
                 </tr>
@@ -553,7 +569,9 @@ export const BarcodeStudioView: React.FC = () => {
                     skuBarcodeFilter &&
                     prod.sku.toLowerCase().includes(skuBarcodeFilter.toLowerCase());
                   const isBarcodeMatch =
-                    skuBarcodeFilter && prod.barcode.includes(skuBarcodeFilter.trim());
+                    skuBarcodeFilter &&
+                    ((prod.qrCode && prod.qrCode.toLowerCase().includes(skuBarcodeFilter.toLowerCase().trim())) ||
+                      (prod.barcode && prod.barcode.includes(skuBarcodeFilter.trim())));
 
                   return (
                     <tr
@@ -602,7 +620,7 @@ export const BarcodeStudioView: React.FC = () => {
                         </span>
                       </td>
 
-                      {/* Barcode Number (with highlight if matched) */}
+                      {/* QR Code ID (with highlight if matched) */}
                       <td className="py-2.5 px-3 font-mono text-[11px]">
                         <span
                           className={
@@ -611,7 +629,7 @@ export const BarcodeStudioView: React.FC = () => {
                               : 'text-[#e6ca65] font-semibold'
                           }
                         >
-                          {prod.barcode}
+                          {prod.qrCode || prod.sku}
                         </span>
                       </td>
 
@@ -830,14 +848,19 @@ export const BarcodeStudioView: React.FC = () => {
                 {prod.name}
               </div>
 
-              {/* Barcode generated using the jsbarcode library */}
-              <BarcodeRenderer
-                value={prod.barcode || '890123456001'}
-                height={26}
-                width={1.2}
-                fontSize={8}
-                displayValue={true}
-              />
+              {/* QR Code generated using the qrcode library */}
+              <div className="my-1">
+                <QrCodeRenderer
+                  value={prod.qrCode || prod.sku || `QR-${prod.id}`}
+                  size={64}
+                  displayValue={false}
+                  className="bg-transparent shadow-none p-0"
+                />
+              </div>
+
+              <div className="text-[7.5px] font-mono font-bold text-slate-700 tracking-tight">
+                {prod.qrCode || prod.sku}
+              </div>
 
               <div className="w-full flex items-center justify-between text-[8px] font-mono px-1 pt-0.5">
                 {showSku && (
@@ -862,7 +885,7 @@ export const BarcodeStudioView: React.FC = () => {
           <div className="w-full max-w-4xl max-h-[90vh] rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#26221c] bg-[#18181c]">
               <div className="flex items-center gap-2">
-                <Barcode className="w-4 h-4 text-[#d4af37]" />
+                <QrCode className="w-4 h-4 text-[#d4af37]" />
                 <h3 className="font-semibold text-sm text-[#f4efe8]">
                   Batch Sheet Preview ({totalCopiesCount} label copies queued)
                 </h3>
@@ -877,7 +900,7 @@ export const BarcodeStudioView: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setShowPreviewModal(false)}
-                  className="p-1.5 rounded-lg text-[#998b7a] hover:text-[#f4efe8] hover:bg-white/5 transition-colors"
+                  className="p-1.5 rounded-lg text-[#998b7a] hover:text-[#f4efe8] hover:bg-white/5 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -910,13 +933,17 @@ export const BarcodeStudioView: React.FC = () => {
                       <div className="text-[9px] font-bold line-clamp-1 leading-tight text-black w-full px-1">
                         {prod.name}
                       </div>
-                      <BarcodeRenderer
-                        value={prod.barcode || '890123456001'}
-                        height={26}
-                        width={1.2}
-                        fontSize={8}
-                        displayValue={true}
-                      />
+                      <div className="my-1">
+                        <QrCodeRenderer
+                          value={prod.qrCode || prod.sku || `QR-${prod.id}`}
+                          size={64}
+                          displayValue={false}
+                          className="bg-transparent shadow-none p-0"
+                        />
+                      </div>
+                      <div className="text-[7.5px] font-mono font-bold text-slate-700 tracking-tight">
+                        {prod.qrCode || prod.sku}
+                      </div>
                       <div className="w-full flex items-center justify-between text-[8px] font-mono px-1 pt-0.5">
                         {showSku && <span className="text-slate-600 truncate max-w-[100px]">{prod.sku}</span>}
                         {showPrice && <span className="font-bold text-[10px] text-black ml-auto">{settings.currencySymbol} {prod.retailPrice.toFixed(2)}</span>}

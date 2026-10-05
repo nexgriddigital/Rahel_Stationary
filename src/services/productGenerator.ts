@@ -201,3 +201,19 @@ export function generateUniqueBarcode(excludedBarcodes?: Set<string>): string {
 export function isLowStock(stock: number): boolean {
   return (stock ?? 0) <= LOW_STOCK_THRESHOLD;
 }
+
+/**
+ * Generates a clean, unique QR Code identifier for a product.
+ * Encodes the product's unique SKU (e.g. PPR-A4CO-0101) or a dedicated QR code ID.
+ * Avoids encoding sensitive data, passwords, or session tokens.
+ */
+export function generateUniqueQrCode(sku?: string, id?: string): string {
+  if (sku && sku.trim()) {
+    return sku.trim().toUpperCase();
+  }
+  if (id && id.trim()) {
+    return `QR-${id.replace(/^prod_/, '')}`;
+  }
+  return `QR-${Date.now().toString(36).toUpperCase()}-${Math.floor(100 + Math.random() * 900)}`;
+}
+

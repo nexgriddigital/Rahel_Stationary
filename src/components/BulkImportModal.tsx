@@ -1115,6 +1115,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         name: item.name,
         category: item.category,
         sku: item.sku,
+        qrCode: item.existingMatch?.qrCode || item.sku || ('QR-' + (item.existingMatch?.id || Date.now())),
         barcode: item.barcode,
         costPrice: item.costPrice,
         retailPrice: item.retailPrice,
@@ -1251,7 +1252,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                   className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#1a1a20] hover:bg-[#22222a] text-[#f5d77f] border border-[#26221c] hover:border-[#d4af37]/40 flex items-center gap-2 shadow-2xs transition-colors"
                 >
                   <Printer className="w-4 h-4 text-[#d4af37]" />
-                  <span>Print Barcode Labels for Imported Batch</span>
+                  <span>Print QR Code Labels for Imported Batch</span>
                 </button>
               )}
 

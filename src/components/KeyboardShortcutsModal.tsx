@@ -16,10 +16,10 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
     { key: 'F1', desc: 'Display Keyboard Shortcuts Guide', category: 'General' },
     { key: 'F2', desc: 'Trigger Instant Cart Tender / Checkout', category: 'POS Register' },
     { key: 'F3', desc: 'Park / Hold active cart to serve next customer', category: 'POS Register' },
-    { key: 'F4', desc: 'Launch Camera Barcode Scanner Modal', category: 'POS Register' },
+    { key: 'F4', desc: 'Launch Camera QR Scanner Modal', category: 'POS Register' },
     { key: 'F8', desc: 'Clear Current Cart & Start Fresh Ticket', category: 'POS Register' },
     { key: 'Esc', desc: 'Dismiss active dialog or close modal', category: 'General' },
-    { key: 'Any Barcode', desc: 'Auto-scanned by USB Laser Wedge at any time', category: 'Hardware' }
+    { key: 'Any QR / Barcode', desc: 'Auto-scanned by USB Laser Wedge at any time', category: 'Hardware' }
   ];
 
   return (

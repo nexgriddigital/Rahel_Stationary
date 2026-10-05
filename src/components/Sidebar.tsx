@@ -6,7 +6,7 @@ import {
   History,
   CreditCard,
   Wallet,
-  Barcode,
+  QrCode,
   BarChart3,
   Users,
   ScrollText,
@@ -82,7 +82,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       badgeColor: 'bg-rose-950 text-rose-300 border border-rose-800/40'
     },
     { id: 'expenses', label: 'Expense Tracker', icon: Wallet },
-    { id: 'barcodes', label: 'Barcode Studio', icon: Barcode },
+    { id: 'barcodes', label: 'QR Code Studio', icon: QrCode },
     { id: 'reports', label: 'Reports & Export', icon: BarChart3 },
     {
       id: 'staff',

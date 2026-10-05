@@ -105,6 +105,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_1',
     name: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
     sku: 'PPR-A4-80G',
+    qrCode: 'PPR-A4-80G',
     barcode: '890123456001',
     category: 'Paper & Notebooks',
     costPrice: 4.20,
@@ -119,6 +120,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_2',
     name: 'Pilot G2 0.7mm Retractable Gel Pen (Black)',
     sku: 'PEN-PIL-G2B',
+    qrCode: 'PEN-PIL-G2B',
     barcode: '890123456002',
     category: 'Writing & Pens',
     costPrice: 1.10,
@@ -133,6 +135,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_3',
     name: 'Pilot G2 0.7mm Retractable Gel Pen (Blue)',
     sku: 'PEN-PIL-G2BL',
+    qrCode: 'PEN-PIL-G2BL',
     barcode: '890123456003',
     category: 'Writing & Pens',
     costPrice: 1.10,
@@ -147,6 +150,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_4',
     name: 'Moleskine Classic Hardcover Dotted Journal (A5, Black)',
     sku: 'NBK-MOL-A5D',
+    qrCode: 'NBK-MOL-A5D',
     barcode: '890123456004',
     category: 'Paper & Notebooks',
     costPrice: 13.50,
@@ -161,6 +165,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_5',
     name: 'Thermal Receipt Paper Roll 80x80mm (Box of 50)',
     sku: 'POS-ROL-8080',
+    qrCode: 'POS-ROL-8080',
     barcode: '890123456005',
     category: 'Printing & Copying',
     costPrice: 32.00,
@@ -175,6 +180,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_6',
     name: 'Glossy Photo Paper A4 (230gsm, 50 Sheets)',
     sku: 'PPR-GLS-A450',
+    qrCode: 'PPR-GLS-A450',
     barcode: '890123456006',
     category: 'Printing & Copying',
     costPrice: 6.80,
@@ -189,6 +195,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_7',
     name: 'Color Laser Printing Service (A4 Single Page)',
     sku: 'SRV-CLR-A4',
+    qrCode: 'SRV-CLR-A4',
     barcode: '890123456007',
     category: 'Printing & Copying',
     costPrice: 0.12,
@@ -203,6 +210,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_8',
     name: 'Document Binding Spiral Comb (Up to 100pgs)',
     sku: 'SRV-BND-SPR',
+    qrCode: 'SRV-BND-SPR',
     barcode: '890123456008',
     category: 'Binding & Lamination',
     costPrice: 0.85,
@@ -217,6 +225,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_9',
     name: 'Matte Lamination Pouches A4 (125 Micron, 100 pcs)',
     sku: 'LAM-MTE-A4',
+    qrCode: 'LAM-MTE-A4',
     barcode: '890123456009',
     category: 'Binding & Lamination',
     costPrice: 11.20,
@@ -231,6 +240,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_10',
     name: 'Staedtler Mars Lumograph Art Pencil Set (12 Tins)',
     sku: 'ART-STD-LUM',
+    qrCode: 'ART-STD-LUM',
     barcode: '890123456010',
     category: 'Art & Craft',
     costPrice: 10.40,
@@ -245,6 +255,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_11',
     name: 'Heavy Duty Stapler (100 Sheets Capacity)',
     sku: 'DSK-STP-HD100',
+    qrCode: 'DSK-STP-HD100',
     barcode: '890123456011',
     category: 'Desk & Office',
     costPrice: 16.50,
@@ -259,6 +270,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_12',
     name: 'Custom Self-Inking Rubber Stamp (40x40mm)',
     sku: 'STP-SLF-4040',
+    qrCode: 'STP-SLF-4040',
     barcode: '890123456012',
     category: 'Custom Stamps & Signs',
     costPrice: 8.50,
@@ -273,6 +285,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_13',
     name: 'Kraft Padded Bubble Envelopes #2 (Pack of 25)',
     sku: 'PKG-ENV-KRF2',
+    qrCode: 'PKG-ENV-KRF2',
     barcode: '890123456013',
     category: 'Packaging & Envelopes',
     costPrice: 7.20,
@@ -287,6 +300,7 @@ const SEED_PRODUCTS: Product[] = [
     id: 'prod_14',
     name: 'Architectural Tracing Paper Roll (90gsm, 20m)',
     sku: 'PPR-TRC-90G',
+    qrCode: 'PPR-TRC-90G',
     barcode: '890123456014',
     category: 'Paper & Notebooks',
     costPrice: 9.80,
@@ -1068,6 +1082,10 @@ class StorageService {
           p.sku = this.generateSku(p.category, p.name);
           prodsUpdated = true;
         }
+        if (!p.qrCode || p.qrCode.trim() === '') {
+          p.qrCode = p.sku.trim();
+          prodsUpdated = true;
+        }
         if (!p.barcode || p.barcode.trim() === '') {
           p.barcode = this.generateBarcodeNumber();
           prodsUpdated = true;
@@ -1364,7 +1382,18 @@ class StorageService {
 
   // Products & Inventory
   public getProducts(): Product[] {
-    return this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+    const products = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+    let mutated = false;
+    for (const p of products) {
+      if (!p.qrCode || p.qrCode.trim() === '') {
+        p.qrCode = (p.sku || `QR-${p.id || Date.now()}`).trim();
+        mutated = true;
+      }
+    }
+    if (mutated) {
+      this.set(STORAGE_KEYS.PRODUCTS, products);
+    }
+    return products;
   }
 
   public isBarcodeUnique(barcode: string, excludeProductId?: string): boolean {
@@ -1374,11 +1403,22 @@ class StorageService {
     return !products.some(p => p.id !== excludeProductId && p.barcode.trim() === clean);
   }
 
-  public getProductByBarcode(code: string): Product | undefined {
+  public findProductByCode(code: string): Product | undefined {
     const clean = (code || '').trim().toLowerCase();
     if (!clean) return undefined;
     const products = this.getProducts();
-    return products.find(p => p.barcode.trim().toLowerCase() === clean || p.sku.trim().toLowerCase() === clean);
+    return products.find(
+      p =>
+        (p.qrCode && p.qrCode.trim().toLowerCase() === clean) ||
+        (p.sku && p.sku.trim().toLowerCase() === clean) ||
+        (p.barcode && p.barcode.trim().toLowerCase() === clean) ||
+        (p.id && p.id.toLowerCase() === clean)
+    );
+  }
+
+  // Alias for backward compatibility
+  public getProductByBarcode(code: string): Product | undefined {
+    return this.findProductByCode(code);
   }
 
   public saveProduct(product: Product): { success: boolean; error?: string } {
@@ -1392,6 +1432,11 @@ class StorageService {
     // Auto-generate SKU if missing
     if (!product.sku || product.sku.trim() === '') {
       product.sku = this.generateSku(product.category, product.name);
+    }
+
+    // Auto-assign permanent unique QR Code if missing
+    if (!product.qrCode || product.qrCode.trim() === '') {
+      product.qrCode = product.sku.trim();
     }
 
     let barcode = (product.barcode || '').trim();
@@ -1494,10 +1539,13 @@ class StorageService {
       }
       allocatedBarcodes.add(barcode);
 
+      const qrCode = (item.qrCode && item.qrCode.trim()) ? item.qrCode.trim() : sku;
+
       const preparedItem: Product = {
         ...item,
         category,
         sku,
+        qrCode,
         barcode,
         minThreshold: LOW_STOCK_THRESHOLD
       };
@@ -1507,6 +1555,7 @@ class StorageService {
         p =>
           (p.sku && preparedItem.sku && p.sku.trim().toLowerCase() === preparedItem.sku.trim().toLowerCase()) ||
           (p.barcode && preparedItem.barcode && p.barcode.trim() === preparedItem.barcode.trim()) ||
+          (p.qrCode && preparedItem.qrCode && p.qrCode.trim().toLowerCase() === preparedItem.qrCode.trim().toLowerCase()) ||
           p.id === preparedItem.id
       );
 
@@ -1524,6 +1573,7 @@ class StorageService {
             ...preparedItem,
             id: 'prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6),
             sku: newSku,
+            qrCode: newSku,
             barcode: newBarcode,
             minThreshold: LOW_STOCK_THRESHOLD,
             updatedAt: now

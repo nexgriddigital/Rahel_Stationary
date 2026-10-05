@@ -29,6 +29,25 @@ import {
 import { storage } from '../services/storage';
 import { Product, AppNotification, LOW_STOCK_THRESHOLD } from '../types';
 
+// Relative time helper for human-readable notification timestamps (e.g. "2 minutes ago")
+function formatRelativeTime(timestamp: string): string {
+  try {
+    const diffMs = Math.max(0, Date.now() - new Date(timestamp).getTime());
+    const diffSec = Math.floor(diffMs / 1000);
+    if (diffSec < 60) return 'Just now';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr} hour${diffHr === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHr / 24);
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return new Date(timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch {
+    return timestamp;
+  }
+}
+
 interface NavbarProps {
   onToggleMobileMenu: () => void;
   onOpenScanner: () => void;
@@ -158,13 +177,13 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
       </div>
 
-      {/* Zone 2: Centered Product Search with Barcode Scan Button */}
+      {/* Zone 2: Centered Product Search with QR Scanner Button */}
       <div className="relative flex-1 max-w-md mx-2 sm:mx-6">
         <div className="relative flex items-center">
           <Search className="w-3.5 h-3.5 absolute left-3 text-[#8c8273] pointer-events-none" />
           <input
             type="text"
-            placeholder="Search stationery, SKU, barcode, paper size..."
+            placeholder="Search stationery, SKU, QR code, paper size..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSearchFocused(true)}
@@ -173,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={onOpenScanner}
-            title="Launch Camera Barcode Scanner (F4)"
+            title="Launch Camera QR Scanner (F4)"
             className="absolute right-1.5 p-1 rounded-lg text-[#d4af37] hover:bg-[#d4af37]/15 transition-colors"
           >
             <Camera className="w-3.5 h-3.5" />
@@ -208,7 +227,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="min-w-0 flex-1 pr-2">
                     <div className="font-semibold truncate text-xs text-[#f4efe8]">{p.name}</div>
                     <div className="text-[10px] text-[#8c8273] font-mono">
-                      SKU: {p.sku} · Barcode: {p.barcode}
+                      SKU: {p.sku} · QR: {p.qrCode || p.sku}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
@@ -239,39 +258,47 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Bell className="w-4 h-4 text-[#f5d77f]" />
             {unreadNotificationCount > 0 && (
               <span
-                className={`absolute -top-1.5 -right-1.5 flex h-4 min-w-4 px-1 rounded-full text-[10px] font-bold font-mono items-center justify-center text-black shadow-2xs ${
+                className={`absolute -top-1 -right-1 flex h-4 min-w-4 px-1 rounded-full text-[10px] font-bold font-mono items-center justify-center text-black shadow-2xs ${
                   urgentRestockCount > 0 ? 'bg-rose-500 text-white animate-pulse ring-2 ring-rose-400/40' : 'bg-[#d4af37]'
                 }`}
               >
-                {unreadNotificationCount}
+                {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
               </span>
             )}
           </button>
 
-          {/* Internal Notification Center Dropdown */}
+          {/* Mobile Backdrop to click outside and close cleanly */}
           {isNotifOpen && (
-            <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/35 p-3 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-100">
+            <div
+              className="fixed inset-0 z-40 bg-black/70 backdrop-blur-xs sm:hidden"
+              onClick={() => setIsNotifOpen(false)}
+            />
+          )}
+
+          {/* Responsive Notification Center Panel (Mobile Centered + Desktop Anchored Dropdown) */}
+          {isNotifOpen && (
+            <div className="fixed inset-x-2 top-14 sm:static sm:inset-auto sm:absolute sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-1rem)] sm:w-96 max-w-md mx-auto sm:max-w-none sm:mx-0 max-h-[82vh] rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/40 p-3 sm:p-3.5 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-[#26221c]">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center shrink-0">
                     <Bell className="w-3.5 h-3.5" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-[#f5d77f]">
-                      Store Alerts & Notifications
+                  <div className="min-w-0">
+                    <h4 className="text-xs font-bold text-[#f5d77f] truncate">
+                      Notifications & Alerts
                     </h4>
-                    <p className="text-[10px] text-[#8c8273]">
-                      Automated restock threshold monitoring
+                    <p className="text-[10px] text-[#8c8273] truncate">
+                      Automated stock monitoring
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 shrink-0">
                   {unreadNotificationCount > 0 && onMarkAllNotificationsRead && (
                     <button
                       onClick={onMarkAllNotificationsRead}
-                      className="px-2 py-0.5 rounded-lg text-[10px] font-semibold text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors flex items-center gap-1"
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-semibold text-[#f5d77f] hover:bg-[#d4af37]/15 transition-colors flex items-center gap-1 cursor-pointer"
                       title="Mark all notifications as read"
                     >
                       <CheckCheck className="w-3 h-3" />
@@ -281,12 +308,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {notifications.length > 0 && onClearAllNotifications && (
                     <button
                       onClick={onClearAllNotifications}
-                      className="px-2 py-0.5 rounded-lg text-[10px] font-semibold text-[#8c8273] hover:text-rose-400 hover:bg-rose-950/30 transition-colors"
+                      className="px-2 py-0.5 rounded-lg text-[10px] font-semibold text-[#8c8273] hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer"
                       title="Clear notifications list"
                     >
                       Clear
                     </button>
                   )}
+                  <button
+                    onClick={() => setIsNotifOpen(false)}
+                    className="w-6 h-6 rounded-md flex items-center justify-center text-[#8c8273] hover:text-[#f4efe8] hover:bg-white/10 transition-colors cursor-pointer ml-1"
+                    title="Close notification panel"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
@@ -294,7 +328,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="flex items-center gap-1 p-1 bg-[#1a1a20] rounded-xl text-[11px] font-semibold border border-[#2a261f]">
                 <button
                   onClick={() => setNotifTab('all')}
-                  className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                  className={`flex-1 py-1 rounded-lg transition-colors text-center cursor-pointer ${
                     notifTab === 'all'
                       ? 'bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black shadow-2xs font-bold'
                       : 'text-[#8c8273] hover:text-[#f4efe8]'
@@ -304,7 +338,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
                 <button
                   onClick={() => setNotifTab('urgent')}
-                  className={`flex-1 py-1 rounded-lg transition-colors text-center flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-1 rounded-lg transition-colors text-center flex items-center justify-center gap-1 cursor-pointer ${
                     notifTab === 'urgent'
                       ? 'bg-rose-600 text-white shadow-2xs font-bold'
                       : 'text-rose-400 hover:text-rose-300'
@@ -315,7 +349,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
                 <button
                   onClick={() => setNotifTab('unread')}
-                  className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                  className={`flex-1 py-1 rounded-lg transition-colors text-center cursor-pointer ${
                     notifTab === 'unread'
                       ? 'bg-[#d4af37] text-black shadow-2xs font-bold'
                       : 'text-[#8c8273] hover:text-[#f4efe8]'
@@ -326,7 +360,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               {/* Notification Cards List */}
-              <div className="max-h-72 overflow-y-auto space-y-2 pr-0.5">
+              <div className="max-h-[60vh] sm:max-h-72 overflow-y-auto space-y-2 pr-0.5">
                 {filteredNotifications.length === 0 ? (
                   <div className="py-8 text-center text-xs text-[#8c8273] space-y-2">
                     <div className="w-8 h-8 rounded-full bg-[#d4af37]/15 text-[#f5d77f] mx-auto flex items-center justify-center">
@@ -348,7 +382,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                     return (
                       <div
                         key={notif.id}
-                        className={`p-3 rounded-xl border text-xs transition-colors ${
+                        onClick={() => {
+                          if (!notif.read && onMarkNotificationRead) {
+                            onMarkNotificationRead(notif.id);
+                          }
+                        }}
+                        className={`p-3 rounded-xl border text-xs transition-colors cursor-pointer ${
                           !notif.read
                             ? isDepleted
                               ? 'bg-rose-950/40 border-rose-800/80 text-rose-100'
@@ -359,7 +398,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         <div className="flex items-start justify-between gap-1 mb-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span
-                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 ${
                                 isDepleted
                                   ? 'bg-rose-600 text-white animate-pulse'
                                   : isRestock
@@ -367,25 +406,36 @@ export const Navbar: React.FC<NavbarProps> = ({
                                   : 'bg-[#2a261f] text-[#f5d77f]'
                               }`}
                             >
-                              {isDepleted ? '🚨 Urgent Restock' : isRestock ? '⚠️ Low Stock' : 'Notice'}
+                              {isDepleted ? (
+                                <>
+                                  <AlertTriangle className="w-2.5 h-2.5 text-white" />
+                                  <span>Urgent Restock</span>
+                                </>
+                              ) : isRestock ? (
+                                <>
+                                  <AlertCircle className="w-2.5 h-2.5 text-black" />
+                                  <span>Low Stock Alert</span>
+                                </>
+                              ) : (
+                                <span>Notice</span>
+                              )}
                             </span>
-                            <span className="font-bold text-xs truncate max-w-[180px] text-[#f4efe8]">
+                            <span className="font-bold text-xs truncate max-w-[170px] text-[#f4efe8]">
                               {notif.productName || notif.title}
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[9px] text-[#8c8273] font-mono">
-                              {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[10px] text-[#998b7a] font-medium whitespace-nowrap">
+                              {formatRelativeTime(notif.timestamp)}
                             </span>
-                            {!notif.read && onMarkNotificationRead && (
-                              <button
-                                onClick={() => onMarkNotificationRead(notif.id)}
-                                title="Mark as read"
-                                className="p-0.5 rounded text-[#f5d77f] hover:bg-[#d4af37]/20"
-                              >
-                                <CheckCheck className="w-3 h-3" />
-                              </button>
+                            {!notif.read ? (
+                              <span
+                                className="w-2 h-2 rounded-full bg-[#d4af37] shrink-0"
+                                title="Unread"
+                              />
+                            ) : (
+                              <span className="text-[9px] text-[#6b6255]">Read</span>
                             )}
                           </div>
                         </div>
@@ -419,14 +469,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                         )}
 
                         {/* Quick Action Buttons */}
-                        <div className="flex items-center gap-2 pt-1 border-t border-[#2a261f]">
+                        <div className="flex items-center gap-2 pt-1 border-t border-[#2a261f]" onClick={(e) => e.stopPropagation()}>
                           {notif.productId && onQuickRestock && (
                             <button
                               onClick={() => {
                                 onQuickRestock(notif.productId!, 15);
                                 if (onMarkNotificationRead) onMarkNotificationRead(notif.id);
                               }}
-                              className="py-1 px-2.5 rounded-lg text-[10px] font-bold bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black hover:brightness-110 flex items-center gap-1 transition-all shadow-2xs"
+                              className="py-1 px-2.5 rounded-lg text-[10px] font-bold bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black hover:brightness-110 flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
                             >
                               <PlusCircle className="w-3 h-3 text-black" />
                               <span>+15 Quick Restock</span>
@@ -439,7 +489,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                                 setIsNotifOpen(false);
                                 onNavigateToInventory();
                               }}
-                              className="py-1 px-2.5 rounded-lg text-[10px] font-semibold bg-[#1a1a20] text-[#f5d77f] border border-[#d4af37]/30 flex items-center gap-1 hover:bg-[#d4af37]/15 transition-colors ml-auto shadow-2xs"
+                              className="py-1 px-2.5 rounded-lg text-[10px] font-semibold bg-[#1a1a20] text-[#f5d77f] border border-[#d4af37]/30 flex items-center gap-1 hover:bg-[#d4af37]/15 transition-colors ml-auto shadow-2xs cursor-pointer"
                             >
                               <span>Inventory</span>
                               <ArrowRight className="w-3 h-3" />
@@ -579,7 +629,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-[#f5d77f] border border-[#2a261f]">F1</kbd>
                 </button>
 
-                {/* Camera Barcode Scanner */}
+                {/* Camera QR Scanner */}
                 <button
                   onClick={() => {
                     setIsMoreMenuOpen(false);
@@ -589,7 +639,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <Camera className="w-3.5 h-3.5 text-[#f5d77f]" />
-                    <span>Barcode Camera Scanner</span>
+                    <span>QR Scanner</span>
                   </div>
                   <kbd className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/40 text-[#f5d77f] border border-[#2a261f]">F4</kbd>
                 </button>

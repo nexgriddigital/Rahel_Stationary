@@ -48,7 +48,8 @@ export interface Product {
   id: string;
   name: string;
   sku: string;
-  barcode: string;
+  qrCode: string; // Unique QR code value / identifier (e.g. SKU or 'QR-000123')
+  barcode: string; // Preserved for backward compatibility
   category: ProductCategory;
   costPrice: number;
   retailPrice: number;
