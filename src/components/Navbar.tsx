@@ -27,7 +27,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { storage } from '../services/storage';
-import { Product, AppNotification } from '../types';
+import { Product, AppNotification, LOW_STOCK_THRESHOLD } from '../types';
 
 interface NavbarProps {
   onToggleMobileMenu: () => void;
@@ -342,7 +342,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     const isRestock = notif.type === 'restock_alert';
                     const isDepleted = (notif.currentStock ?? 0) <= 0;
                     const stock = notif.currentStock ?? 0;
-                    const threshold = notif.minThreshold ?? 10;
+                    const threshold = LOW_STOCK_THRESHOLD;
                     const percent = Math.min(100, Math.round((stock / Math.max(1, threshold)) * 100));
 
                     return (

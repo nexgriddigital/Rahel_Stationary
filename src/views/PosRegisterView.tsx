@@ -8,7 +8,8 @@ import {
   ParkedCart,
   ProductCategory,
   ETHIOPIAN_PAYMENT_METHODS,
-  getPaymentMethodLabel
+  getPaymentMethodLabel,
+  LOW_STOCK_THRESHOLD
 } from '../types';
 import { storage } from '../services/storage';
 import {
@@ -370,7 +371,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         {/* Product Grid */}
         <div className="flex-1 p-3.5 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 content-start">
           {filteredProducts.map((p) => {
-            const isLowStock = p.stock <= p.minThreshold;
+            const isLowStock = p.stock <= LOW_STOCK_THRESHOLD;
             const inCart = cart.find(c => c.product.id === p.id);
             return (
               <div

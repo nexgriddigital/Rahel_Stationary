@@ -27,13 +27,22 @@ export interface UserSession {
 
 export type ProductCategory = 
   | 'Writing & Pens'
+  | 'Writing & Correction'
   | 'Paper & Notebooks'
   | 'Printing & Copying'
   | 'Art & Craft'
   | 'Desk & Office'
   | 'Binding & Lamination'
   | 'Packaging & Envelopes'
-  | 'Custom Stamps & Signs';
+  | 'Custom Stamps & Signs'
+  | 'General';
+
+/**
+ * Centrally defined fixed minimum stock threshold across the entire application.
+ * Stock > 3: Normal stock
+ * Stock <= 3: Low stock / Restock alert
+ */
+export const LOW_STOCK_THRESHOLD = 3;
 
 export interface Product {
   id: string;
@@ -44,7 +53,7 @@ export interface Product {
   costPrice: number;
   retailPrice: number;
   stock: number;
-  minThreshold: number;
+  minThreshold?: number; // Deprecated legacy field; system centrally enforces LOW_STOCK_THRESHOLD = 3
   unit: string; // e.g. "pcs", "pack", "ream", "box"
   description?: string;
   imageUrl?: string;

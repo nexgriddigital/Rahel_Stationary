@@ -9,7 +9,8 @@ import {
   Expense,
   CustomerCreditAccount,
   StoreSettings,
-  ETHIOPIAN_PAYMENT_METHODS
+  ETHIOPIAN_PAYMENT_METHODS,
+  LOW_STOCK_THRESHOLD
 } from '../types';
 
 /**
@@ -927,7 +928,7 @@ export const exportInventoryReportPDF = (
 
   const totalRetailVal = products.reduce((acc, p) => acc + p.retailPrice * p.stock, 0);
   const totalCostVal = products.reduce((acc, p) => acc + p.costPrice * p.stock, 0);
-  const lowStockCount = products.filter((p) => p.stock <= p.minThreshold).length;
+  const lowStockCount = products.filter((p) => p.stock <= LOW_STOCK_THRESHOLD).length;
 
   drawDocHeader(
     doc,
@@ -964,11 +965,11 @@ export const exportInventoryReportPDF = (
 
   const rows = products.map((p) => {
     const isDepleted = p.stock <= 0;
-    const isLow = p.stock <= p.minThreshold;
+    const isLow = p.stock <= LOW_STOCK_THRESHOLD;
     const statusText = isDepleted
       ? 'DEPLETED (0)'
       : isLow
-      ? `LOW STOCK (<= ${p.minThreshold})`
+      ? `LOW STOCK (<= ${LOW_STOCK_THRESHOLD})`
       : 'In Stock (OK)';
 
     return [
@@ -978,7 +979,7 @@ export const exportInventoryReportPDF = (
       p.category,
       formatETB(p.retailPrice, curr),
       `${p.stock} ${p.unit || 'pcs'}`,
-      `${p.minThreshold} ${p.unit || 'pcs'}`,
+      `${LOW_STOCK_THRESHOLD} ${p.unit || 'pcs'}`,
       statusText
     ];
   });
@@ -1048,12 +1049,12 @@ export const exportLowStockReportPDF = (
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const curr = settings.currencySymbol || 'ETB';
 
-  const lowStock = products.filter((p) => p.stock <= p.minThreshold);
+  const lowStock = products.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
   const depleted = lowStock.filter((p) => p.stock <= 0);
 
   // Total estimated replenishment cost
   const estReplenishCost = lowStock.reduce((acc, p) => {
-    const deficit = Math.max(0, p.minThreshold * 2 - p.stock);
+    const deficit = Math.max(0, LOW_STOCK_THRESHOLD * 2 - p.stock);
     return acc + deficit * p.costPrice;
   }, 0);
 
@@ -1098,7 +1099,7 @@ export const exportLowStockReportPDF = (
   } else {
     const rows = lowStock.map((p) => {
       const isDepleted = p.stock <= 0;
-      const suggestedReorder = Math.max(0, p.minThreshold * 2 - p.stock);
+      const suggestedReorder = Math.max(0, LOW_STOCK_THRESHOLD * 2 - p.stock);
       const estLineCost = suggestedReorder * p.costPrice;
 
       return [
@@ -1107,7 +1108,7 @@ export const exportLowStockReportPDF = (
         p.barcode,
         p.category,
         `${p.stock} ${p.unit || 'pcs'}`,
-        `${p.minThreshold} ${p.unit || 'pcs'}`,
+        `${LOW_STOCK_THRESHOLD} ${p.unit || 'pcs'}`,
         isDepleted ? '0 (DEPLETED)' : `${p.stock}`,
         String(suggestedReorder),
         formatETB(p.costPrice, curr),

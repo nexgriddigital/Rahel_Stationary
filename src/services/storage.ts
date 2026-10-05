@@ -21,8 +21,15 @@ import {
   DaySaleSummary,
   PaymentMethod,
   ETHIOPIAN_PAYMENT_METHODS,
-  getPaymentMethodLabel
+  getPaymentMethodLabel,
+  LOW_STOCK_THRESHOLD
 } from '../types';
+import {
+  autoDetectCategory,
+  generateUniqueSku,
+  generateUniqueBarcode,
+  isLowStock
+} from './productGenerator';
 
 const STORAGE_KEYS = {
   PRODUCTS: 'rahel_pos_products_v1',
@@ -103,7 +110,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 4.20,
     retailPrice: 7.50,
     stock: 64,
-    minThreshold: 15,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'ream',
     description: 'High opacity ultra-bright paper for laser and inkjet high-speed printing.',
     updatedAt: new Date().toISOString()
@@ -117,7 +124,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 1.10,
     retailPrice: 2.25,
     stock: 82,
-    minThreshold: 20,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: 'Smooth writing quick-drying archival black gel ink.',
     updatedAt: new Date().toISOString()
@@ -130,8 +137,8 @@ const SEED_PRODUCTS: Product[] = [
     category: 'Writing & Pens',
     costPrice: 1.10,
     retailPrice: 2.25,
-    stock: 5, // Low stock warning!
-    minThreshold: 15,
+    stock: 3, // Low stock: exactly 3
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: 'Smooth writing quick-drying archival blue gel ink.',
     updatedAt: new Date().toISOString()
@@ -145,7 +152,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 13.50,
     retailPrice: 24.00,
     stock: 18,
-    minThreshold: 8,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: 'FSC-certified ivory acid-free paper with ribbon bookmark and back pocket.',
     updatedAt: new Date().toISOString()
@@ -159,7 +166,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 32.00,
     retailPrice: 52.00,
     stock: 12,
-    minThreshold: 6,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'box',
     description: 'BPA-free high sensitivity thermal paper for POS receipt printers.',
     updatedAt: new Date().toISOString()
@@ -173,7 +180,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 6.80,
     retailPrice: 12.50,
     stock: 24,
-    minThreshold: 10,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pack',
     description: 'High-gloss cast-coated instant-dry waterproof photo paper.',
     updatedAt: new Date().toISOString()
@@ -187,7 +194,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 0.12,
     retailPrice: 0.65,
     stock: 9999, // Service
-    minThreshold: 0,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'page',
     description: 'Heavy toner crisp commercial high-resolution color laser printout.',
     updatedAt: new Date().toISOString()
@@ -201,7 +208,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 0.85,
     retailPrice: 3.50,
     stock: 140,
-    minThreshold: 25,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'book',
     description: 'Clear PVC front cover, black leatherette back, plastic spiral binding.',
     updatedAt: new Date().toISOString()
@@ -214,8 +221,8 @@ const SEED_PRODUCTS: Product[] = [
     category: 'Binding & Lamination',
     costPrice: 11.20,
     retailPrice: 19.95,
-    stock: 4, // Low stock warning!
-    minThreshold: 10,
+    stock: 1, // Critical low stock: < 3
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pack',
     description: 'Anti-glare thermal lamination pouches for ID, menu, and signage protection.',
     updatedAt: new Date().toISOString()
@@ -229,7 +236,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 10.40,
     retailPrice: 18.50,
     stock: 16,
-    minThreshold: 5,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'tin',
     description: 'Graded graphite pencils 6B to 4H for sketching, drafting, and illustration.',
     updatedAt: new Date().toISOString()
@@ -243,7 +250,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 16.50,
     retailPrice: 29.00,
     stock: 9,
-    minThreshold: 5,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: 'Metal body with calibrated adjustable paper guide and anti-jam mechanism.',
     updatedAt: new Date().toISOString()
@@ -257,7 +264,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 8.50,
     retailPrice: 22.00,
     stock: 45,
-    minThreshold: 10,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: 'Precision laser-engraved polymer stamp pad with refillable black ink.',
     updatedAt: new Date().toISOString()
@@ -271,7 +278,7 @@ const SEED_PRODUCTS: Product[] = [
     costPrice: 7.20,
     retailPrice: 14.50,
     stock: 35,
-    minThreshold: 12,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pack',
     description: 'Self-seal tamper-evident tear strip with air cushion bubble lining.',
     updatedAt: new Date().toISOString()
@@ -284,8 +291,8 @@ const SEED_PRODUCTS: Product[] = [
     category: 'Paper & Notebooks',
     costPrice: 9.80,
     retailPrice: 18.00,
-    stock: 2, // Low stock warning!
-    minThreshold: 6,
+    stock: 2, // Critical low stock: < 3
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'roll',
     description: 'High transparency translucent parchment for CAD overlays and manual sketching.',
     updatedAt: new Date().toISOString()
@@ -965,27 +972,44 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
 const ALL_SEED_SALES = generateMonthlySeedSales(SEED_SALES);
 
 class StorageService {
-  private listeners: Set<() => void> = new Set();
+  private listeners: Set<(key?: string) => void> = new Set();
+  private isNotifying = false;
+  private pendingNotifyKeys = new Set<string>();
 
   constructor() {
     this.initSeeds();
   }
 
-  public subscribe(listener: () => void): () => void {
+  public subscribe(listener: (key?: string) => void): () => void {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
     };
   }
 
-  private notify() {
-    this.listeners.forEach(cb => {
-      try {
-        cb();
-      } catch (err) {
-        console.error('Storage notify error', err);
+  private notify(key?: string) {
+    if (this.isNotifying) {
+      if (key) this.pendingNotifyKeys.add(key);
+      return;
+    }
+
+    this.isNotifying = true;
+    try {
+      this.listeners.forEach(cb => {
+        try {
+          cb(key);
+        } catch (err) {
+          console.error('Storage notify error', err);
+        }
+      });
+    } finally {
+      this.isNotifying = false;
+      if (this.pendingNotifyKeys.size > 0) {
+        const nextKeys = Array.from(this.pendingNotifyKeys);
+        this.pendingNotifyKeys.clear();
+        nextKeys.forEach(k => this.notify(k));
       }
-    });
+    }
   }
 
   private initSeeds() {
@@ -1028,6 +1052,31 @@ class StorageService {
       if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
       }
+      // Normalize products: enforce central LOW_STOCK_THRESHOLD = 3 and ensure category, SKU, and barcode are assigned
+      const storedProds = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
+      let prodsUpdated = false;
+      storedProds.forEach(p => {
+        if (p.minThreshold !== LOW_STOCK_THRESHOLD) {
+          p.minThreshold = LOW_STOCK_THRESHOLD;
+          prodsUpdated = true;
+        }
+        if (!p.category || p.category.trim() === '') {
+          p.category = autoDetectCategory(p.name, p.description);
+          prodsUpdated = true;
+        }
+        if (!p.sku || p.sku.trim() === '') {
+          p.sku = this.generateSku(p.category, p.name);
+          prodsUpdated = true;
+        }
+        if (!p.barcode || p.barcode.trim() === '') {
+          p.barcode = this.generateBarcodeNumber();
+          prodsUpdated = true;
+        }
+      });
+      if (prodsUpdated) {
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(storedProds));
+      }
+
       // Always enforce single admin user: Rahel Fira with salted password hash
       const staff = this.get<StaffUser[]>(STORAGE_KEYS.STAFF, []);
       if (!staff || staff.length !== 1 || staff[0].name !== 'Rahel Fira' || staff[0].role !== 'admin' || !staff[0].passwordHash) {
@@ -1055,10 +1104,12 @@ class StorageService {
     }
   }
 
-  private set<T>(key: string, value: T): void {
+  private set<T>(key: string, value: T, notifyListeners = true): void {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-      this.notify();
+      if (notifyListeners) {
+        this.notify(key);
+      }
     } catch (e) {
       console.error(`Failed to store key ${key}`, e);
     }
@@ -1332,6 +1383,17 @@ class StorageService {
 
   public saveProduct(product: Product): { success: boolean; error?: string } {
     const list = this.getProducts();
+
+    // Auto-assign category if missing
+    if (!product.category || product.category.trim() === '') {
+      product.category = autoDetectCategory(product.name, product.description);
+    }
+
+    // Auto-generate SKU if missing
+    if (!product.sku || product.sku.trim() === '') {
+      product.sku = this.generateSku(product.category, product.name);
+    }
+
     let barcode = (product.barcode || '').trim();
 
     // Automatically generate unique barcode if product does not have one
@@ -1339,6 +1401,9 @@ class StorageService {
       barcode = this.generateBarcodeNumber();
       product.barcode = barcode;
     }
+
+    // Enforce fixed minimum stock threshold of 3 for all products
+    product.minThreshold = LOW_STOCK_THRESHOLD;
 
     // Ensure that no two products can have the same barcode
     if (!this.isBarcodeUnique(barcode, product.id)) {
@@ -1406,13 +1471,43 @@ class StorageService {
     const now = new Date().toISOString();
     const activeUserName = this.getActiveUser()?.name || 'Store Staff';
 
+    const allocatedSkus = new Set<string>();
+    const allocatedBarcodes = new Set<string>();
+
     items.forEach((item, index) => {
+      // Auto-assign Category if missing
+      const category = (item.category && item.category.trim() !== '')
+        ? item.category
+        : autoDetectCategory(item.name, item.description);
+
+      // Auto-generate SKU if missing
+      let sku = (item.sku || '').trim();
+      if (!sku) {
+        sku = this.generateSku(category, item.name, allocatedSkus);
+      }
+      allocatedSkus.add(sku.toUpperCase());
+
+      // Auto-generate Barcode if missing, or preserve non-conflicting barcode
+      let barcode = (item.barcode || '').trim();
+      if (!barcode || allocatedBarcodes.has(barcode) || !this.isBarcodeUnique(barcode, item.id)) {
+        barcode = this.generateBarcodeNumber(allocatedBarcodes);
+      }
+      allocatedBarcodes.add(barcode);
+
+      const preparedItem: Product = {
+        ...item,
+        category,
+        sku,
+        barcode,
+        minThreshold: LOW_STOCK_THRESHOLD
+      };
+
       // Find matching item by SKU or Barcode or ID
       const existingIndex = list.findIndex(
         p =>
-          (p.sku && item.sku && p.sku.trim().toLowerCase() === item.sku.trim().toLowerCase()) ||
-          (p.barcode && item.barcode && p.barcode.trim() === item.barcode.trim()) ||
-          p.id === item.id
+          (p.sku && preparedItem.sku && p.sku.trim().toLowerCase() === preparedItem.sku.trim().toLowerCase()) ||
+          (p.barcode && preparedItem.barcode && p.barcode.trim() === preparedItem.barcode.trim()) ||
+          p.id === preparedItem.id
       );
 
       if (existingIndex >= 0) {
@@ -1421,13 +1516,16 @@ class StorageService {
           return;
         } else if (options.onDuplicate === 'generate_new') {
           // generate new SKU and Barcode
-          const newSku = this.generateSku(item.category, item.name);
-          const newBarcode = this.generateBarcodeNumber();
+          const newSku = this.generateSku(category, preparedItem.name, allocatedSkus);
+          allocatedSkus.add(newSku.toUpperCase());
+          const newBarcode = this.generateBarcodeNumber(allocatedBarcodes);
+          allocatedBarcodes.add(newBarcode);
           const newItem: Product = {
-            ...item,
+            ...preparedItem,
             id: 'prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6),
             sku: newSku,
             barcode: newBarcode,
+            minThreshold: LOW_STOCK_THRESHOLD,
             updatedAt: now
           };
           list.unshift(newItem);
@@ -1450,17 +1548,17 @@ class StorageService {
         } else if (options.onDuplicate === 'overwrite_stock') {
           // Overwrite stock count with imported quantity
           const existing = list[existingIndex];
-          const stockDiff = item.stock - existing.stock;
+          const stockDiff = preparedItem.stock - existing.stock;
           list[existingIndex] = {
             ...existing,
-            name: item.name || existing.name,
-            category: item.category || existing.category,
-            costPrice: item.costPrice > 0 ? item.costPrice : existing.costPrice,
-            retailPrice: item.retailPrice > 0 ? item.retailPrice : existing.retailPrice,
-            minThreshold: item.minThreshold > 0 ? item.minThreshold : existing.minThreshold,
-            unit: item.unit || existing.unit,
-            description: item.description || existing.description,
-            stock: item.stock,
+            name: preparedItem.name || existing.name,
+            category: preparedItem.category || existing.category,
+            costPrice: preparedItem.costPrice > 0 ? preparedItem.costPrice : existing.costPrice,
+            retailPrice: preparedItem.retailPrice > 0 ? preparedItem.retailPrice : existing.retailPrice,
+            minThreshold: LOW_STOCK_THRESHOLD,
+            unit: preparedItem.unit || existing.unit,
+            description: preparedItem.description || existing.description,
+            stock: preparedItem.stock,
             updatedAt: now
           };
           updated++;
@@ -1475,7 +1573,7 @@ class StorageService {
               type: stockDiff > 0 ? 'IN' : 'AUDIT',
               quantityChange: stockDiff,
               previousStock: existing.stock,
-              newStock: item.stock,
+              newStock: preparedItem.stock,
               reason: 'Bulk inventory import (stock count overwrite)',
               performedBy: activeUserName
             });
@@ -1483,18 +1581,18 @@ class StorageService {
         } else {
           // 'update': replenish stock and update details
           const existing = list[existingIndex];
-          const stockToAdd = item.stock || 0;
+          const stockToAdd = preparedItem.stock || 0;
           const newStock = existing.stock + stockToAdd;
           
           list[existingIndex] = {
             ...existing,
-            name: item.name || existing.name,
-            category: item.category || existing.category,
-            costPrice: item.costPrice > 0 ? item.costPrice : existing.costPrice,
-            retailPrice: item.retailPrice > 0 ? item.retailPrice : existing.retailPrice,
-            minThreshold: item.minThreshold > 0 ? item.minThreshold : existing.minThreshold,
-            unit: item.unit || existing.unit,
-            description: item.description || existing.description,
+            name: preparedItem.name || existing.name,
+            category: preparedItem.category || existing.category,
+            costPrice: preparedItem.costPrice > 0 ? preparedItem.costPrice : existing.costPrice,
+            retailPrice: preparedItem.retailPrice > 0 ? preparedItem.retailPrice : existing.retailPrice,
+            minThreshold: LOW_STOCK_THRESHOLD,
+            unit: preparedItem.unit || existing.unit,
+            description: preparedItem.description || existing.description,
             stock: newStock,
             updatedAt: now
           };
@@ -1519,8 +1617,9 @@ class StorageService {
       } else {
         // Brand new product
         const newItem: Product = {
-          ...item,
-          id: item.id || ('prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6)),
+          ...preparedItem,
+          id: preparedItem.id || ('prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6)),
+          minThreshold: LOW_STOCK_THRESHOLD,
           updatedAt: now
         };
         list.unshift(newItem);
@@ -2177,7 +2276,7 @@ class StorageService {
     });
 
     const products = this.getProducts();
-    const lowStockCount = products.filter(p => p.stock <= p.minThreshold).length;
+    const lowStockCount = products.filter(p => isLowStock(p.stock)).length;
 
     return {
       todaySales: Number(todaySales.toFixed(2)),
@@ -2407,7 +2506,7 @@ class StorageService {
     });
     // keep latest 500
     if (logs.length > 500) logs.pop();
-    this.set(STORAGE_KEYS.LOGS, logs);
+    this.set(STORAGE_KEYS.LOGS, logs, false);
   }
 
   // Internal Notifications System
@@ -2477,7 +2576,7 @@ class StorageService {
     let listModified = false;
 
     products.forEach(prod => {
-      const isAtOrBelowThreshold = prod.stock <= prod.minThreshold;
+      const isAtOrBelowThreshold = prod.stock <= LOW_STOCK_THRESHOLD;
       const existingAlertIndex = notifications.findIndex(
         n => n.type === 'restock_alert' && n.productId === prod.id && !n.read
       );
@@ -2490,8 +2589,8 @@ class StorageService {
             id: 'notif_restock_' + prod.id + '_' + Date.now(),
             title: isDepleted ? `Urgent Restock: ${prod.name}` : `Restock Alert: ${prod.name}`,
             message: isDepleted
-              ? `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${prod.minThreshold} ${prod.unit}). Immediate replenishment required.`
-              : `Minimum threshold reached! Current stock is ${prod.stock} ${prod.unit} (Safety threshold: ${prod.minThreshold} ${prod.unit}).`,
+              ? `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${LOW_STOCK_THRESHOLD} ${prod.unit}). Immediate replenishment required.`
+              : `Low stock threshold reached! Current stock is ${prod.stock} ${prod.unit} (Safety threshold: ${LOW_STOCK_THRESHOLD} ${prod.unit}).`,
             type: 'restock_alert',
             severity: isDepleted ? 'urgent' : 'warning',
             timestamp: new Date().toISOString(),
@@ -2500,7 +2599,7 @@ class StorageService {
             productName: prod.name,
             sku: prod.sku,
             currentStock: prod.stock,
-            minThreshold: prod.minThreshold,
+            minThreshold: LOW_STOCK_THRESHOLD,
             unit: prod.unit,
             actionUrl: 'inventory'
           };
@@ -2512,7 +2611,7 @@ class StorageService {
           this.logActivity(
             'RESTOCK_ALERT_TRIGGERED',
             'inventory',
-            `Urgent Restock alert triggered for ${prod.name} (Stock: ${prod.stock}, Min Threshold: ${prod.minThreshold})`
+            `Urgent Restock alert triggered for ${prod.name} (Stock: ${prod.stock}, Min Threshold: ${LOW_STOCK_THRESHOLD})`
           );
         } else {
           // Update current stock if stock level changed
@@ -2523,7 +2622,7 @@ class StorageService {
             if (prod.stock <= 0) {
               existing.severity = 'urgent';
               existing.title = `Urgent Restock: ${prod.name}`;
-              existing.message = `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${prod.minThreshold} ${prod.unit}).`;
+              existing.message = `OUT OF STOCK! Inventory is at 0 ${prod.unit} (Minimum threshold: ${LOW_STOCK_THRESHOLD} ${prod.unit}).`;
             }
             listModified = true;
           }
@@ -2547,8 +2646,11 @@ class StorageService {
   }
 
   // Utilities: Barcode & SKU Generator
-  public generateBarcodeNumber(): string {
+  public generateBarcodeNumber(excludeSet?: Set<string>): string {
     const existing = new Set(this.getProducts().map(p => (p.barcode || '').trim()));
+    if (excludeSet) {
+      excludeSet.forEach(b => existing.add(b.trim()));
+    }
     let candidate = '';
     let attempts = 0;
     do {
@@ -2566,9 +2668,10 @@ class StorageService {
     return candidate;
   }
 
-  public generateSku(category: string, name: string): string {
+  public generateSku(category: string, name: string, excludeSet?: Set<string>): string {
     const catMap: Record<string, string> = {
       'Writing & Pens': 'PEN',
+      'Writing & Correction': 'COR',
       'Paper & Notebooks': 'PPR',
       'Printing & Copying': 'PRN',
       'Art & Craft': 'ART',
@@ -2581,9 +2684,26 @@ class StorageService {
     const namePart = name
       .replace(/[^a-zA-Z0-9]/g, '')
       .toUpperCase()
-      .substring(0, 4);
-    const rand = Math.floor(100 + Math.random() * 900);
-    return `${prefix}-${namePart}-${rand}`;
+      .substring(0, 4) || 'ITEM';
+    
+    const existing = new Set(this.getProducts().map(p => (p.sku || '').trim().toUpperCase()));
+    if (excludeSet) {
+      excludeSet.forEach(s => existing.add(s.trim().toUpperCase()));
+    }
+
+    let candidate = '';
+    let attempts = 0;
+    do {
+      const rand = Math.floor(100 + Math.random() * 900);
+      candidate = `${prefix}-${namePart}-${rand}`;
+      attempts++;
+    } while (existing.has(candidate.toUpperCase()) && attempts < 100);
+
+    if (existing.has(candidate.toUpperCase())) {
+      candidate = `${prefix}-${namePart}-${Date.now().toString().slice(-4)}`;
+    }
+
+    return candidate;
   }
 
   // Export / Backup

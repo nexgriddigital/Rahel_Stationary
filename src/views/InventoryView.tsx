@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Product, ProductCategory } from '../types';
+import { Product, ProductCategory, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
 import { printHtmlViaIframe } from '../services/printHelper';
 import { BarcodeRenderer } from '../components/BarcodeRenderer';
@@ -68,7 +68,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
     costPrice: 5.0,
     retailPrice: 9.99,
     stock: 20,
-    minThreshold: 8,
+    minThreshold: LOW_STOCK_THRESHOLD,
     unit: 'pcs',
     description: ''
   });
@@ -169,7 +169,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       costPrice: 4.5,
       retailPrice: 8.5,
       stock: 25,
-      minThreshold: 10,
+      minThreshold: LOW_STOCK_THRESHOLD,
       unit: 'pcs',
       description: ''
     });
@@ -222,7 +222,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       costPrice: Number(formData.costPrice) || 0,
       retailPrice: Number(formData.retailPrice) || 0,
       stock: Number(formData.stock) || 0,
-      minThreshold: Number(formData.minThreshold) || 5,
+      minThreshold: LOW_STOCK_THRESHOLD,
       unit: formData.unit || 'pcs',
       description: formData.description || '',
       updatedAt: new Date().toISOString()
@@ -266,12 +266,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
       p.category.toLowerCase().includes(search.toLowerCase());
 
     const matchesCat = selectedCat === 'All' || p.category === selectedCat;
-    const matchesStock = filterMode === 'all' || p.stock <= p.minThreshold;
+    const matchesStock = filterMode === 'all' || p.stock <= LOW_STOCK_THRESHOLD;
 
     return matchesSearch && matchesCat && matchesStock;
   });
 
-  const lowStockCount = products.filter(p => p.stock <= p.minThreshold).length;
+  const lowStockCount = products.filter(p => p.stock <= LOW_STOCK_THRESHOLD).length;
   const stockMovements = storage.getStockMovements();
 
   return (
@@ -401,7 +401,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
             </div>
           ) : (
             filtered.map((prod) => {
-              const isLow = prod.stock <= prod.minThreshold;
+              const isLow = prod.stock <= LOW_STOCK_THRESHOLD;
               const isSelected = selectedProductIds.has(prod.id);
               const marginPercent =
                 prod.retailPrice > 0
@@ -605,7 +605,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                 </tr>
               ) : (
                 filtered.map((prod) => {
-                  const isLow = prod.stock <= prod.minThreshold;
+                  const isLow = prod.stock <= LOW_STOCK_THRESHOLD;
                   const isSelected = selectedProductIds.has(prod.id);
                   const marginPercent =
                     prod.retailPrice > 0
@@ -725,7 +725,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                           <span className="text-[10px] text-[#8c8273]">{prod.unit}</span>
                           {isLow && (
                             <span
-                              title={`Below reorder threshold (${prod.minThreshold})`}
+                              title={`Below reorder threshold (${LOW_STOCK_THRESHOLD})`}
                               className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"
                             />
                           )}
@@ -994,13 +994,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
                   <label className="block text-xs font-medium text-[#c4bbb0] mb-1">
                     Minimum Alert Threshold
                   </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.minThreshold !== undefined ? formData.minThreshold : 5}
-                    onChange={(e) => setFormData({ ...formData, minThreshold: parseInt(e.target.value, 10) || 0 })}
-                    className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#1a1a20] border border-[#2a261f] text-[#f4efe8]"
-                  />
+                  <div className="w-full px-3 py-2 text-xs font-mono rounded-xl bg-[#141418] border border-[#2a261f] text-[#a39c90] flex items-center justify-between">
+                    <span>System Safety Level:</span>
+                    <span className="text-amber-400 font-bold">{LOW_STOCK_THRESHOLD} units (Auto)</span>
+                  </div>
                 </div>
               </div>
 

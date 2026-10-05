@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Product } from '../types';
+import { Product, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
 import { BarcodeRenderer } from '../components/BarcodeRenderer';
 import { BarcodeScannerModal } from '../components/BarcodeScannerModal';
@@ -188,9 +188,9 @@ export const BarcodeStudioView: React.FC = () => {
   const handleSelectLowStock = () => {
     const next: Record<string, number> = {};
     products
-      .filter((p) => p.stock <= p.minThreshold)
+      .filter((p) => p.stock <= LOW_STOCK_THRESHOLD)
       .forEach((p) => {
-        next[p.id] = Math.max(2, p.minThreshold - p.stock + 1);
+        next[p.id] = Math.max(2, LOW_STOCK_THRESHOLD - p.stock + 1);
       });
     setSelectedCopies(next);
   };
@@ -546,7 +546,7 @@ export const BarcodeStudioView: React.FC = () => {
                 filteredProducts.map((prod) => {
                   const copies = selectedCopies[prod.id] || 0;
                   const isSelected = copies > 0;
-                  const isLow = prod.stock <= prod.minThreshold;
+                  const isLow = prod.stock <= LOW_STOCK_THRESHOLD;
 
                   // Highlight if specifically matched by the SKU/Barcode filter
                   const isSkuMatch =
@@ -623,7 +623,7 @@ export const BarcodeStudioView: React.FC = () => {
                           </span>
                           {isLow && (
                             <span
-                              title={`Low stock alert (${prod.minThreshold} threshold)`}
+                              title={`Low stock alert (${LOW_STOCK_THRESHOLD} threshold)`}
                               className="w-2 h-2 rounded-full bg-amber-400 animate-pulse"
                             />
                           )}

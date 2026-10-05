@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Product, ProductCategory } from '../types';
+import { Product, ProductCategory, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
 import { downloadExcelImportTemplate } from '../services/excelTemplateGenerator';
 import * as XLSX from 'xlsx';
@@ -514,7 +514,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       const costPrice = Math.max(0, parseFloat(String(rawCost ?? 0)) || 0);
       const retailPrice = parseFloat(String(rawRetail ?? 0));
       const stock = parseInt(String(rawStock ?? 0), 10);
-      const minThreshold = Math.max(1, parseInt(String(rawMin ?? 5), 10) || 5);
+      const minThreshold = LOW_STOCK_THRESHOLD;
       const unit = String(row['Unit'] || row.unit || row.uom || 'pcs').trim() || 'pcs';
       const description = String(
         row['Description'] || row.description || row.desc || row.details || ''
@@ -880,7 +880,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
           costPrice: values[4] || 0,
           retailPrice: values[5] || 0,
           stock: values[6] || 0,
-          minThreshold: values[7] || 5,
+          minThreshold: LOW_STOCK_THRESHOLD,
           unit: values[8] || 'pcs',
           description: values[9] || ''
         });
@@ -1119,7 +1119,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         costPrice: item.costPrice,
         retailPrice: item.retailPrice,
         stock: item.stock,
-        minThreshold: item.minThreshold,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: item.unit,
         description: item.description,
         updatedAt: new Date().toISOString()

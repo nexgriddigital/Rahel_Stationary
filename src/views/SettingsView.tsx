@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { StoreSettings } from '../types';
 import { storage } from '../services/storage';
-import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check, Mail, Send, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
-import { emailService, EmailStatus } from '../services/emailService';
+import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check } from 'lucide-react';
 
 interface SettingsViewProps {
   onSettingsSaved?: () => void;
@@ -12,41 +11,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
   const [settings, setSettings] = useState<StoreSettings>(storage.getSettings());
   const [isSaved, setIsSaved] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
-
-  // Email Integration Status & Test State
-  const [emailStatus, setEmailStatus] = useState<EmailStatus | null>(null);
-  const [isTestingEmail, setIsTestingEmail] = useState(false);
-  const [emailTestResult, setEmailTestResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  useEffect(() => {
-    emailService.getStatus().then(setEmailStatus);
-  }, []);
-
-  const handleTestEmail = async () => {
-    setIsTestingEmail(true);
-    setEmailTestResult(null);
-    try {
-      const res = await emailService.sendTestEmail();
-      if (res.success) {
-        setEmailTestResult({
-          success: true,
-          message: 'Test email delivered successfully! Check your inbox.'
-        });
-      } else {
-        setEmailTestResult({
-          success: false,
-          message: res.error || 'Failed to send test email. Check your SMTP credentials.'
-        });
-      }
-    } catch (err: any) {
-      setEmailTestResult({
-        success: false,
-        message: err.message || 'Connection error while testing email.'
-      });
-    } finally {
-      setIsTestingEmail(false);
-    }
-  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -329,89 +293,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
           </div>
         </div>
 
-        {/* Card 5: Google Gmail SMTP Email Integration */}
-        <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4">
-          <div className="flex items-center justify-between border-b border-[#26221c] pb-2">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-[#f5d77f]" />
-              <h3 className="font-bold text-sm text-[#f5d77f]">
-                Google Gmail SMTP Email Service
-              </h3>
-            </div>
-            {emailStatus?.configured ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span>Connected</span>
-              </span>
-            ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#1a1714] text-[#8c8273] border border-[#2a261f]">
-                Not Configured
-              </span>
-            )}
-          </div>
-
-          <p className="text-xs text-[#a89f91] leading-relaxed">
-            Allows the POS workstation to email sales receipts, customer debt statements, and daily audit reports through your Google Workspace / Gmail account.
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div className="p-3 rounded-xl bg-[#18181d] border border-[#2a261f] space-y-1">
-              <span className="text-[10px] text-[#8c8273] uppercase tracking-wider font-semibold">SMTP Host & Port</span>
-              <div className="font-mono font-medium text-[#f4efe8]">
-                {emailStatus?.host || 'smtp.gmail.com'} : {emailStatus?.port || '587'}
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-[#18181d] border border-[#2a261f] space-y-1">
-              <span className="text-[10px] text-[#8c8273] uppercase tracking-wider font-semibold">Authenticated Sender</span>
-              <div className="font-mono font-medium text-[#f4efe8]">
-                {emailStatus?.user || 'Not set (requires EMAIL_USER)'}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-            <p className="text-[11px] text-[#736657]">
-              Credentials are kept server-side in environment variables and are never transmitted to the browser.
-            </p>
-            <button
-              type="button"
-              disabled={isTestingEmail || !emailStatus?.configured}
-              onClick={handleTestEmail}
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-[#1f1f26] hover:bg-[#282834] text-[#f5d77f] border border-[#2a261f] hover:border-[#d4af37]/50 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {isTestingEmail ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#d4af37]" />
-                  <span>Testing Connection...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5 text-[#d4af37]" />
-                  <span>Send Test Verification Email</span>
-                </>
-              )}
-            </button>
-          </div>
-
-          {emailTestResult && (
-            <div
-              className={`p-3 rounded-xl text-xs flex items-center gap-2 animate-in fade-in duration-150 ${
-                emailTestResult.success
-                  ? 'bg-emerald-950/40 border border-emerald-800/50 text-emerald-200'
-                  : 'bg-rose-950/40 border border-rose-800/50 text-rose-200'
-              }`}
-            >
-              {emailTestResult.success ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              ) : (
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              )}
-              <span>{emailTestResult.message}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Card 6: Database Backup & Restore */}
+        {/* Card 5: Database Backup & Restore */}
         <div className="p-5 rounded-2xl bg-[#141417] border border-[#26221c] shadow-2xs space-y-4">
           <h3 className="font-bold text-sm text-[#f5d77f] border-b border-[#26221c] pb-2">
             Database Backup, Restore & Reset

@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { storage } from '../services/storage';
+import { LOW_STOCK_THRESHOLD } from '../types';
 import {
   BarChart3,
   Calendar,
@@ -1077,7 +1078,7 @@ export const ReportsView: React.FC = () => {
                 <div className="pt-1">
                   <span className="text-[11px] text-[#8c8273]">Below Threshold: </span>
                   <span className="text-[11px] font-semibold text-amber-400">
-                    {allProducts.filter((p) => p.stock <= p.minThreshold).length} items
+                    {allProducts.filter((p) => p.stock <= LOW_STOCK_THRESHOLD).length} items
                   </span>
                 </div>
               </div>

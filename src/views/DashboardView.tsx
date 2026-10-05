@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { storage } from '../services/storage';
-import { Sale, Product } from '../types';
+import { Sale, Product, LOW_STOCK_THRESHOLD } from '../types';
 import { NavTab } from '../components/Sidebar';
 import {
   TrendingUp,
@@ -87,7 +87,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return Object.entries(methods).map(([key, data]) => ({ key, ...data }));
   }, [todaySales]);
 
-  const lowStockItems = products.filter((p) => p.stock <= p.minThreshold);
+  const lowStockItems = products.filter((p) => p.stock <= LOW_STOCK_THRESHOLD);
   const recentSales = sales.slice(0, 5);
 
   // 7-day daily sales revenue trend
@@ -262,7 +262,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const criticalStockData = useMemo(() => {
     return [...products]
       .map((p) => {
-        const diff = p.stock - p.minThreshold;
+        const diff = p.stock - LOW_STOCK_THRESHOLD;
         return {
           id: p.id,
           fullName: p.name,
@@ -271,10 +271,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           category: p.category,
           unit: p.unit,
           stock: p.stock,
-          minThreshold: p.minThreshold,
+          minThreshold: LOW_STOCK_THRESHOLD,
           diff,
           isDepleted: p.stock <= 0,
-          isCritical: p.stock <= p.minThreshold
+          isCritical: p.stock <= LOW_STOCK_THRESHOLD
         };
       })
       .sort((a, b) => a.diff - b.diff || a.stock - b.stock)
@@ -1088,7 +1088,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   <div className="min-w-0 flex-1 pr-2">
                     <div className="font-semibold truncate text-[#f4efe8]">{item.name}</div>
                     <div className="text-[10px] text-[#8c8273] font-mono">
-                      SKU: {item.sku} · Reorder at: {item.minThreshold} {item.unit}
+                      SKU: {item.sku} · Reorder at: {LOW_STOCK_THRESHOLD} {item.unit}
                     </div>
                   </div>
 

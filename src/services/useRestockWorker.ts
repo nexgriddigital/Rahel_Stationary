@@ -30,6 +30,7 @@ export function useRestockWorker(options: {
   const [notifications, setNotifications] = useState<AppNotification[]>(() => storage.getNotifications());
   const [visualToasts, setVisualToasts] = useState<AppNotification[]>([]);
   const hasInitializedRef = useRef(false);
+  const isCheckingRef = useRef(false);
 
   // Sync notifications list from storage
   const syncFromStorage = useCallback(() => {
@@ -38,16 +39,22 @@ export function useRestockWorker(options: {
 
   // Run the restock audit check
   const runImmediateCheck = useCallback(() => {
-    const { newlyTriggered } = storage.checkStockThresholds();
-    syncFromStorage();
+    if (isCheckingRef.current) return;
+    isCheckingRef.current = true;
+    try {
+      const { newlyTriggered } = storage.checkStockThresholds();
+      syncFromStorage();
 
-    if (newlyTriggered.length > 0) {
-      // Dispatch visual toast alerts for newly triggered items
-      setVisualToasts(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const toAdd = newlyTriggered.filter(n => !existingIds.has(n.id));
-        return [...prev, ...toAdd];
-      });
+      if (newlyTriggered.length > 0) {
+        // Dispatch visual toast alerts for newly triggered items
+        setVisualToasts(prev => {
+          const existingIds = new Set(prev.map(p => p.id));
+          const toAdd = newlyTriggered.filter(n => !existingIds.has(n.id));
+          return [...prev, ...toAdd];
+        });
+      }
+    } finally {
+      isCheckingRef.current = false;
     }
   }, [syncFromStorage]);
 
@@ -62,8 +69,11 @@ export function useRestockWorker(options: {
       runImmediateCheck();
     }, checkIntervalMs);
 
-    // Reactive subscription to any stock mutation (sales, adjustments, bulk imports)
-    const unsubscribe = storage.subscribe(() => {
+    // Reactive subscription to stock mutations (ignore audit logs and internal notification updates)
+    const unsubscribe = storage.subscribe((key) => {
+      if (key && (key === 'rahel_pos_logs_v1' || key === 'rahel_pos_notifications_v1')) {
+        return;
+      }
       runImmediateCheck();
     });
 

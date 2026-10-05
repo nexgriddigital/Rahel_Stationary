@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { AppNotification } from '../types';
+import { AppNotification, LOW_STOCK_THRESHOLD } from '../types';
 import {
   AlertTriangle,
   X,
@@ -110,7 +110,7 @@ export const UrgentRestockToast: React.FC<UrgentRestockToastProps> = ({
                   Threshold
                 </span>
                 <div className="font-mono font-bold text-xs text-[#f5d77f]">
-                  {toast.minThreshold ?? 10} {toast.unit || 'pcs'}
+                  {LOW_STOCK_THRESHOLD} {toast.unit || 'pcs'}
                 </div>
               </div>
             </div>
