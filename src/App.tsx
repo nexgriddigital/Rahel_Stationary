@@ -28,6 +28,7 @@ import { LoginView } from './views/LoginView';
 import { DashboardView } from './views/DashboardView';
 import { PosRegisterView } from './views/PosRegisterView';
 import { InventoryView } from './views/InventoryView';
+import { ServicesView } from './views/ServicesView';
 import { SalesLedgerView } from './views/SalesLedgerView';
 import { CreditAccountsView } from './views/CreditAccountsView';
 import { ExpenseTrackerView } from './views/ExpenseTrackerView';
@@ -293,6 +294,19 @@ export default function App() {
             <InventoryView
               onNavigateToBarcodeStudio={(_productIds) => {
                 setCurrentTab('barcodes');
+              }}
+              onNavigateToServices={() => {
+                setCurrentTab('services');
+              }}
+            />
+          )}
+
+          {currentTab === 'services' && (
+            <ServicesView
+              onNavigateToPos={() => setCurrentTab('pos')}
+              onAddServiceToPos={(srv) => {
+                handleAddToCart(storage.convertServiceToProduct(srv));
+                setCurrentTab('pos');
               }}
             />
           )}

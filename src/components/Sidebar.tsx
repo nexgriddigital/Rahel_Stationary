@@ -18,6 +18,7 @@ import {
   Shield,
   Maximize2,
   LogOut,
+  Layers,
   X
 } from 'lucide-react';
 import { storage } from '../services/storage';
@@ -25,6 +26,7 @@ import { storage } from '../services/storage';
 export type NavTab = 
   | 'dashboard'
   | 'inventory'
+  | 'services'
   | 'pos'
   | 'sales'
   | 'credit'
@@ -66,6 +68,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navItems: { id: NavTab; label: string; icon: React.ComponentType<{ className?: string }>; badge?: string | number; badgeColor?: string }[] = [
     { id: 'dashboard', label: 'Dashboard Overview', icon: LayoutDashboard },
     { id: 'inventory', label: 'Inventory Management', icon: Package },
+    {
+      id: 'services',
+      label: 'Services Management',
+      icon: Layers,
+      badge: '6 Services',
+      badgeColor: 'bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30'
+    },
     {
       id: 'pos',
       label: 'POS Register',

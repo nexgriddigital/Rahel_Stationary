@@ -32,7 +32,10 @@ import {
   ShoppingBag,
   Clock,
   ArrowRight,
-  Landmark
+  Landmark,
+  Layers,
+  CalendarCheck,
+  Sparkles
 } from 'lucide-react';
 
 interface PosRegisterViewProps {
@@ -70,14 +73,17 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   ]);
   const [cashTendered, setCashTendered] = useState<string>('');
 
-  const products = storage.getProducts();
+  const rawProducts = storage.getProducts();
+  const services = storage.getServices();
+  const serviceProducts = services.filter(s => s.isActive).map(s => storage.convertServiceToProduct(s));
   const settings = storage.getSettings();
   const activeUser = storage.getActiveUser();
   const parkedCarts = storage.getParkedCarts();
   const creditAccounts = storage.getCreditAccounts();
 
-  const categories: (string | ProductCategory)[] = [
+  const categories: string[] = [
     'All',
+    'Services (6)',
     'Writing & Pens',
     'Paper & Notebooks',
     'Printing & Copying',
@@ -211,12 +217,13 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         productId: i.product.id,
         productName: i.product.name,
         sku: i.product.sku,
-        barcode: i.product.barcode,
+        barcode: i.product.barcode || '',
         unitPrice: i.customPrice !== undefined ? i.customPrice : i.product.retailPrice,
         costPrice: i.product.costPrice,
         quantity: i.quantity,
         total: Number(((i.customPrice !== undefined ? i.customPrice : i.product.retailPrice) * i.quantity * (1 - (i.appliedDiscountPercent || 0) / 100)).toFixed(2)),
-        discountPercent: i.appliedDiscountPercent || 0
+        discountPercent: i.appliedDiscountPercent || 0,
+        isService: i.product.isService || storage.isService(i.product.id)
       })),
       subtotal,
       taxAmount: 0,
@@ -248,22 +255,33 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         setBarcodeToast({
           productName: matched.name,
           retailPrice: matched.retailPrice,
-          barcode: matched.qrCode || matched.sku
+          barcode: matched.isService ? 'Service (No Inventory)' : (matched.qrCode || matched.sku)
         });
         setTimeout(() => setBarcodeToast(null), 3500);
       }
     }
   };
 
+  // Pool items based on category selection
+  let poolOfItems: Product[] = [];
+  if (selectedCategory === 'Services (6)' || selectedCategory === 'Services') {
+    poolOfItems = serviceProducts;
+  } else if (selectedCategory === 'All') {
+    poolOfItems = [...serviceProducts, ...rawProducts];
+  } else {
+    poolOfItems = rawProducts.filter(p => p.category === selectedCategory);
+  }
+
   // Filter products by category & search
-  const filteredProducts = products.filter(p => {
-    const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
+  const filteredProducts = poolOfItems.filter(p => {
+    const q = searchTerm.toLowerCase();
     const matchesSearch =
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.qrCode && p.qrCode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      p.barcode.includes(searchTerm);
-    return matchesCat && matchesSearch;
+      p.name.toLowerCase().includes(q) ||
+      (p.sku && p.sku.toLowerCase().includes(q)) ||
+      (p.qrCode && p.qrCode.toLowerCase().includes(q)) ||
+      (p.barcode && p.barcode.includes(searchTerm)) ||
+      (p.description && p.description.toLowerCase().includes(q));
+    return matchesSearch;
   });
 
   return (
@@ -350,6 +368,40 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           </div>
         </div>
 
+        {/* Quick Commercial Services Shortcut Bar */}
+        <div className="px-3.5 py-2 bg-[#121216] border-b border-[#26221c] flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none select-none">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#d4af37] shrink-0 mr-1">
+            <Layers className="w-3.5 h-3.5" />
+            <span>Quick Services:</span>
+          </div>
+          {services.filter(s => s.isActive).map((srv) => (
+            <button
+              key={srv.id}
+              onClick={() => {
+                const prod = storage.convertServiceToProduct(srv);
+                addToCart(prod);
+                setBarcodeToast({
+                  productName: srv.name,
+                  retailPrice: srv.price,
+                  barcode: 'Service (No Inventory)'
+                });
+                setTimeout(() => setBarcodeToast(null), 2500);
+              }}
+              className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer active:scale-95 border ${
+                srv.name === 'Passport Appointment'
+                  ? 'bg-[#d4af37]/20 text-[#f5d77f] border-[#d4af37]/60 hover:bg-[#d4af37]/30 shadow-xs'
+                  : 'bg-[#18181e] text-[#e0d8cc] border-[#2c2820] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
+              }`}
+              title={`Add 1× ${srv.name} (${settings.currencySymbol} ${srv.price.toFixed(2)})`}
+            >
+              <span>{srv.name}</span>
+              <span className="font-mono text-[11px] font-bold text-[#f5d77f]">
+                {settings.currencySymbol} {srv.price.toFixed(2)}
+              </span>
+            </button>
+          ))}
+        </div>
+
         {/* Category Horizontal Filter Buttons */}
         <div className="px-3.5 py-2 border-b border-[#26221c] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none bg-[#0d0d0f]">
           {categories.map((cat) => (
@@ -367,16 +419,21 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           ))}
         </div>
 
-        {/* Product Grid */}
+        {/* Product & Services Grid */}
         <div className="flex-1 p-3.5 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 content-start">
           {filteredProducts.map((p) => {
-            const isLowStock = p.stock <= LOW_STOCK_THRESHOLD;
+            const isServiceItem = p.isService || storage.isService(p.id) || storage.isService(p.name);
+            const isLowStock = !isServiceItem && p.stock <= LOW_STOCK_THRESHOLD;
             const inCart = cart.find(c => c.product.id === p.id);
             return (
               <div
                 key={p.id}
                 onClick={() => addToCart(p)}
-                className="group p-3 rounded-2xl bg-[#141417] hover:border-[#d4af37]/70 border border-[#2a261f] text-left transition-all hover:shadow-xs active:scale-98 flex flex-col justify-between relative overflow-hidden cursor-pointer"
+                className={`group p-3 rounded-2xl hover:border-[#d4af37]/70 border text-left transition-all hover:shadow-xs active:scale-98 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
+                  isServiceItem
+                    ? 'bg-[#14151b] border-emerald-950/80 hover:border-emerald-500/60'
+                    : 'bg-[#141417] border-[#2a261f]'
+                }`}
               >
                 {/* Active in cart indicator badge */}
                 {inCart && (
@@ -386,14 +443,22 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                 )}
 
                 <div>
-                  <div className="text-[10px] text-[#8c8273] uppercase tracking-wide truncate">
-                    {p.category}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] text-[#8c8273] uppercase tracking-wide truncate">
+                      {isServiceItem ? 'Commercial Service' : p.category}
+                    </div>
+                    {isServiceItem && (
+                      <span className="px-1.5 py-0.2 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 text-[9px] font-mono font-bold">
+                        Service
+                      </span>
+                    )}
                   </div>
+
                   <h4 className="font-semibold text-xs leading-snug line-clamp-2 text-[#f4efe8] mt-1 group-hover:text-[#f5d77f]">
                     {p.name}
                   </h4>
                   <div className="text-[10px] font-mono text-[#8c8273] mt-1">
-                    SKU: {p.sku}
+                    {isServiceItem ? 'No inventory / No QR code' : `SKU: ${p.sku}`}
                   </div>
                 </div>
 
@@ -401,15 +466,21 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   <span className="text-sm font-bold font-mono text-[#f5d77f]">
                     {settings.currencySymbol} {p.retailPrice.toFixed(2)}
                   </span>
-                  <span
-                    className={`text-[10px] font-mono font-medium ${
-                      isLowStock
-                        ? 'text-amber-400 font-bold'
-                        : 'text-[#8c8273]'
-                    }`}
-                  >
-                    {isLowStock ? `Low: ${p.stock}` : `${p.stock} ${p.unit}`}
-                  </span>
+                  {isServiceItem ? (
+                    <span className="text-[10px] font-mono font-semibold text-emerald-400">
+                      Per {p.unit || 'job'}
+                    </span>
+                  ) : (
+                    <span
+                      className={`text-[10px] font-mono font-medium ${
+                        isLowStock
+                          ? 'text-amber-400 font-bold'
+                          : 'text-[#8c8273]'
+                      }`}
+                    >
+                      {isLowStock ? `Low: ${p.stock}` : `${p.stock} ${p.unit}`}
+                    </span>
+                  )}
                 </div>
               </div>
             );

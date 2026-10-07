@@ -42,6 +42,7 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
 
   const settings = storage.getSettings();
   const products = storage.getProducts();
+  const services = storage.getServices();
   const staffMembers = storage.getStaff();
 
   const refreshList = () => {
@@ -246,18 +247,27 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
           {/* Filter by Product */}
           <div className="flex items-center gap-1.5 bg-[#141417] px-2.5 py-1 rounded-xl border border-[#26221c]">
             <Package className="w-3.5 h-3.5 text-[#8c8273]" />
-            <span className="text-[11px] text-[#8c8273]">Product:</span>
+            <span className="text-[11px] text-[#8c8273]">Item:</span>
             <select
               value={selectedProduct}
               onChange={(e) => setSelectedProduct(e.target.value)}
               className="bg-transparent text-[#f4efe8] text-xs focus:outline-none cursor-pointer pr-1"
             >
-              <option value="all" className="bg-[#141417]">All Products ({products.length})</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id} className="bg-[#141417]">
-                  {p.name}
-                </option>
-              ))}
+              <option value="all" className="bg-[#141417]">All Items & Services</option>
+              <optgroup label="Commercial Services">
+                {services.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-[#141417]">
+                    {s.name} (Service)
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Physical Products">
+                {products.filter(p => !p.isService).map((p) => (
+                  <option key={p.id} value={p.id} className="bg-[#141417]">
+                    {p.name}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 

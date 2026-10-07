@@ -55,9 +55,11 @@ export type SkuValidationStatus =
 export interface ParsedImportRow {
   id: string;
   name: string;
+  isService: boolean; // Physical product (Inventory + QR) vs Service (No Inventory + No QR)
   category: ProductCategory;
   sku: string;
   originalSku: string;
+  qrCode: string;
   barcode: string;
   costPrice: number;
   retailPrice: number;
@@ -74,116 +76,268 @@ export interface ParsedImportRow {
 
 const VALID_CATEGORIES: ProductCategory[] = [
   'Writing & Pens',
+  'Writing & Correction',
   'Paper & Notebooks',
   'Printing & Copying',
   'Art & Craft',
   'Desk & Office',
   'Binding & Lamination',
   'Packaging & Envelopes',
-  'Custom Stamps & Signs'
+  'Custom Stamps & Signs',
+  'General'
 ];
 
 // Curated supplier starter sample batches
 const SAMPLE_CATALOGS = [
   {
+    id: 'stationery_and_services',
+    title: 'Stationery Catalog & Commercial Services',
+    badge: '9 Items · Products & Services',
+    description: 'Real-world store catalog with physical items (Inventory + QR codes) and standard sellable services (No Inventory + No QR).',
+    items: [
+      {
+        name: 'Pilot G2 0.7mm Retractable Gel Pen Black',
+        isService: false,
+        category: 'Writing & Pens',
+        sku: 'PEN-PIL-G2B',
+        qrCode: 'PEN-PIL-G2B',
+        barcode: '890334810101',
+        costPrice: 35.00,
+        retailPrice: 60.00,
+        stock: 50,
+        minThreshold: LOW_STOCK_THRESHOLD,
+        unit: 'pcs',
+        description: 'Smooth rollerball gel ink with contoured rubber grip.'
+      },
+      {
+        name: 'Deli A4 Copy Paper 80gsm (500 Sheets/Ream)',
+        isService: false,
+        category: 'Paper & Notebooks',
+        sku: 'PPR-A4-80G',
+        qrCode: 'PPR-A4-80G',
+        barcode: '890123456001',
+        costPrice: 380.00,
+        retailPrice: 480.00,
+        stock: 40,
+        minThreshold: LOW_STOCK_THRESHOLD,
+        unit: 'ream',
+        description: 'High opacity multipurpose office printing and copy paper.'
+      },
+      {
+        name: 'Kangaro Heavy Duty Desktop Stapler No. 10',
+        isService: false,
+        category: 'Desk & Office',
+        sku: 'DSK-KNG-STP',
+        qrCode: 'DSK-KNG-STP',
+        barcode: '890334810104',
+        costPrice: 180.00,
+        retailPrice: 250.00,
+        stock: 25,
+        minThreshold: LOW_STOCK_THRESHOLD,
+        unit: 'pcs',
+        description: 'All-metal mechanism with built-in staple remover.'
+      },
+      {
+        name: 'Passport Appointment',
+        isService: true,
+        category: 'Printing & Copying',
+        sku: 'SRV-PASSPORT',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 150.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'appointment',
+        description: 'Online consular passport registration and appointment booking service.'
+      },
+      {
+        name: 'Printing',
+        isService: true,
+        category: 'Printing & Copying',
+        sku: 'SRV-PRINTING',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 5.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'page',
+        description: 'B&W and color laser document printing on A4/A3 paper.'
+      },
+      {
+        name: 'Laminating',
+        isService: true,
+        category: 'Binding & Lamination',
+        sku: 'SRV-LAMINATING',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 25.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'pouch',
+        description: 'Hot thermal plastic protective lamination for cards and certificates.'
+      },
+      {
+        name: 'Photocopying',
+        isService: true,
+        category: 'Printing & Copying',
+        sku: 'SRV-PHOTOCOPY',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 3.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'copy',
+        description: 'High-speed sharp document photocopying.'
+      },
+      {
+        name: 'Scanning',
+        isService: true,
+        category: 'Printing & Copying',
+        sku: 'SRV-SCANNING',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 10.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'doc',
+        description: 'Optical digital high-resolution document scanning to PDF or email.'
+      },
+      {
+        name: 'Binding',
+        isService: true,
+        category: 'Binding & Lamination',
+        sku: 'SRV-BINDING',
+        qrCode: '',
+        barcode: '',
+        costPrice: 0.00,
+        retailPrice: 45.00,
+        stock: 0,
+        minThreshold: 0,
+        unit: 'book',
+        description: 'Comb, spiral wire, and thermal document binding with PVC covers.'
+      }
+    ]
+  },
+  {
     id: 'artist_fine_writing',
-    title: 'Fine Art & Premium Writing',
-    badge: '10 Items · Pens & Pads',
+    title: 'Fine Art & Premium Writing (Physical Products)',
+    badge: '8 Items · Inventory + QR Codes',
     description: 'Artist-grade fineliners, watercolor brushes, sketchbooks, and calligraphy inks.',
     items: [
       {
         name: 'Sakura Pigma Micron 05 Fineliner Black',
+        isService: false,
         category: 'Writing & Pens',
         sku: 'PEN-SAKU-05B',
+        qrCode: 'PEN-SAKU-05B',
         barcode: '890334810101',
-        costPrice: 2.10,
-        retailPrice: 4.50,
+        costPrice: 85.00,
+        retailPrice: 140.00,
         stock: 45,
-        minThreshold: 10,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pcs',
         description: 'Archival waterproof pigment ink 0.45mm tip for technical drawing.'
       },
       {
         name: 'Tombow Dual Brush Pen Pastel 6-Color Set',
+        isService: false,
         category: 'Art & Craft',
         sku: 'ART-TOMB-6PS',
+        qrCode: 'ART-TOMB-6PS',
         barcode: '890334810102',
-        costPrice: 10.50,
-        retailPrice: 19.99,
+        costPrice: 420.00,
+        retailPrice: 650.00,
         stock: 20,
-        minThreshold: 5,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pack',
         description: 'Flexible brush tip & fine bullet tip blendable water-based markers.'
       },
       {
         name: 'Strathmore 400 Series Mixed Media Pad (9x12 in, 15 Sheets)',
+        isService: false,
         category: 'Paper & Notebooks',
         sku: 'PPR-STR4-912',
+        qrCode: 'PPR-STR4-912',
         barcode: '890334810103',
-        costPrice: 8.20,
-        retailPrice: 15.50,
+        costPrice: 350.00,
+        retailPrice: 520.00,
         stock: 30,
-        minThreshold: 8,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pad',
         description: 'Heavyweight 300gsm vellum surface paper for wet and dry media.'
       },
       {
         name: 'Faber-Castell 9000 Graphite Pencil Art Set (12 Grades)',
+        isService: false,
         category: 'Writing & Pens',
         sku: 'PEN-FB90-12G',
+        qrCode: 'PEN-FB90-12G',
         barcode: '890334810104',
-        costPrice: 7.90,
-        retailPrice: 14.99,
+        costPrice: 320.00,
+        retailPrice: 490.00,
         stock: 25,
-        minThreshold: 6,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'box',
         description: 'Finest quality artists graphite pencils from 8B to 2H in metal tin.'
       },
       {
-        name: 'A4 Double A Copier Paper (80gsm, 500 Sheets)', // Matches existing product!
+        name: 'A4 Double A Copier Paper (80gsm, 500 Sheets)',
+        isService: false,
         category: 'Paper & Notebooks',
         sku: 'PPR-A4-80G',
+        qrCode: 'PPR-A4-80G',
         barcode: '890123456001',
-        costPrice: 4.50,
-        retailPrice: 7.99,
+        costPrice: 380.00,
+        retailPrice: 480.00,
         stock: 50,
-        minThreshold: 15,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'ream',
         description: 'Replenishment shipment of premium multi-purpose copier paper.'
       },
       {
         name: 'Winsor & Newton Drawing Ink 14ml Black Indian',
+        isService: false,
         category: 'Art & Craft',
         sku: 'ART-WNDI-14B',
+        qrCode: 'ART-WNDI-14B',
         barcode: '890334810105',
-        costPrice: 4.80,
-        retailPrice: 8.95,
+        costPrice: 190.00,
+        retailPrice: 280.00,
         stock: 18,
-        minThreshold: 4,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'bottle',
         description: 'Fast drying water resistant shellac-based calligraphy ink.'
       },
       {
         name: 'Kneaded Eraser Large Grey with Storage Case',
+        isService: false,
         category: 'Art & Craft',
         sku: 'ART-KNED-LRG',
+        qrCode: 'ART-KNED-LRG',
         barcode: '890334810106',
-        costPrice: 0.90,
-        retailPrice: 2.25,
+        costPrice: 45.00,
+        retailPrice: 80.00,
         stock: 60,
-        minThreshold: 15,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pcs',
         description: 'Soft pliable putty eraser for charcoal, pastel, and graphite lifting.'
       },
       {
         name: 'Rhodia Webnotebook A5 Dot Grid (Black Hardcover)',
+        isService: false,
         category: 'Paper & Notebooks',
         sku: 'PPR-RHDW-A5D',
+        qrCode: 'PPR-RHDW-A5D',
         barcode: '890334810107',
-        costPrice: 13.00,
-        retailPrice: 24.50,
+        costPrice: 550.00,
+        retailPrice: 820.00,
         stock: 22,
-        minThreshold: 5,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pcs',
         description: 'Smooth 90gsm Clairefontaine ivory paper with ribbon marker & elastic closure.'
       }
@@ -191,79 +345,91 @@ const SAMPLE_CATALOGS = [
   },
   {
     id: 'print_shop_consumables',
-    title: 'Print Shop & Binding Supplies',
-    badge: '8 Items · Paper & Binding',
+    title: 'Print Shop & Binding Inventory',
+    badge: '6 Items · Paper & Binding Supplies',
     description: 'High-speed printer paper, binding combs, thermal rolls, and laminate pouches.',
     items: [
       {
         name: 'Thermal Till Receipt Paper Rolls 80x80mm (Box of 24)',
+        isService: false,
         category: 'Printing & Copying',
         sku: 'PRN-THRM-808',
+        qrCode: 'PRN-THRM-808',
         barcode: '890445910201',
-        costPrice: 16.50,
-        retailPrice: 29.90,
+        costPrice: 650.00,
+        retailPrice: 950.00,
         stock: 35,
-        minThreshold: 8,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'box',
         description: 'BPA-free high sensitivity thermal paper for standard 80mm POS receipt printers.'
       },
       {
         name: 'Glossy Cast Coated Photo Paper A4 230gsm (100 Sheets)',
+        isService: false,
         category: 'Printing & Copying',
         sku: 'PRN-GLSP-A42',
+        qrCode: 'PRN-GLSP-A42',
         barcode: '890445910202',
-        costPrice: 7.80,
-        retailPrice: 14.50,
+        costPrice: 320.00,
+        retailPrice: 480.00,
         stock: 40,
-        minThreshold: 10,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pack',
         description: 'Instant dry high gloss photo paper for vivid color inkjet printing.'
       },
       {
         name: 'Plastic Comb Binding Spines 12mm Black (Pack of 100)',
+        isService: false,
         category: 'Binding & Lamination',
         sku: 'BND-COMB-12B',
+        qrCode: 'BND-COMB-12B',
         barcode: '890445910203',
-        costPrice: 6.20,
-        retailPrice: 11.95,
+        costPrice: 250.00,
+        retailPrice: 380.00,
         stock: 28,
-        minThreshold: 6,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pack',
         description: '21-ring plastic binding coils holding up to 85 standard sheets.'
       },
       {
         name: 'Thermal Lamination Pouches A4 80 Micron (Pack of 100)',
+        isService: false,
         category: 'Binding & Lamination',
         sku: 'BND-LAM8-A41',
+        qrCode: 'BND-LAM8-A41',
         barcode: '890445910204',
-        costPrice: 8.50,
-        retailPrice: 16.00,
+        costPrice: 350.00,
+        retailPrice: 520.00,
         stock: 32,
-        minThreshold: 8,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pack',
         description: 'Crystal clear gloss laminating film for document and certificate protection.'
       },
       {
         name: 'Clear PVC Binding Presentation Covers A4 (Pack of 100)',
+        isService: false,
         category: 'Binding & Lamination',
         sku: 'BND-PVCV-A41',
+        qrCode: 'BND-PVCV-A41',
         barcode: '890445910205',
-        costPrice: 7.20,
-        retailPrice: 13.50,
+        costPrice: 290.00,
+        retailPrice: 440.00,
         stock: 24,
-        minThreshold: 5,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'pack',
         description: 'Transparent 200 micron PVC protective report front covers.'
       },
       {
         name: 'Canon GI-71 Genuine Refill Ink Bottle - Cyan (70ml)',
+        isService: false,
         category: 'Printing & Copying',
         sku: 'PRN-CN71-CYN',
+        qrCode: 'PRN-CN71-CYN',
         barcode: '890445910206',
-        costPrice: 9.10,
-        retailPrice: 15.50,
+        costPrice: 390.00,
+        retailPrice: 580.00,
         stock: 18,
-        minThreshold: 5,
+        minThreshold: LOW_STOCK_THRESHOLD,
         unit: 'bottle',
         description: 'High yield dye ink for Canon Pixma G series ink tank printers.'
       }
@@ -307,8 +473,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   const [isExecutingImport, setIsExecutingImport] = useState(false);
   const [importProgress, setImportProgress] = useState(0);
 
-  // Filter in preview table: all | existing_sku | new_sku | duplicates | invalid
-  const [previewFilter, setPreviewFilter] = useState<'all' | 'existing_sku' | 'new_sku' | 'duplicates' | 'invalid'>('all');
+  // Filter in preview table: all | products | services | existing_sku | new_sku | duplicates | invalid
+  const [previewFilter, setPreviewFilter] = useState<'all' | 'products' | 'services' | 'existing_sku' | 'new_sku' | 'duplicates' | 'invalid'>('all');
   const [previewSearch, setPreviewSearch] = useState('');
 
   // Results State
@@ -317,6 +483,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     updated: number;
     skipped: number;
     importedIds: string[];
+    physicalCount: number;
+    srvCount: number;
   } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -355,25 +523,28 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
   /**
    * Core Validation Engine:
-   * 1. Checks for existing SKUs in the current store inventory (storage.getProducts()).
-   * 2. Checks for internal duplicate SKUs within the imported file itself.
-   * 3. Validates required names, positive prices, non-negative stocks.
-   * 4. Flags each row with explicit skuStatus.
+   * 1. Distinguishes Physical Products (Inventory + QR Code) vs Commercial Services (No Inventory + No QR Code).
+   * 2. Checks for existing SKUs & QR Codes in the current catalog.
+   * 3. Prohibits "Document Typing" and normalizes "Passport Appointment".
+   * 4. Flags each row with explicit status and skuStatus.
    */
   const processRawRows = (rows: Array<Record<string, any>>, sourceName?: string) => {
     const existingProducts = storage.getProducts();
+    const existingServices = storage.getServices();
     if (sourceName) setSelectedFileName(sourceName);
 
-    // Track occurrences within this batch to catch in-file duplicate SKUs and Barcodes
+    // Track occurrences within this batch to catch in-file duplicate SKUs, Barcodes, and QR Codes
     const skuOccurrenceMap: Record<string, number> = {};
     const barcodeOccurrenceMap: Record<string, number> = {};
+    const qrOccurrenceMap: Record<string, number> = {};
 
     // 1. Detect and filter out template example rows so they are not accidentally imported
     let exampleCount = 0;
     const realRows = rows.filter(row => {
       const name = String(
+        row['Product / Service Name'] ||
         row['Product Name'] ||
-        row['product_name'] ||
+        row['Service Name'] ||
         row['item_name'] ||
         row.name ||
         row.title ||
@@ -406,6 +577,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
     realRows.forEach(row => {
       const rawSku = String(
+        row['SKU (Optional)'] ||
         row['SKU'] ||
         row.sku ||
         row.code ||
@@ -419,6 +591,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       }
 
       const rawBarcode = String(
+        row['Barcode (Optional)'] ||
         row['Barcode'] ||
         row.barcode ||
         row.upc ||
@@ -430,16 +603,31 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       if (rawBarcode) {
         barcodeOccurrenceMap[rawBarcode] = (barcodeOccurrenceMap[rawBarcode] || 0) + 1;
       }
+
+      const rawQr = String(
+        row['QR Code (Optional)'] ||
+        row['QR Code'] ||
+        row.qrCode ||
+        row.qr_code ||
+        row['QR'] ||
+        ''
+      ).trim();
+
+      if (rawQr) {
+        qrOccurrenceMap[rawQr.toLowerCase()] = (qrOccurrenceMap[rawQr.toLowerCase()] || 0) + 1;
+      }
     });
 
     const parsed: ParsedImportRow[] = realRows.map((row, idx) => {
       const errors: string[] = [];
 
       // Support standardized Excel template headers and common aliases
-      const name = String(
+      let name = String(
+        row['Product / Service Name'] ||
         row['Product Name'] ||
-        row['product_name'] ||
+        row['Service Name'] ||
         row['item_name'] ||
+        row['product_name'] ||
         row.name ||
         row.title ||
         row.product ||
@@ -447,16 +635,45 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         ''
       ).trim();
 
+      // Check for prohibited Document Typing service
+      if (name.toLowerCase() === 'document typing' || name.toLowerCase().includes('document typing')) {
+        errors.push('Document Typing service is removed and prohibited.');
+      }
+
+      // Enforce exact naming for Passport Appointment
+      if (name.toLowerCase().includes('passport')) {
+        name = 'Passport Appointment';
+      }
+
+      // Detect Item Type: Physical Product vs Commercial Service
+      const rawType = String(
+        row['Item Type (Product / Service)'] ||
+        row['Item Type'] ||
+        row['Type'] ||
+        row.type ||
+        row.itemType ||
+        row.item_type ||
+        ''
+      ).trim().toLowerCase();
+
+      const isServiceDeclared = rawType === 'service' || rawType === 'services' || row.isService === true;
+      const isServiceNameMatch = storage.isService(name) ||
+        ['printing', 'laminating', 'photocopying', 'scanning', 'binding', 'passport appointment'].includes(name.toLowerCase());
+
+      const isService = isServiceDeclared || isServiceNameMatch;
+
       const rawCategory = String(
+        row['Category (Optional)'] ||
         row['Category'] ||
         row.category ||
         row.cat ||
         row.department ||
-        'Paper & Notebooks'
+        (isService ? 'Printing & Copying' : 'Paper & Notebooks')
       );
       const category = normalizeCategory(rawCategory);
 
       let rawSku = String(
+        row['SKU (Optional)'] ||
         row['SKU'] ||
         row.sku ||
         row.code ||
@@ -466,14 +683,29 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       ).trim();
       const originalSku = rawSku;
 
-      let barcode = String(
-        row['Barcode'] ||
-        row.barcode ||
-        row.upc ||
-        row.ean ||
-        row.barcode_number ||
-        ''
-      ).trim();
+      let barcode = isService
+        ? ''
+        : String(
+            row['Barcode (Optional)'] ||
+            row['Barcode'] ||
+            row.barcode ||
+            row.upc ||
+            row.ean ||
+            row.barcode_number ||
+            ''
+          ).trim();
+
+      let qrCode = isService
+        ? ''
+        : String(
+            row['QR Code (Optional)'] ||
+            row['QR Code'] ||
+            row.qrCode ||
+            row.qr_code ||
+            row['QR'] ||
+            row.qr ||
+            ''
+          ).trim();
 
       const rawCost =
         row['Buying Price (ETB)'] ??
@@ -502,27 +734,23 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         row.quantity ??
         row.inventory;
 
-      const rawMin =
-        row['Minimum Stock'] ??
-        row['Min Stock'] ??
-        row['Reorder Level'] ??
-        row.minThreshold ??
-        row.min ??
-        row.threshold ??
-        row.alert_stock;
-
       const costPrice = Math.max(0, parseFloat(String(rawCost ?? 0)) || 0);
       const retailPrice = parseFloat(String(rawRetail ?? 0));
-      const stock = parseInt(String(rawStock ?? 0), 10);
-      const minThreshold = LOW_STOCK_THRESHOLD;
-      const unit = String(row['Unit'] || row.unit || row.uom || 'pcs').trim() || 'pcs';
+      // Services have NO inventory stock (0)
+      const stock = isService ? 0 : Math.max(0, parseInt(String(rawStock ?? 0), 10) || 0);
+      const minThreshold = isService ? 0 : LOW_STOCK_THRESHOLD;
+
+      const defaultUnit = isService
+        ? (name === 'Passport Appointment' ? 'appointment' : (name === 'Printing' ? 'page' : (name === 'Laminating' ? 'pouch' : (name === 'Photocopying' ? 'copy' : (name === 'Scanning' ? 'doc' : (name === 'Binding' ? 'book' : 'service'))))))
+        : 'pcs';
+      const unit = String(row['Unit'] || row.unit || row.uom || defaultUnit).trim() || defaultUnit;
       const description = String(
         row['Description'] || row.description || row.desc || row.details || ''
       ).trim();
 
-      // Required Field 1: Product Name
+      // Required Field 1: Product / Service Name
       if (!name) {
-        errors.push('Missing product name (required)');
+        errors.push('Missing item name (required)');
       }
 
       // Required Field 2: Selling Price
@@ -535,79 +763,117 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         errors.push('Invalid buying price (cannot be negative)');
       }
 
-      // Stock Check
-      if (rawStock !== undefined && rawStock !== '' && (isNaN(stock) || stock < 0)) {
+      // Stock Check (Physical Products only)
+      if (!isService && rawStock !== undefined && rawStock !== '' && (isNaN(stock) || stock < 0)) {
         errors.push('Invalid current stock (cannot be negative)');
       }
 
       let skuStatus: SkuValidationStatus = 'new_sku';
 
-      // Check if SKU is missing
-      if (!rawSku && name) {
-        rawSku = storage.generateSku(category, name);
-        skuStatus = 'auto_generated';
+      if (isService) {
+        // Services do not require QR or barcodes
+        if (!rawSku && name) {
+          rawSku = 'SRV-' + name.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 10);
+          skuStatus = 'auto_generated';
+        }
+
+        // Check if service already exists in central Services
+        const existingServiceMatch = existingServices.find(
+          s => s.name.toLowerCase() === name.toLowerCase() || (rawSku && s.id.toLowerCase() === rawSku.toLowerCase())
+        );
+
+        if (existingServiceMatch) {
+          skuStatus = 'existing_match';
+        }
+      } else {
+        // Physical Product: Check if SKU is missing
+        if (!rawSku && name) {
+          rawSku = storage.generateSku(category, name);
+          skuStatus = 'auto_generated';
+        }
+
+        // Auto-assign QR code from SKU if blank
+        if (!qrCode && rawSku) {
+          qrCode = rawSku;
+        }
+
+        // Auto-generate 12-digit barcode if blank
+        if (!barcode && name) {
+          barcode = storage.generateBarcodeNumber();
+        }
+
+        // Check for SKU conflict with existing inventory
+        const existingMatch = existingProducts.find(
+          p => (rawSku && p.sku.trim().toLowerCase() === rawSku.trim().toLowerCase())
+        );
+
+        // Check for duplicate SKU within the file
+        const normalizedSku = rawSku.trim().toLowerCase();
+        const isDuplicateInFile = normalizedSku && (skuOccurrenceMap[normalizedSku] || 0) > 1;
+
+        // Check for duplicate barcode within the file
+        const isDuplicateBarcodeInFile = barcode && (barcodeOccurrenceMap[barcode] || 0) > 1;
+
+        // Check for duplicate QR code within the file
+        const isDuplicateQrInFile = qrCode && (qrOccurrenceMap[qrCode.toLowerCase()] || 0) > 1;
+
+        // Check for barcode conflict with a DIFFERENT product in existing inventory
+        const existingWithBarcode = barcode
+          ? existingProducts.find(
+              p =>
+                p.barcode.trim() === barcode.trim() &&
+                p.sku.trim().toLowerCase() !== rawSku.trim().toLowerCase()
+            )
+          : null;
+
+        if (isDuplicateInFile) {
+          skuStatus = 'duplicate_in_file';
+          errors.push(`Duplicate SKU '${rawSku}' appears multiple times in this file`);
+        }
+
+        if (isDuplicateBarcodeInFile) {
+          errors.push(`Duplicate barcode '${barcode}' appears multiple times in this file`);
+        }
+
+        if (isDuplicateQrInFile) {
+          errors.push(`Duplicate QR code '${qrCode}' appears multiple times in this file`);
+        }
+
+        if (existingWithBarcode) {
+          errors.push(`Barcode already assigned to '${existingWithBarcode.name}' (SKU: ${existingWithBarcode.sku})`);
+        }
+
+        if (errors.length > 0) {
+          skuStatus = 'invalid';
+        } else if (existingMatch) {
+          skuStatus = 'existing_match';
+        } else if (skuStatus !== 'auto_generated') {
+          skuStatus = 'new_sku';
+        }
       }
 
-      // Auto-generate barcode if blank
-      if (!barcode && name) {
-        barcode = storage.generateBarcodeNumber();
-      }
-
-      // Check for SKU conflict with existing inventory
-      const existingMatch = existingProducts.find(
-        p => (rawSku && p.sku.trim().toLowerCase() === rawSku.trim().toLowerCase())
-      );
-
-      // Check for duplicate SKU within the file
-      const normalizedSku = rawSku.trim().toLowerCase();
-      const isDuplicateInFile = normalizedSku && (skuOccurrenceMap[normalizedSku] || 0) > 1;
-
-      // Check for duplicate barcode within the file
-      const isDuplicateBarcodeInFile = barcode && (barcodeOccurrenceMap[barcode] || 0) > 1;
-
-      // Check for barcode conflict with a DIFFERENT product in existing inventory
-      const existingWithBarcode = barcode
-        ? existingProducts.find(
-            p =>
-              p.barcode.trim() === barcode.trim() &&
-              p.sku.trim().toLowerCase() !== rawSku.trim().toLowerCase()
-          )
-        : null;
-
-      if (isDuplicateInFile) {
-        skuStatus = 'duplicate_in_file';
-        errors.push(`Duplicate SKU '${rawSku}' appears multiple times in this file`);
-      }
-
-      if (isDuplicateBarcodeInFile) {
-        errors.push(`Duplicate barcode '${barcode}' appears multiple times in this file`);
-      }
-
-      if (existingWithBarcode) {
-        errors.push(`Barcode already assigned to '${existingWithBarcode.name}' (SKU: ${existingWithBarcode.sku})`);
-      }
-
-      if (errors.length > 0) {
-        skuStatus = 'invalid';
-      } else if (existingMatch) {
-        skuStatus = 'existing_match';
-      } else if (skuStatus !== 'auto_generated') {
-        skuStatus = 'new_sku';
-      }
+      // Check existing product match for update vs new
+      const existingMatch = isService
+        ? undefined
+        : existingProducts.find(
+            p => (rawSku && p.sku.trim().toLowerCase() === rawSku.trim().toLowerCase())
+          );
 
       let status: 'new' | 'update' | 'invalid' = 'new';
       if (errors.length > 0) {
         status = 'invalid';
-      } else if (existingMatch) {
+      } else if (existingMatch || (isService && existingServices.some(s => s.name.toLowerCase() === name.toLowerCase()))) {
         status = 'update';
       }
 
       return {
         id: 'imp_' + Date.now() + '_' + idx,
         name,
+        isService,
         category,
         sku: rawSku,
         originalSku,
+        qrCode,
         barcode,
         costPrice: isNaN(costPrice) ? 0 : costPrice,
         retailPrice: isNaN(retailPrice) ? 0 : retailPrice,
@@ -756,9 +1022,9 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
           barcode = tok;
           return;
         }
-        // Price / Currency: $9.99 or 9.99
-        if (/^\$?\d+(\.\d{1,2})?$/.test(tok) && !sku.includes(tok)) {
-          const num = parseFloat(tok.replace('$', ''));
+        // Price / Currency
+        if (/^(ETB|\$)?\s*\d+(\.\d{1,2})?$/i.test(tok) && !sku.includes(tok)) {
+          const num = parseFloat(tok.replace(/[^0-9.]/g, ''));
           if (cost === 0 && num > 0) cost = num;
           else if (price === 0 && num > 0) price = num;
           return;
@@ -771,7 +1037,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         // Quantity integer
         if (/^\d{1,4}$/.test(tok) && !barcode && stock === 10) {
           const q = parseInt(tok, 10);
-          if (q > 0 && q < 5000) stock = q;
+          if (q >= 0 && q < 5000) stock = q;
           return;
         }
         // Name candidate (longer text)
@@ -781,18 +1047,21 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       });
 
       if (name) {
-        if (cost > 0 && price === 0) price = Number((cost * 1.5).toFixed(2));
-        if (price > 0 && cost === 0) cost = Number((price * 0.6).toFixed(2));
+        if (cost > 0 && price === 0) price = Number((cost * 1.4).toFixed(2));
+        if (price > 0 && cost === 0) cost = Number((price * 0.65).toFixed(2));
+
+        const isService = storage.isService(name) || ['printing', 'laminating', 'photocopying', 'scanning', 'binding', 'passport appointment'].includes(name.toLowerCase());
 
         rows.push({
           name,
           sku: sku || '',
-          barcode: barcode || '',
-          costPrice: cost || 3.5,
-          retailPrice: price || 6.99,
-          stock: stock || 20,
-          category: 'Paper & Notebooks',
-          unit: 'pcs'
+          barcode: isService ? '' : (barcode || ''),
+          costPrice: cost || 35.0,
+          retailPrice: price || 60.0,
+          stock: isService ? 0 : (stock || 20),
+          category: isService ? 'Printing & Copying' : 'Paper & Notebooks',
+          isService,
+          unit: isService ? 'service' : 'pcs'
         });
       }
     });
@@ -846,7 +1115,10 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         lower.includes('name') ||
         lower.includes('title') ||
         lower.includes('item') ||
+        lower.includes('type') ||
+        lower.includes('service') ||
         lower.includes('sku') ||
+        lower.includes('qr') ||
         lower.includes('price') ||
         lower.includes('stock') ||
         lower.includes('barcode') ||
@@ -954,7 +1226,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
   /**
    * Standardized Excel Template Download (.xlsx)
-   * Includes Products entry sheet + Instructions reference sheet
+   * Includes Products & Services entry sheet + Instructions reference sheet
    */
   const handleDownloadExcelTemplate = () => {
     downloadExcelImportTemplate();
@@ -970,17 +1242,17 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     doc.text('STATIONERY WHOLESALE SUPPLY CO.', 14, 18);
     doc.setFontSize(10);
     doc.text('Vendor Delivery Note & Stock Invoice #WH-2026-9811', 14, 25);
-    doc.text('Date: October 2026  ·  Customer: Rahel Stationary', 14, 31);
+    doc.text('Date: October 2026  ·  Customer: Rahel Stationary (Addis Ababa)', 14, 31);
 
     autoTable(doc, {
       startY: 38,
-      head: [['SKU Code', 'Item Description', 'Category', 'Qty', 'Cost ($)', 'Retail ($)', 'Barcode']],
+      head: [['Type', 'SKU / Code', 'Item Description', 'Category', 'Qty', 'Cost (ETB)', 'Retail (ETB)', 'Barcode']],
       body: [
-        ['PPR-A4-80G', 'A4 Double A Copier Paper (80gsm, 500 Sheets)', 'Paper & Notebooks', '40', '4.20', '7.50', '890123456001'],
-        ['PEN-SAKU-05B', 'Sakura Pigma Micron 05 Fineliner Black', 'Writing & Pens', '50', '2.10', '4.50', '890334810101'],
-        ['ART-TOMB-6PS', 'Tombow Dual Brush Pen Pastel 6-Color Set', 'Art & Craft', '25', '10.50', '19.99', '890334810102'],
-        ['BND-COMB-12B', 'Plastic Comb Binding Spines 12mm Black (100pk)', 'Binding & Lamination', '30', '6.20', '11.95', '890445910203'],
-        ['PRN-THRM-808', 'Thermal Till Receipt Paper Rolls 80x80mm (Box 24)', 'Printing & Copying', '20', '16.50', '29.90', '890445910201']
+        ['Product', 'PPR-A4-80G', 'Deli A4 Copier Paper (80gsm, 500 Sheets)', 'Paper & Notebooks', '40', '380.00', '480.00', '890123456001'],
+        ['Product', 'PEN-SAKU-05B', 'Sakura Pigma Micron 05 Fineliner Black', 'Writing & Pens', '50', '85.00', '140.00', '890334810101'],
+        ['Product', 'BND-COMB-12B', 'Plastic Comb Binding Spines 12mm Black (100pk)', 'Binding & Lamination', '30', '250.00', '380.00', '890445910203'],
+        ['Product', 'PRN-THRM-808', 'Thermal Till Receipt Paper Rolls 80x80mm (Box 24)', 'Printing & Copying', '20', '650.00', '950.00', '890445910201'],
+        ['Service', 'SRV-PASSPORT', 'Passport Appointment', 'Printing & Copying', '0', '0.00', '150.00', '']
       ],
       theme: 'grid',
       headStyles: { fillColor: [6, 78, 59] }
@@ -1036,6 +1308,30 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
     });
   };
 
+  // Toggle item type between physical product and commercial service
+  const handleToggleItemType = (id: string) => {
+    setParsedItems(prev =>
+      prev.map(item => {
+        if (item.id !== id) return item;
+        const newIsService = !item.isService;
+        return {
+          ...item,
+          isService: newIsService,
+          stock: newIsService ? 0 : (item.stock || 10),
+          qrCode: newIsService ? '' : (item.qrCode || item.sku),
+          barcode: newIsService ? '' : (item.barcode || storage.generateBarcodeNumber())
+        };
+      })
+    );
+  };
+
+  // Update item QR code inline
+  const handleInlineQrCodeChange = (id: string, newQr: string) => {
+    setParsedItems(prev =>
+      prev.map(item => (item.id === id ? { ...item, qrCode: newQr.trim() } : item))
+    );
+  };
+
   // Metrics on SKU validation
   const existingSkuCount = useMemo(() => {
     return parsedItems.filter(i => i.skuStatus === 'existing_match').length;
@@ -1043,6 +1339,14 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
   const newSkuCount = useMemo(() => {
     return parsedItems.filter(i => i.skuStatus === 'new_sku' || i.skuStatus === 'auto_generated').length;
+  }, [parsedItems]);
+
+  const productCount = useMemo(() => {
+    return parsedItems.filter(i => !i.isService).length;
+  }, [parsedItems]);
+
+  const serviceCount = useMemo(() => {
+    return parsedItems.filter(i => i.isService).length;
   }, [parsedItems]);
 
   const duplicateInFileCount = useMemo(() => {
@@ -1066,7 +1370,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   }, [parsedItems]);
 
   const missingNameCount = useMemo(() => {
-    return parsedItems.filter(i => i.errors.some(e => e.toLowerCase().includes('product name'))).length;
+    return parsedItems.filter(i => i.errors.some(e => e.toLowerCase().includes('item name'))).length;
   }, [parsedItems]);
 
   const selectedValidCount = useMemo(() => {
@@ -1082,10 +1386,13 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
         !previewSearch.trim() ||
         item.name.toLowerCase().includes(previewSearch.toLowerCase().trim()) ||
         item.sku.toLowerCase().includes(previewSearch.toLowerCase().trim()) ||
+        item.qrCode.toLowerCase().includes(previewSearch.toLowerCase().trim()) ||
         item.barcode.includes(previewSearch.trim());
 
       let matchesFilter = true;
-      if (previewFilter === 'existing_sku') matchesFilter = item.skuStatus === 'existing_match';
+      if (previewFilter === 'products') matchesFilter = !item.isService;
+      else if (previewFilter === 'services') matchesFilter = item.isService;
+      else if (previewFilter === 'existing_sku') matchesFilter = item.skuStatus === 'existing_match';
       else if (previewFilter === 'new_sku') matchesFilter = item.skuStatus === 'new_sku' || item.skuStatus === 'auto_generated';
       else if (previewFilter === 'duplicates') matchesFilter = item.skuStatus === 'duplicate_in_file';
       else if (previewFilter === 'invalid') matchesFilter = item.status === 'invalid' || item.errors.length > 0;
@@ -1098,7 +1405,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
   const handleCommitImport = () => {
     const toImport = parsedItems.filter(i => i.selected && i.status !== 'invalid');
     if (toImport.length === 0) {
-      alert('Please select at least one valid product to import.');
+      alert('Please select at least one valid product or service to import.');
       return;
     }
 
@@ -1111,18 +1418,21 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
       const productsToSave: Product[] = toImport.map(item => ({
         id: item.existingMatch && (duplicateMode === 'update' || duplicateMode === 'overwrite_stock')
           ? item.existingMatch.id
-          : 'prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+          : (item.isService
+              ? ('srv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7))
+              : ('prod_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7))),
         name: item.name,
         category: item.category,
-        sku: item.sku,
-        qrCode: item.existingMatch?.qrCode || item.sku || ('QR-' + (item.existingMatch?.id || Date.now())),
-        barcode: item.barcode,
+        sku: item.isService ? ('SRV-' + item.name.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 10)) : item.sku,
+        qrCode: item.isService ? '' : (item.existingMatch?.qrCode || item.qrCode || item.sku || ('QR-' + (item.existingMatch?.id || Date.now()))),
+        barcode: item.isService ? '' : item.barcode,
         costPrice: item.costPrice,
         retailPrice: item.retailPrice,
-        stock: item.stock,
-        minThreshold: LOW_STOCK_THRESHOLD,
+        stock: item.isService ? 0 : item.stock,
+        minThreshold: item.isService ? 0 : LOW_STOCK_THRESHOLD,
         unit: item.unit,
         description: item.description,
+        isService: item.isService,
         updatedAt: new Date().toISOString()
       }));
 
@@ -1134,11 +1444,17 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
       setTimeout(() => {
         setIsExecutingImport(false);
+        const importedPhysicalIds = productsToSave.filter(p => !p.isService).map(p => p.id);
+        const physicalCount = productsToSave.filter(p => !p.isService).length;
+        const srvCount = productsToSave.filter(p => p.isService).length;
+
         setImportResult({
           added: res.added,
           updated: res.updated,
           skipped: res.skipped,
-          importedIds: productsToSave.map(p => p.id)
+          importedIds: importedPhysicalIds,
+          physicalCount,
+          srvCount
         });
         onSuccess(res.added, res.updated);
       }, 300);
@@ -1160,17 +1476,17 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base font-bold text-[#f5d77f]">
-                  Bulk Import Inventory Items
+                  Bulk Import Inventory & Services
                 </h3>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30">
-                  Excel (.xlsx) · PDF (.pdf)
+                  Products (Inv + QR) · Services (No Inv)
                 </span>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/60 text-amber-300 border border-amber-800/50">
-                  SKU Conflict Validation
+                  SKU & QR Validation
                 </span>
               </div>
               <p className="text-xs text-[#a89f91]">
-                Upload vendor Excel spreadsheets or PDF invoices, validate existing SKUs, and replenish store stock.
+                Upload vendor Excel spreadsheets or PDF invoices, validate SKUs & QR codes, replenish physical stock, and configure commercial services.
               </p>
             </div>
           </div>
@@ -1216,21 +1532,28 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
               Bulk Import Successfully Completed!
             </h4>
             <p className="text-xs text-[#a89f91] max-w-md mb-6">
-              Inventory catalog and stock levels have been synchronized. Stock movement audit entries were logged.
+              Inventory catalog and commercial services have been synchronized. Stock movement audit entries were logged for physical products.
             </p>
 
-            <div className="grid grid-cols-3 gap-3 w-full max-w-md mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full max-w-xl mb-6">
               <div className="p-3.5 rounded-xl bg-[#1a1a20] border border-[#26221c] shadow-2xs text-center">
-                <span className="text-[11px] font-semibold text-[#8e8271]">Added New SKUs</span>
+                <span className="text-[11px] font-semibold text-[#8e8271]">Total Items</span>
                 <div className="text-2xl font-mono font-bold text-[#d4af37]">
-                  +{importResult.added}
+                  +{importResult.added + importResult.updated}
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-[#1a1a20] border border-[#26221c] shadow-2xs text-center">
-                <span className="text-[11px] font-semibold text-[#8e8271]">Updated SKUs</span>
-                <div className="text-2xl font-mono font-bold text-[#f5d77f]">
-                  {importResult.updated}
+                <span className="text-[11px] font-semibold text-[#8e8271]">Products (Inv+QR)</span>
+                <div className="text-2xl font-mono font-bold text-emerald-400">
+                  {importResult.physicalCount}
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-[#1a1a20] border border-[#26221c] shadow-2xs text-center">
+                <span className="text-[11px] font-semibold text-[#8e8271]">Services (No Inv)</span>
+                <div className="text-2xl font-mono font-bold text-cyan-400">
+                  {importResult.srvCount}
                 </div>
               </div>
 
@@ -1626,6 +1949,30 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                     </button>
 
                     <button
+                      onClick={() => setPreviewFilter('products')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                        previewFilter === 'products'
+                          ? 'bg-emerald-500 text-black font-bold'
+                          : 'bg-[#1a1a20] text-emerald-400 border border-emerald-900/40'
+                      }`}
+                    >
+                      <Package className="w-3.5 h-3.5" />
+                      <span>Products ({productCount})</span>
+                    </button>
+
+                    <button
+                      onClick={() => setPreviewFilter('services')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                        previewFilter === 'services'
+                          ? 'bg-cyan-400 text-black font-bold'
+                          : 'bg-[#1a1a20] text-cyan-300 border border-cyan-900/40'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Services ({serviceCount})</span>
+                    </button>
+
+                    <button
                       onClick={() => setPreviewFilter('existing_sku')}
                       className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 ${
                         previewFilter === 'existing_sku'
@@ -1720,7 +2067,8 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                           />
                         </th>
                         <th className="py-2.5 px-3">SKU Validation Status</th>
-                        <th className="py-2.5 px-3">SKU Code</th>
+                        <th className="py-2.5 px-3">Type</th>
+                        <th className="py-2.5 px-3">SKU / QR Code</th>
                         <th className="py-2.5 px-3">Item Description</th>
                         <th className="py-2.5 px-3">Category</th>
                         <th className="py-2.5 px-3 text-right">Cost</th>
@@ -1733,7 +2081,7 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                     <tbody className="divide-y divide-[#26221c] text-[#f4efe8]">
                       {filteredPreviewItems.length === 0 ? (
                         <tr>
-                          <td colSpan={10} className="py-12 text-center text-[#8e8271]">
+                          <td colSpan={11} className="py-12 text-center text-[#8e8271]">
                             No items match the selected filter.
                           </td>
                         </tr>
@@ -1779,31 +2127,77 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                                 ) : isExisting ? (
                                   <span
                                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30"
-                                    title={`Existing SKU matched in store catalog: ${item.existingMatch?.name}`}
+                                    title={`Existing item matched in store catalog: ${item.existingMatch?.name}`}
                                   >
                                     <Check className="w-3 h-3" />
-                                    <span>Existing SKU</span>
+                                    <span>Existing {item.isService ? 'Service' : 'SKU'}</span>
                                   </span>
                                 ) : (
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/30">
-                                    <span>New SKU</span>
+                                    <span>New {item.isService ? 'Service' : 'Item'}</span>
                                   </span>
                                 )}
                               </td>
 
-                              {/* Editable SKU Code */}
+                              {/* Item Type: Product (Inv + QR) vs Service (No Inv + No QR) */}
+                              <td className="py-2.5 px-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleItemType(item.id)}
+                                  title="Click to toggle between Physical Product and Commercial Service"
+                                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold cursor-pointer transition-colors ${
+                                    item.isService
+                                      ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-700/50 hover:bg-cyan-900/80'
+                                      : 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50 hover:bg-emerald-900/80'
+                                  }`}
+                                >
+                                  {item.isService ? (
+                                    <>
+                                      <Sparkles className="w-3 h-3 text-cyan-400" />
+                                      <span>Service (No Inv)</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Package className="w-3 h-3 text-emerald-400" />
+                                      <span>Product (Inv+QR)</span>
+                                    </>
+                                  )}
+                                </button>
+                              </td>
+
+                              {/* Editable SKU Code & QR Code */}
                               <td className="py-2.5 px-3 font-mono text-[11px]">
-                                <input
-                                  type="text"
-                                  value={item.sku}
-                                  onChange={(e) => handleInlineSkuChange(item.id, e.target.value)}
-                                  className="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-white/5 border border-transparent hover:border-[#2a261f] font-mono text-xs focus:outline-none focus:bg-[#1a1a20] focus:border-[#d4af37] text-[#f4efe8]"
-                                  title="Click to edit SKU directly"
-                                />
-                                {item.barcode && (
-                                  <div className="text-[10px] text-[#8e8271] font-mono">
-                                    {item.barcode}
+                                {item.isService ? (
+                                  <div>
+                                    <span className="px-1.5 py-0.5 rounded bg-[#1a1a20] text-cyan-300 text-[10px] border border-[#2a261f]">
+                                      SRV (No QR Required)
+                                    </span>
                                   </div>
+                                ) : (
+                                  <>
+                                    <input
+                                      type="text"
+                                      value={item.sku}
+                                      onChange={(e) => handleInlineSkuChange(item.id, e.target.value)}
+                                      className="w-28 px-1.5 py-0.5 rounded bg-transparent hover:bg-white/5 border border-transparent hover:border-[#2a261f] font-mono text-xs focus:outline-none focus:bg-[#1a1a20] focus:border-[#d4af37] text-[#f4efe8]"
+                                      title="Click to edit SKU directly"
+                                    />
+                                    {item.barcode && (
+                                      <div className="text-[10px] text-[#8e8271] font-mono">
+                                        BC: {item.barcode}
+                                      </div>
+                                    )}
+                                    <div className="text-[10px] text-emerald-400/90 font-mono flex items-center gap-1 mt-0.5">
+                                      <QrCode className="w-2.5 h-2.5" />
+                                      <input
+                                        type="text"
+                                        value={item.qrCode || item.sku}
+                                        onChange={(e) => handleInlineQrCodeChange(item.id, e.target.value)}
+                                        className="w-24 px-1 py-0 rounded bg-transparent hover:bg-white/5 border border-transparent hover:border-emerald-800/40 text-[10px] text-emerald-300 focus:outline-none focus:bg-[#1a1a20]"
+                                        title="QR Code identifier"
+                                      />
+                                    </div>
+                                  </>
                                 )}
                               </td>
 
@@ -1837,12 +2231,18 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
                               </td>
 
                               <td className="py-2.5 px-3 text-right font-mono font-bold text-[#f4efe8]">
-                                +{item.stock} {item.unit}
+                                {item.isService ? (
+                                  <span className="text-cyan-400 text-[11px]">N/A (Service)</span>
+                                ) : (
+                                  `+${item.stock} ${item.unit}`
+                                )}
                               </td>
 
                               {/* Stock Impact Visual Comparison */}
                               <td className="py-2.5 px-3 text-center font-mono text-[11px]">
-                                {isExisting ? (
+                                {item.isService ? (
+                                  <span className="text-cyan-400/80 text-[10px]">No Inventory</span>
+                                ) : isExisting ? (
                                   duplicateMode === 'skip' ? (
                                     <span className="text-[#8e8271] text-[10px]">Skipped</span>
                                   ) : duplicateMode === 'generate_new' ? (
@@ -1894,17 +2294,25 @@ export const BulkImportModal: React.FC<BulkImportModalProps> = ({
 
                 {/* Bottom Footer Actions */}
                 <div className="px-5 py-3 border-t border-[#26221c] bg-[#1a1a20] flex flex-wrap items-center justify-between gap-3 shrink-0">
-                  <div className="text-xs text-[#a89f91] flex items-center gap-2">
+                  <div className="text-xs text-[#a89f91] flex items-center gap-2 flex-wrap">
                     <span>
                       Selected: <strong className="text-[#f5d77f] font-mono">{selectedCount}</strong> items
                     </span>
                     <span>&middot;</span>
+                    <span className="text-emerald-400 font-semibold">
+                      {productCount} Products
+                    </span>
+                    <span>&middot;</span>
+                    <span className="text-cyan-300 font-semibold">
+                      {serviceCount} Services
+                    </span>
+                    <span>&middot;</span>
                     <span className="text-[#d4af37] font-semibold">
-                      {existingSkuCount} Existing SKUs
+                      {existingSkuCount} Existing
                     </span>
                     <span>&middot;</span>
                     <span className="text-[#f5d77f] font-semibold">
-                      {newSkuCount} New SKUs
+                      {newSkuCount} New
                     </span>
                   </div>
 

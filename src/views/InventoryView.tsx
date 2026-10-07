@@ -29,15 +29,20 @@ import {
   CheckSquare,
   Square,
   AlertCircle,
-  FileText
+  FileText,
+  Layers
 } from 'lucide-react';
 import { exportInventoryReportPDF, exportLowStockReportPDF } from '../services/pdfReportGenerator';
 
 interface InventoryViewProps {
   onNavigateToBarcodeStudio?: (productIds: string[]) => void;
+  onNavigateToServices?: () => void;
 }
 
-export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcodeStudio }) => {
+export const InventoryView: React.FC<InventoryViewProps> = ({
+  onNavigateToBarcodeStudio,
+  onNavigateToServices
+}) => {
   const [products, setProducts] = useState<Product[]>(storage.getProducts());
   const [filterMode, setFilterMode] = useState<'all' | 'low_stock'>('all');
   const [selectedCat, setSelectedCat] = useState<string>('All');
@@ -307,6 +312,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({ onNavigateToBarcod
         </div>
 
         <div className="flex items-center gap-2">
+          {onNavigateToServices && (
+            <button
+              onClick={onNavigateToServices}
+              className="px-3 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37]"
+              title="Manage 6 Commercial Services (Printing, Laminating, Photocopying, Scanning, Binding, Passport Appointment)"
+            >
+              <Layers className="w-3.5 h-3.5 text-[#f5d77f]" />
+              <span>Services (6)</span>
+            </button>
+          )}
+
           <button
             onClick={() => setShowMovementsDrawer(true)}
             className="px-3 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 text-[#f5d77f] border border-[#d4af37]/30 flex items-center gap-1.5 transition-colors shadow-2xs"

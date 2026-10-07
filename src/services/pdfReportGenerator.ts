@@ -337,17 +337,17 @@ export const exportDailySalesReportPDF = (
     });
   }
 
-  // Product Sales Breakdown Table
+  // Product & Service Sales Breakdown Table
   const afterTxnY = (doc as any).lastAutoTable.finalY + 6;
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(40, 36, 30);
-  doc.text('Product Sales Breakdown', 14, afterTxnY);
+  doc.text('Product & Service Sales Breakdown', 14, afterTxnY);
 
   const productRows = dailyReport.productBreakdown.map((p) => [
     p.productName,
     p.sku,
-    p.barcode,
+    p.barcode || '— (Service)',
     p.category,
     String(p.quantitySold),
     formatETB(p.averagePrice, curr),
@@ -551,12 +551,12 @@ export const exportWeeklySalesReportPDF = (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(40, 36, 30);
-  doc.text('Product Sales Breakdown (Volume & Revenue)', 14, afterDailyY);
+  doc.text('Product & Service Sales Breakdown (Volume & Revenue)', 14, afterDailyY);
 
   const productRows = weeklyReport.productBreakdown.map((p) => [
     p.productName,
     p.sku,
-    p.barcode,
+    p.barcode || '— (Service)',
     String(p.quantitySold),
     formatETB(p.totalRevenue, curr)
   ]);
@@ -732,12 +732,12 @@ export const exportMonthlySalesReportPDF = (
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9.5);
   doc.setTextColor(40, 36, 30);
-  doc.text('Product Sales Breakdown', 14, afterDailyY);
+  doc.text('Product & Service Sales Breakdown', 14, afterDailyY);
 
   const productRows = monthlyReport.productBreakdown.map((p) => [
     p.productName,
     p.sku,
-    p.barcode,
+    p.barcode || '— (Service)',
     String(p.quantitySold),
     formatETB(p.totalRevenue, curr)
   ]);

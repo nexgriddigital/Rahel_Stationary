@@ -1,5 +1,6 @@
 import {
   Product,
+  ServiceItem,
   Sale,
   ParkedCart,
   CashShift,
@@ -33,6 +34,7 @@ import {
 
 const STORAGE_KEYS = {
   PRODUCTS: 'rahel_pos_products_v1',
+  SERVICES: 'rahel_pos_services_v1',
   SALES: 'rahel_pos_sales_v1',
   PARKED_CARTS: 'rahel_pos_parked_carts_v1',
   SHIFTS: 'rahel_pos_shifts_v1',
@@ -47,6 +49,74 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'rahel_pos_notifications_v1',
   LAST_SYNC: 'rahel_pos_last_sync_v1'
 };
+
+/**
+ * Standard Default Services (Type: Service, Inventory Required: No, QR Code: No)
+ * Exactly 6 sellable services: Printing, Laminating, Photocopying, Scanning, Binding, Passport Appointment.
+ * (Document Typing is permanently prohibited and excluded).
+ */
+export const DEFAULT_SERVICES: ServiceItem[] = [
+  {
+    id: 'srv_printing',
+    name: 'Printing',
+    price: 5.00,
+    unit: 'page',
+    description: 'B&W and color laser document printing on A4/A3 paper.',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'srv_laminating',
+    name: 'Laminating',
+    price: 25.00,
+    unit: 'pouch',
+    description: 'Hot thermal plastic protective lamination for ID cards, documents, certificates & passes.',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'srv_photocopying',
+    name: 'Photocopying',
+    price: 3.00,
+    unit: 'copy',
+    description: 'High-speed sharp document photocopying (single or double-sided).',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'srv_scanning',
+    name: 'Scanning',
+    price: 10.00,
+    unit: 'doc',
+    description: 'Optical digital high-resolution document scanning to PDF, flash drive, or email.',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'srv_binding',
+    name: 'Binding',
+    price: 45.00,
+    unit: 'book',
+    description: 'Comb, spiral wire, and thermal document binding with protective PVC covers.',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  },
+  {
+    id: 'srv_passport_appointment',
+    name: 'Passport Appointment',
+    price: 150.00,
+    unit: 'appointment',
+    description: 'Official biometric passport online booking, document verification & appointment scheduling.',
+    isActive: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  }
+];
 
 // Cryptographic helpers for password hashing & session token generation (Web Crypto API)
 export async function sha256Hex(message: string): Promise<string> {
@@ -582,6 +652,55 @@ const SEED_SALES: Sale[] = [
     ],
     status: 'completed',
     customerName: 'Fineline Architects'
+  },
+  {
+    id: 'sale_today_service_passport',
+    transactionId: 'TXN-2026-8843',
+    receiptNumber: 'TXN-2026-8843',
+    timestamp: new Date(Date.now() - 1800000).toISOString(),
+    cashierId: 'user_1',
+    cashierName: 'Rahel Fira',
+    items: [
+      {
+        productId: 'srv_passport_appointment',
+        productName: 'Passport Appointment',
+        sku: 'SRV-PASS-APPT',
+        barcode: '',
+        unitPrice: 150.00,
+        costPrice: 0,
+        quantity: 1,
+        total: 150.00,
+        discountPercent: 0,
+        isService: true
+      },
+      {
+        productId: 'srv_photocopying',
+        productName: 'Photocopying',
+        sku: 'SRV-PHOTOCOPY',
+        barcode: '',
+        unitPrice: 3.00,
+        costPrice: 0,
+        quantity: 5,
+        total: 15.00,
+        discountPercent: 0,
+        isService: true
+      }
+    ],
+    subtotal: 165.00,
+    taxAmount: 0,
+    taxPercent: 0,
+    discountAmount: 0,
+    total: 165.00,
+    paymentMethod: 'Telebirr',
+    payments: [
+      {
+        method: 'telebirr',
+        amount: 165.00,
+        reference: 'TLB-PASS-8843'
+      }
+    ],
+    status: 'completed',
+    customerName: 'Yohannes Bekele'
   },
   // 1 Day Ago (Yesterday)
   {
@@ -1380,20 +1499,153 @@ class StorageService {
     return { success: true };
   }
 
+  // ==============================================================
+  // Services System (No Inventory Required, No QR Code Required)
+  // Standard 6 Services: Printing, Laminating, Photocopying, Scanning, Binding, Passport Appointment
+  // Document Typing is strictly prohibited and excluded.
+  // ==============================================================
+  public getServices(): ServiceItem[] {
+    let services = this.get<ServiceItem[]>(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES);
+    let mutated = false;
+
+    // Strict purge of any legacy "Document Typing" entries
+    const cleanServices = services.filter(s => {
+      const name = (s.name || '').trim().toLowerCase();
+      return name !== 'document typing' && !name.includes('document typing');
+    });
+    if (cleanServices.length !== services.length) {
+      services = cleanServices;
+      mutated = true;
+    }
+
+    // Ensure all 6 core default services exist & names are exact
+    for (const def of DEFAULT_SERVICES) {
+      const existingIdx = services.findIndex(s => {
+        const sName = (s.name || '').trim().toLowerCase();
+        const defName = def.name.toLowerCase();
+        if (def.id === 'srv_passport_appointment') {
+          return sName === 'passport appointment' || sName.includes('passport');
+        }
+        return sName === defName || s.id === def.id;
+      });
+
+      if (existingIdx >= 0) {
+        // Enforce exact naming for Passport Appointment if legacy name was used
+        if (def.id === 'srv_passport_appointment' && services[existingIdx].name !== 'Passport Appointment') {
+          services[existingIdx].name = 'Passport Appointment';
+          services[existingIdx].unit = 'appointment';
+          mutated = true;
+        }
+      } else {
+        services.push(def);
+        mutated = true;
+      }
+    }
+
+    if (mutated) {
+      this.set(STORAGE_KEYS.SERVICES, services);
+    }
+    return services;
+  }
+
+  public saveService(service: ServiceItem): { success: boolean; error?: string } {
+    if (!service.name || service.name.trim() === '') {
+      return { success: false, error: 'Service name is required.' };
+    }
+    if (service.name.trim().toLowerCase() === 'document typing') {
+      return { success: false, error: 'Document Typing service is removed and cannot be added.' };
+    }
+    if (service.price < 0) {
+      return { success: false, error: 'Service price cannot be negative.' };
+    }
+
+    const services = this.getServices();
+    const idx = services.findIndex(s => s.id === service.id);
+    const now = new Date().toISOString();
+
+    if (idx >= 0) {
+      services[idx] = { ...service, updatedAt: now };
+      this.logActivity('SERVICE_UPDATED', 'inventory', `Updated service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
+    } else {
+      services.push({
+        ...service,
+        id: service.id || ('srv_' + Date.now()),
+        createdAt: now,
+        updatedAt: now
+      });
+      this.logActivity('SERVICE_CREATED', 'inventory', `Added service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
+    }
+
+    this.set(STORAGE_KEYS.SERVICES, services);
+    return { success: true };
+  }
+
+  public deleteService(id: string): { success: boolean; error?: string } {
+    const services = this.getServices();
+    const target = services.find(s => s.id === id);
+    if (!target) return { success: false, error: 'Service not found.' };
+
+    const remaining = services.filter(s => s.id !== id);
+    this.set(STORAGE_KEYS.SERVICES, remaining);
+    this.logActivity('SERVICE_DELETED', 'inventory', `Deleted service "${target.name}".`);
+    return { success: true };
+  }
+
+  public resetServices(): void {
+    this.set(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES);
+    this.logActivity('SERVICES_RESET', 'inventory', 'Reset commercial services to the 6 standard default services.');
+  }
+
+  public isService(idOrName: string): boolean {
+    if (!idOrName) return false;
+    const clean = idOrName.trim().toLowerCase();
+    if (clean.startsWith('srv_')) return true;
+    const services = this.getServices();
+    return services.some(s => s.id.toLowerCase() === clean || s.name.toLowerCase() === clean);
+  }
+
+  public convertServiceToProduct(service: ServiceItem): Product {
+    return {
+      id: service.id,
+      name: service.name,
+      sku: 'SRV-' + service.name.toUpperCase().replace(/[^A-Z0-9]/g, '-').slice(0, 10),
+      qrCode: '', // Services require NO QR Code
+      barcode: '', // Services require NO Barcode
+      category: 'Printing & Copying',
+      costPrice: 0,
+      retailPrice: service.price,
+      stock: 0, // Services require NO inventory
+      unit: service.unit || 'service',
+      description: service.description,
+      updatedAt: service.updatedAt || new Date().toISOString(),
+      isService: true
+    };
+  }
+
   // Products & Inventory
   public getProducts(): Product[] {
     const products = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
     let mutated = false;
-    for (const p of products) {
+    // Filter out any legacy Document Typing that might have been saved as a product
+    const cleanProducts = products.filter(p => {
+      const name = (p.name || '').trim().toLowerCase();
+      return name !== 'document typing' && !name.includes('document typing');
+    });
+    if (cleanProducts.length !== products.length) {
+      mutated = true;
+    }
+    const targetProducts = cleanProducts;
+
+    for (const p of targetProducts) {
       if (!p.qrCode || p.qrCode.trim() === '') {
         p.qrCode = (p.sku || `QR-${p.id || Date.now()}`).trim();
         mutated = true;
       }
     }
     if (mutated) {
-      this.set(STORAGE_KEYS.PRODUCTS, products);
+      this.set(STORAGE_KEYS.PRODUCTS, targetProducts);
     }
-    return products;
+    return targetProducts;
   }
 
   public isBarcodeUnique(barcode: string, excludeProductId?: string): boolean {
@@ -1406,13 +1658,24 @@ class StorageService {
   public findProductByCode(code: string): Product | undefined {
     const clean = (code || '').trim().toLowerCase();
     if (!clean) return undefined;
+
+    // Check services first
+    const services = this.getServices();
+    const matchedService = services.find(
+      s => s.name.toLowerCase() === clean || s.id.toLowerCase() === clean
+    );
+    if (matchedService) {
+      return this.convertServiceToProduct(matchedService);
+    }
+
     const products = this.getProducts();
     return products.find(
       p =>
         (p.qrCode && p.qrCode.trim().toLowerCase() === clean) ||
         (p.sku && p.sku.trim().toLowerCase() === clean) ||
         (p.barcode && p.barcode.trim().toLowerCase() === clean) ||
-        (p.id && p.id.toLowerCase() === clean)
+        (p.id && p.id.toLowerCase() === clean) ||
+        (p.name && p.name.trim().toLowerCase() === clean)
     );
   }
 
@@ -1520,6 +1783,63 @@ class StorageService {
     const allocatedBarcodes = new Set<string>();
 
     items.forEach((item, index) => {
+      const cleanName = (item.name || '').trim();
+      // Permanently reject any Document Typing service entry
+      if (cleanName.toLowerCase() === 'document typing' || cleanName.toLowerCase().includes('document typing')) {
+        skipped++;
+        return;
+      }
+
+      // Detect if this item is a commercial service (No inventory, No QR code)
+      const isServiceItem = item.isService === true || this.isService(cleanName);
+
+      if (isServiceItem) {
+        // Enforce exact naming for Passport Appointment
+        const serviceName = cleanName.toLowerCase().includes('passport')
+          ? 'Passport Appointment'
+          : cleanName;
+
+        const servicePrice = item.retailPrice > 0 ? item.retailPrice : (item.costPrice > 0 ? item.costPrice : 0);
+        const serviceUnit = cleanName.toLowerCase().includes('passport')
+          ? 'appointment'
+          : (item.unit && item.unit !== 'pcs' ? item.unit : 'service');
+
+        // Sync with central Services system
+        const existingServices = this.getServices();
+        const existingSrv = existingServices.find(
+          s => s.name.toLowerCase() === serviceName.toLowerCase() || s.id === item.id
+        );
+
+        if (existingSrv) {
+          if (options.onDuplicate !== 'skip') {
+            this.saveService({
+              ...existingSrv,
+              price: servicePrice > 0 ? servicePrice : existingSrv.price,
+              unit: serviceUnit || existingSrv.unit,
+              description: item.description || existingSrv.description,
+              updatedAt: now
+            });
+            updated++;
+          } else {
+            skipped++;
+          }
+        } else {
+          this.saveService({
+            id: item.id && item.id.startsWith('srv_') ? item.id : ('srv_' + Date.now() + '_' + index),
+            name: serviceName,
+            price: servicePrice,
+            unit: serviceUnit,
+            description: item.description,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now
+          });
+          added++;
+        }
+        return;
+      }
+
+      // Physical Product Processing (Requires Inventory + QR Code)
       // Auto-assign Category if missing
       const category = (item.category && item.category.trim() !== '')
         ? item.category
@@ -1539,6 +1859,7 @@ class StorageService {
       }
       allocatedBarcodes.add(barcode);
 
+      // Auto-generate QR code from SKU if not provided
       const qrCode = (item.qrCode && item.qrCode.trim()) ? item.qrCode.trim() : sku;
 
       const preparedItem: Product = {
@@ -1547,10 +1868,11 @@ class StorageService {
         sku,
         qrCode,
         barcode,
+        isService: false,
         minThreshold: LOW_STOCK_THRESHOLD
       };
 
-      // Find matching item by SKU or Barcode or ID
+      // Find matching item by SKU or Barcode or QR Code or ID
       const existingIndex = list.findIndex(
         p =>
           (p.sku && preparedItem.sku && p.sku.trim().toLowerCase() === preparedItem.sku.trim().toLowerCase()) ||
@@ -1564,7 +1886,7 @@ class StorageService {
           skipped++;
           return;
         } else if (options.onDuplicate === 'generate_new') {
-          // generate new SKU and Barcode
+          // generate new SKU, QR code, and Barcode
           const newSku = this.generateSku(category, preparedItem.name, allocatedSkus);
           allocatedSkus.add(newSku.toUpperCase());
           const newBarcode = this.generateBarcodeNumber(allocatedBarcodes);
@@ -1576,6 +1898,7 @@ class StorageService {
             qrCode: newSku,
             barcode: newBarcode,
             minThreshold: LOW_STOCK_THRESHOLD,
+            isService: false,
             updatedAt: now
           };
           list.unshift(newItem);
@@ -1591,7 +1914,7 @@ class StorageService {
               quantityChange: newItem.stock,
               previousStock: 0,
               newStock: newItem.stock,
-              reason: 'Bulk inventory import (auto-generated unique SKU)',
+              reason: 'Bulk inventory import (auto-generated unique SKU & QR code)',
               performedBy: activeUserName
             });
           }
@@ -1609,6 +1932,7 @@ class StorageService {
             unit: preparedItem.unit || existing.unit,
             description: preparedItem.description || existing.description,
             stock: preparedItem.stock,
+            qrCode: existing.qrCode || preparedItem.qrCode || existing.sku,
             updatedAt: now
           };
           updated++;
@@ -1644,6 +1968,7 @@ class StorageService {
             unit: preparedItem.unit || existing.unit,
             description: preparedItem.description || existing.description,
             stock: newStock,
+            qrCode: existing.qrCode || preparedItem.qrCode || existing.sku,
             updatedAt: now
           };
           updated++;
@@ -1665,11 +1990,12 @@ class StorageService {
           }
         }
       } else {
-        // Brand new product
+        // Brand new physical product
         const newItem: Product = {
           ...preparedItem,
           id: preparedItem.id || ('prod_' + Date.now() + '_' + index + '_' + Math.random().toString(36).substring(2, 6)),
           minThreshold: LOW_STOCK_THRESHOLD,
+          isService: false,
           updatedAt: now
         };
         list.unshift(newItem);
@@ -1697,7 +2023,7 @@ class StorageService {
     this.logActivity(
       'BULK_IMPORT',
       'inventory',
-      `Bulk imported products: ${added} added, ${updated} updated, ${skipped} skipped.`
+      `Bulk imported catalog items: ${added} added, ${updated} updated, ${skipped} skipped.`
     );
 
     return { added, updated, skipped };
@@ -1795,9 +2121,12 @@ class StorageService {
     sales.unshift(sale);
     this.set(STORAGE_KEYS.SALES, sales);
 
-    // Deduct stock for each item sold
+    // Deduct stock for each item sold (Physical products ONLY - services require no inventory)
     sale.items.forEach(item => {
-      this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in transaction #${sale.transactionId}`);
+      const isSrv = item.isService || this.isService(item.productId) || this.isService(item.productName);
+      if (!isSrv) {
+        this.adjustStock(item.productId, -item.quantity, 'OUT', `Sold in transaction #${sale.transactionId}`);
+      }
     });
 
     // Handle store credit charges if customer credit tab was used
@@ -1819,9 +2148,12 @@ class StorageService {
       sale.notes = (sale.notes ? sale.notes + '\n' : '') + `Refunded on ${new Date().toLocaleDateString()}: ${reason}`;
       this.set(STORAGE_KEYS.SALES, sales);
 
-      // Return items to inventory
+      // Return items to inventory (Physical products only)
       sale.items.forEach(item => {
-        this.adjustStock(item.productId, item.quantity, 'RETURN', `Refund on transaction #${sale.transactionId || sale.receiptNumber} (${reason})`);
+        const isSrv = item.isService || this.isService(item.productId) || this.isService(item.productName);
+        if (!isSrv) {
+          this.adjustStock(item.productId, item.quantity, 'RETURN', `Refund on transaction #${sale.transactionId || sale.receiptNumber} (${reason})`);
+        }
       });
 
       this.logActivity('SALE_REFUNDED', 'sale', `Refunded transaction #${sale.transactionId || sale.receiptNumber} (ETB ${sale.total.toFixed(2)}) - ${reason}`);
@@ -1948,8 +2280,9 @@ class StorageService {
       sale.items.forEach(item => {
         totalItemsSold += item.quantity;
         const existing = productMap.get(item.productId);
+        const isSrv = item.isService || this.isService(item.productId) || this.isService(item.productName);
         const catItem = catalog.find(p => p.id === item.productId);
-        const category = catItem?.category || 'General Stationery';
+        const category = isSrv ? 'Services' : (catItem?.category || 'General Stationery');
 
         if (existing) {
           existing.quantitySold += item.quantity;
@@ -2073,8 +2406,9 @@ class StorageService {
       sale.items.forEach(item => {
         totalItemsSold += item.quantity;
         const existing = productMap.get(item.productId);
+        const isSrv = item.isService || this.isService(item.productId) || this.isService(item.productName);
         const catItem = catalog.find(p => p.id === item.productId);
-        const category = catItem?.category || 'General Stationery';
+        const category = isSrv ? 'Services' : (catItem?.category || 'General Stationery');
 
         if (existing) {
           existing.quantitySold += item.quantity;
@@ -2201,8 +2535,9 @@ class StorageService {
       sale.items.forEach(item => {
         totalItemsSold += item.quantity;
         const existing = productMap.get(item.productId);
+        const isSrv = item.isService || this.isService(item.productId) || this.isService(item.productName);
         const catItem = catalog.find(p => p.id === item.productId);
-        const category = catItem?.category || 'General Stationery';
+        const category = isSrv ? 'Services' : (catItem?.category || 'General Stationery');
 
         if (existing) {
           existing.quantitySold += item.quantity;

@@ -28,7 +28,8 @@ import {
 import jsPDF from 'jspdf';
 
 export const BarcodeStudioView: React.FC = () => {
-  const products = storage.getProducts();
+  // Physical products only (Services require NO inventory and NO QR codes)
+  const products = storage.getProducts().filter(p => !p.isService && (p.category as string) !== 'Services');
   const settings = storage.getSettings();
 
   // Selection mapping: productId -> specific number of copies (0 or undefined = unselected)

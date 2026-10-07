@@ -59,6 +59,18 @@ export interface Product {
   description?: string;
   imageUrl?: string;
   updatedAt: string;
+  isService?: boolean; // Services require NO inventory and NO QR codes
+}
+
+export interface ServiceItem {
+  id: string;
+  name: string; // e.g. 'Printing', 'Laminating', 'Photocopying', 'Scanning', 'Binding', 'Passport Appointment'
+  price: number; // Configurable unit price
+  unit: string; // e.g. 'page', 'pouch', 'copy', 'doc', 'book', 'appointment'
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CartItem {
@@ -138,6 +150,7 @@ export interface Sale {
     quantity: number;
     total: number;
     discountPercent: number;
+    isService?: boolean;
   }[];
   subtotal: number;
   taxAmount: number;
