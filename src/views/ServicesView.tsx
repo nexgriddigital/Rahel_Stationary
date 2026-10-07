@@ -16,10 +16,12 @@ import {
   CalendarCheck,
   ShieldAlert,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  Undo2
 } from 'lucide-react';
 import { storage } from '../services/storage';
 import { ServiceItem } from '../types';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 interface ServicesViewProps {
   onNavigateToPos?: () => void;
@@ -33,6 +35,8 @@ export const ServicesView: React.FC<ServicesViewProps> = ({
   const [services, setServices] = useState<ServiceItem[]>(() => storage.getServices());
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showResetDefaultsModal, setShowResetDefaultsModal] = useState(false);
+  const [deletingService, setDeletingService] = useState<ServiceItem | null>(null);
   const [formData, setFormData] = useState<{
     name: string;
     price: string;
@@ -162,21 +166,49 @@ export const ServicesView: React.FC<ServicesViewProps> = ({
   };
 
   const handleDelete = (srv: ServiceItem) => {
-    if (confirm(`Are you sure you want to remove the service "${srv.name}"?`)) {
-      const res = storage.deleteService(srv.id);
-      if (res.success) {
-        refreshServices();
-        showToast(`Removed service "${srv.name}".`);
-      }
+    setDeletingService(srv);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingService) return;
+    const res = storage.deleteService(deletingService.id);
+    if (res.success) {
+      refreshServices();
+      showToast(`Removed service "${deletingService.name}".`);
     }
+    setDeletingService(null);
   };
 
   const handleResetDefaults = () => {
-    if (confirm('Reset services to the standard default list (Printing, Laminating, Photocopying, Scanning, Binding, Passport Appointment)?')) {
-      storage.resetServices();
-      refreshServices();
-      showToast('Services reset to default catalog.');
+    setShowResetDefaultsModal(true);
+  };
+
+  const handleConfirmResetDefaults = () => {
+    storage.resetServices();
+    refreshServices();
+    setShowResetDefaultsModal(false);
+    showToast('Services successfully reset to standard default catalog.');
+  };
+
+  const handleResetForm = () => {
+    if (editingService) {
+      setFormData({
+        name: editingService.name,
+        price: editingService.price.toString(),
+        unit: editingService.unit || 'service',
+        description: editingService.description || '',
+        isActive: editingService.isActive
+      });
+    } else {
+      setFormData({
+        name: '',
+        price: '',
+        unit: 'service',
+        description: '',
+        isActive: true
+      });
     }
+    setErrorMessage(null);
   };
 
   const handleAddDirectToPos = (srv: ServiceItem) => {
@@ -578,25 +610,60 @@ export const ServicesView: React.FC<ServicesViewProps> = ({
                 <div>• QR Code Required: <strong>No</strong> (no barcode/QR label generated)</div>
               </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-2">
+              <div className="flex items-center justify-between gap-2.5 pt-2 border-t border-[#26221c]">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1c1c22] hover:bg-[#24242c] text-[#c4bcad] border border-[#2a261f] cursor-pointer"
+                  onClick={handleResetForm}
+                  className="px-3 py-2 rounded-xl text-xs font-semibold bg-[#141417] hover:bg-[#1f1f26] text-[#c4bcad] hover:text-[#f4efe8] border border-[#2a261f] cursor-pointer flex items-center gap-1.5 transition-colors"
+                  title="Reset form fields"
                 >
-                  Cancel
+                  <RotateCcw className="w-3.5 h-3.5 text-[#8e8271]" />
+                  <span>Reset Form</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black shadow-xs hover:brightness-110 cursor-pointer"
-                >
-                  Save Service
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-[#1c1c22] hover:bg-[#24242c] text-[#c4bcad] border border-[#2a261f] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black shadow-xs hover:brightness-110 cursor-pointer"
+                  >
+                    Save Service
+                  </button>
+                </div>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Reset Defaults Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={showResetDefaultsModal}
+        title="Reset Commercial Services to Defaults?"
+        message={`This action will restore the standard default services list (Printing, Laminating, Photocopying, Scanning, Binding, Passport Appointment).\n\nThis cannot be undone. Are you sure you want to proceed?`}
+        confirmLabel="Reset Services"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleConfirmResetDefaults}
+        onCancel={() => setShowResetDefaultsModal(false)}
+      />
+
+      {/* Delete Service Confirmation Dialog */}
+      <ConfirmationDialog
+        isOpen={!!deletingService}
+        title="Delete Commercial Service?"
+        message={deletingService ? `This action will permanently delete the service "${deletingService.name}". This cannot be undone. Continue?` : ''}
+        confirmLabel="Delete Service"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingService(null)}
+      />
     </div>
   );
 };

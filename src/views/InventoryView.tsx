@@ -30,8 +30,10 @@ import {
   Square,
   AlertCircle,
   FileText,
-  Layers
+  Layers,
+  RotateCcw
 } from 'lucide-react';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { exportInventoryReportPDF, exportLowStockReportPDF } from '../services/pdfReportGenerator';
 
 interface InventoryViewProps {
@@ -65,6 +67,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [adjustType, setAdjustType] = useState<'IN' | 'OUT' | 'AUDIT' | 'RETURN' | 'DAMAGE'>('IN');
   const [adjustReason, setAdjustReason] = useState('Stock replenishment shipment');
   const [showMovementsDrawer, setShowMovementsDrawer] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState<{ id: string; name: string } | null>(null);
+
+  const isAnyFilterActive =
+    search.trim() !== '' ||
+    selectedCat !== 'All' ||
+    filterMode !== 'all';
+
+  const handleResetFilters = () => {
+    setSearch('');
+    setSelectedCat('All');
+    setFilterMode('all');
+  };
 
   // Form fields for Add/Edit
   const [formData, setFormData] = useState<Partial<Product>>({
@@ -79,6 +93,37 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
     unit: 'pcs',
     description: ''
   });
+
+  const handleResetForm = () => {
+    if (editingProduct) {
+      setFormData({
+        name: editingProduct.name,
+        category: editingProduct.category,
+        sku: editingProduct.sku,
+        barcode: editingProduct.barcode,
+        costPrice: editingProduct.costPrice,
+        retailPrice: editingProduct.retailPrice,
+        stock: editingProduct.stock,
+        minThreshold: editingProduct.minThreshold || LOW_STOCK_THRESHOLD,
+        unit: editingProduct.unit || 'pcs',
+        description: editingProduct.description || ''
+      });
+    } else {
+      setFormData({
+        name: '',
+        category: 'Paper & Notebooks',
+        sku: '',
+        barcode: '',
+        costPrice: 0,
+        retailPrice: 0,
+        stock: 0,
+        minThreshold: LOW_STOCK_THRESHOLD,
+        unit: 'pcs',
+        description: ''
+      });
+    }
+    setFormError(null);
+  };
 
   const categories: ProductCategory[] = [
     'Writing & Pens',
@@ -265,10 +310,14 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   };
 
   const handleDeleteProduct = (id: string, name: string) => {
-    if (confirm(`Are you sure you want to permanently delete '${name}' from inventory?`)) {
-      storage.deleteProduct(id);
-      refreshList();
-    }
+    setDeletingProduct({ id, name });
+  };
+
+  const handleConfirmDeleteProduct = () => {
+    if (!deletingProduct) return;
+    storage.deleteProduct(deletingProduct.id);
+    refreshList();
+    setDeletingProduct(null);
   };
 
   const handleConfirmAdjust = (e: React.FormEvent) => {
@@ -386,8 +435,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               placeholder="Search by product title, SKU, or 12-digit barcode..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#8c8273] hover:text-[#f4efe8] rounded cursor-pointer"
+                title="Clear search text"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -416,6 +475,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <AlertTriangle className="w-3.5 h-3.5" />
             <span>Low Stock Alert ({lowStockCount})</span>
           </button>
+
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-[#141417] hover:bg-[#202026] text-[#d4af37] border border-[#2a261f] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              title="Reset all search queries, category and stock filters"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -426,13 +497,25 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-[#8c8273]">
               <p className="text-xs">No inventory records match the current filters.</p>
-              <button
-                onClick={() => setIsBulkImportOpen(true)}
-                className="mt-3 px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black inline-flex items-center gap-1.5"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
-                <span>Bulk Import Items</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                {isAnyFilterActive && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset All Filters</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setIsBulkImportOpen(true)}
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
+                  <span>Bulk Import Items</span>
+                </button>
+              </div>
             </div>
           ) : (
             filtered.map((prod) => {
@@ -625,16 +708,29 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <tbody className="divide-y divide-[#26221c] text-[#f4efe8]">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-[#8c8273]">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <p>No inventory records match the current filters.</p>
-                      <button
-                        onClick={() => setIsBulkImportOpen(true)}
-                        className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black flex items-center gap-1.5 shadow-xs"
-                      >
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
-                        <span>Bulk Import Items</span>
-                      </button>
+                  <td colSpan={10} className="py-14 text-center text-[#8c8273]">
+                    <div className="flex flex-col items-center justify-center gap-2.5">
+                      <Package className="w-8 h-8 opacity-40 text-[#d4af37]" />
+                      <p className="text-xs">No inventory records match the current filters.</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {isAnyFilterActive && (
+                          <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Reset All Filters</span>
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setIsBulkImportOpen(true)}
+                          className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
+                          <span>Bulk Import Items</span>
+                        </button>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -1049,20 +1145,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-2 border-t border-[#26221c]">
+              <div className="flex justify-between items-center gap-2 pt-2 border-t border-[#26221c]">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-xs rounded-xl text-[#a89f91] hover:bg-[#1f1f26]"
+                  onClick={handleResetForm}
+                  className="px-3 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#1f1f26] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#2a261f] flex items-center gap-1.5 cursor-pointer transition-colors"
+                  title="Reset form fields to default"
                 >
-                  Cancel
+                  <RotateCcw className="w-3.5 h-3.5 text-[#8e8271]" />
+                  <span>Reset Form</span>
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black shadow-md shadow-[#d4af37]/20"
-                >
-                  {editingProduct ? 'Save Product Changes' : 'Create Product'}
-                </button>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="px-4 py-2 text-xs rounded-xl text-[#a89f91] hover:bg-[#1f1f26] cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black shadow-md shadow-[#d4af37]/20 cursor-pointer"
+                  >
+                    {editingProduct ? 'Save Product Changes' : 'Create Product'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1243,6 +1351,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           setBarcodeModalProduct(updated);
         }}
         onNavigateToStudio={onNavigateToBarcodeStudio}
+      />
+
+      {/* Confirmation Dialog for Product Deletion */}
+      <ConfirmationDialog
+        isOpen={!!deletingProduct}
+        title="Delete Inventory Product?"
+        message={deletingProduct ? `Are you sure you want to permanently delete '${deletingProduct.name}' from inventory?\n\nThis action will permanently delete the selected data. This cannot be undone. Continue?` : ''}
+        confirmLabel="Delete Product"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleConfirmDeleteProduct}
+        onCancel={() => setDeletingProduct(null)}
       />
     </div>
   );

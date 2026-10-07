@@ -28,7 +28,9 @@ import {
   ShieldAlert,
   Search,
   CheckSquare,
-  Square
+  Square,
+  Package,
+  QrCode
 } from 'lucide-react';
 
 // Setup PDF.js worker

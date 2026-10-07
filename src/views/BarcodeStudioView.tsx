@@ -82,6 +82,17 @@ export const BarcodeStudioView: React.FC = () => {
     });
   }, [products, searchTerm, skuBarcodeFilter, categoryFilter]);
 
+  const isAnyFilterActive =
+    searchTerm.trim() !== '' ||
+    skuBarcodeFilter.trim() !== '' ||
+    categoryFilter !== 'All';
+
+  const handleResetFilters = () => {
+    setSearchTerm('');
+    setSkuBarcodeFilter('');
+    setCategoryFilter('All');
+  };
+
   // Total count of checked products
   const selectedProductCount = useMemo(() => {
     return Object.values(selectedCopies).filter((c) => c > 0).length;
@@ -407,6 +418,18 @@ export const BarcodeStudioView: React.FC = () => {
               <option key={c} value={c} className="bg-[#141417] text-[#f4efe8]">{c}</option>
             ))}
           </select>
+
+          {isAnyFilterActive && (
+            <button
+              type="button"
+              onClick={handleResetFilters}
+              className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#1a1a20] hover:bg-[#22222a] text-[#d4af37] border border-[#2a261f] flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title="Reset all search and category filters"
+            >
+              <RotateCcw className="w-3 h-3 text-[#d4af37]" />
+              <span>Reset Filters</span>
+            </button>
+          )}
         </div>
 
         {/* Layout Template Selector */}
@@ -506,10 +529,11 @@ export const BarcodeStudioView: React.FC = () => {
             )}
             <button
               type="button"
-              onClick={() => setSkuBarcodeFilter('')}
-              className="text-xs font-semibold hover:underline text-[#8e8271] cursor-pointer"
+              onClick={handleResetFilters}
+              className="text-xs font-semibold hover:underline text-[#d4af37] flex items-center gap-1 cursor-pointer"
             >
-              Reset Filter
+              <RotateCcw className="w-3 h-3 text-[#d4af37]" />
+              <span>Reset Filters</span>
             </button>
           </div>
         </div>
@@ -553,10 +577,26 @@ export const BarcodeStudioView: React.FC = () => {
             <tbody className="divide-y divide-[#26221c] text-[#f4efe8]">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-[#8b7d6f]">
-                    {skuBarcodeFilter
-                      ? `No inventory items match the SKU or QR Code ID "${skuBarcodeFilter}".`
-                      : 'No stationery products match the active search filters.'}
+                  <td colSpan={7} className="py-14 text-center text-[#8b7d6f]">
+                    <div className="flex flex-col items-center justify-center space-y-2.5">
+                      <QrCode className="w-8 h-8 opacity-40 text-[#d4af37]" />
+                      <div className="font-semibold text-xs text-[#c4bbb0]">No products match filter criteria</div>
+                      <p className="text-[11px] text-[#7d7465]">
+                        {skuBarcodeFilter
+                          ? `No inventory items match the SKU or QR Code ID "${skuBarcodeFilter}".`
+                          : 'No stationery products match the active search or category filters.'}
+                      </p>
+                      {isAnyFilterActive && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Reset All Filters</span>
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ) : (

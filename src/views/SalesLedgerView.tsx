@@ -49,6 +49,23 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
     setSales(storage.getSales());
   };
 
+  const handleResetFilters = () => {
+    setSearch('');
+    setDateFilterMode('all');
+    setCustomDate('');
+    setSelectedStaff('all');
+    setSelectedProduct('all');
+    setSelectedPaymentMethod('all');
+  };
+
+  const isAnyFilterActive =
+    search.trim() !== '' ||
+    dateFilterMode !== 'all' ||
+    customDate !== '' ||
+    selectedStaff !== 'all' ||
+    selectedProduct !== 'all' ||
+    selectedPaymentMethod !== 'all';
+
   const handleRefund = (e: React.FormEvent) => {
     e.preventDefault();
     if (!refundingSale) return;
@@ -307,19 +324,15 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
           </div>
 
           {/* Reset Filters button if any active */}
-          {(search || dateFilterMode !== 'all' || selectedStaff !== 'all' || selectedProduct !== 'all' || selectedPaymentMethod !== 'all') && (
+          {isAnyFilterActive && (
             <button
-              onClick={() => {
-                setSearch('');
-                setDateFilterMode('all');
-                setCustomDate('');
-                setSelectedStaff('all');
-                setSelectedProduct('all');
-                setSelectedPaymentMethod('all');
-              }}
-              className="text-[11px] text-[#d4af37] hover:underline px-2 py-1 cursor-pointer"
+              type="button"
+              onClick={handleResetFilters}
+              className="text-xs font-semibold text-[#d4af37] hover:text-[#f5d77f] hover:underline px-3 py-1.5 rounded-xl bg-[#1a1a20] border border-[#2a261f] flex items-center gap-1.5 cursor-pointer shrink-0 transition-colors min-h-[34px]"
+              title="Reset all search queries, date ranges, and filters"
             >
-              Reset Filters
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Filters</span>
             </button>
           )}
         </div>
@@ -331,12 +344,22 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
         <div className="md:hidden flex-1 overflow-y-auto p-3 space-y-2.5">
           {filteredSales.length === 0 ? (
             <div className="py-14 text-center text-[#8e8271]">
-              <div className="flex flex-col items-center justify-center space-y-2">
+              <div className="flex flex-col items-center justify-center space-y-2.5">
                 <ShoppingBag className="w-8 h-8 opacity-40 text-[#d4af37]" />
                 <div className="font-semibold text-xs text-[#c4bbb0]">No transactions found</div>
                 <p className="text-[11px] text-[#7d7465]">
                   No recorded sales match the applied date and filter criteria.
                 </p>
+                {isAnyFilterActive && (
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="mt-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset All Filters</span>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -414,12 +437,22 @@ export const SalesLedgerView: React.FC<SalesLedgerViewProps> = ({ onNavigateToPO
               {filteredSales.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="py-14 text-center text-[#8e8271]">
-                    <div className="flex flex-col items-center justify-center space-y-2">
+                    <div className="flex flex-col items-center justify-center space-y-2.5">
                       <ShoppingBag className="w-8 h-8 opacity-40 text-[#d4af37]" />
                       <div className="font-semibold text-xs text-[#c4bbb0]">No transactions found</div>
                       <p className="text-[11px] text-[#7d7465]">
                         No recorded sales match the applied date and filter criteria.
                       </p>
+                      {isAnyFilterActive && (
+                        <button
+                          type="button"
+                          onClick={handleResetFilters}
+                          className="mt-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Reset All Filters</span>
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

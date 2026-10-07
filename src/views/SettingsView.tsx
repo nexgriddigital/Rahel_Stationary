@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { StoreSettings } from '../types';
 import { storage } from '../services/storage';
-import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check } from 'lucide-react';
+import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check, Undo2 } from 'lucide-react';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 interface SettingsViewProps {
   onSettingsSaved?: () => void;
@@ -11,6 +12,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
   const [settings, setSettings] = useState<StoreSettings>(storage.getSettings());
   const [isSaved, setIsSaved] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,6 +21,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
     setIsSaved(true);
     setTimeout(() => setIsSaved(false), 2000);
     onSettingsSaved?.();
+  };
+
+  const handleResetFormValues = () => {
+    // Restore form to stored settings from storage
+    const currentStored = storage.getSettings();
+    setSettings(currentStored);
+    setImportStatus('Form values reset to current saved store configuration.');
+    setTimeout(() => setImportStatus(null), 3000);
   };
 
   const handleBackupExport = () => {
@@ -51,10 +62,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
     reader.readAsText(file);
   };
 
-  const handleResetDefaults = () => {
-    if (confirm('Reset store database to factory seed stationery catalog and initial shifts? All custom sales will be reset.')) {
+  const handleExecuteFactoryReset = () => {
+    setIsResetting(true);
+    try {
       storage.resetToFactoryDefaults();
-      window.location.reload();
+      setSettings(storage.getSettings());
+      onSettingsSaved?.();
+      setImportStatus('Database successfully reset to demo catalog. All initial products and settings restored.');
+      setIsResetting(false);
+      setShowFactoryResetModal(false);
+      setTimeout(() => {
+        setImportStatus(null);
+      }, 4000);
+    } catch (err) {
+      console.error('Factory reset failed:', err);
+      setImportStatus('Failed to reset database.');
+      setIsResetting(false);
+      setShowFactoryResetModal(false);
     }
   };
 
@@ -71,14 +95,43 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
           </p>
         </div>
 
-        <button
-          onClick={handleSubmit}
-          className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20 transition-all cursor-pointer"
-        >
-          {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-          <span>{isSaved ? 'Settings Saved!' : 'Save Store Settings'}</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetFormValues}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#1f1f26] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#2a261f] flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Reset form fields to last saved configuration"
+          >
+            <Undo2 className="w-3.5 h-3.5 text-[#8e8271]" />
+            <span>Reset Form</span>
+          </button>
+
+          <button
+            onClick={handleSubmit}
+            className="px-5 py-2 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] hover:brightness-110 text-black flex items-center gap-1.5 shadow-md shadow-[#d4af37]/20 transition-all cursor-pointer"
+          >
+            {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+            <span>{isSaved ? 'Settings Saved!' : 'Save Store Settings'}</span>
+          </button>
+        </div>
       </div>
+
+      {/* Top Status Notification Banner */}
+      {importStatus && (
+        <div className="p-3.5 rounded-2xl bg-[#d4af37]/15 border border-[#d4af37]/40 text-[#f5d77f] text-xs flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <RotateCcw className="w-4 h-4 text-[#d4af37] shrink-0" />
+            <span className="font-medium">{importStatus}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setImportStatus(null)}
+            className="p-1 rounded-lg text-[#8e8271] hover:text-[#f4efe8] cursor-pointer"
+          >
+            <span className="text-xs font-bold">✕</span>
+          </button>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl">
         {/* Card 1: Retail Store Branding */}
@@ -317,8 +370,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
 
             <button
               type="button"
-              onClick={handleResetDefaults}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-950/40 text-rose-300 border border-rose-800/40 hover:bg-rose-900/40 flex items-center gap-1.5 transition-colors ml-auto"
+              onClick={() => setShowFactoryResetModal(true)}
+              className="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-950/40 text-rose-300 border border-rose-800/40 hover:bg-rose-900/40 flex items-center gap-1.5 transition-colors ml-auto cursor-pointer"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Reset Factory Demo Data</span>
@@ -332,6 +385,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
           )}
         </div>
       </form>
+
+      {/* Confirmation Dialog for Factory Reset */}
+      <ConfirmationDialog
+        isOpen={showFactoryResetModal}
+        title="Reset Store Database to Factory Demo Data?"
+        message={`This action will restore the initial stationery catalog, reset store settings, and purge all recorded custom transactions and shifts.
+
+This action will permanently delete the selected data. This cannot be undone. Continue?`}
+        confirmLabel={isResetting ? 'Resetting...' : 'Yes, Reset Database'}
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleExecuteFactoryReset}
+        onCancel={() => setShowFactoryResetModal(false)}
+      />
     </div>
   );
 };

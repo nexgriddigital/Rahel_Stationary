@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CustomerCreditAccount } from '../types';
 import { storage } from '../services/storage';
-import { CreditCard, Search, Plus, DollarSign, Printer, X, CheckCircle, FileText } from 'lucide-react';
+import { CreditCard, Search, Plus, DollarSign, Printer, X, CheckCircle, FileText, RotateCcw } from 'lucide-react';
 import { exportCreditAccountsReportPDF } from '../services/pdfReportGenerator';
 
 export const CreditAccountsView: React.FC = () => {
@@ -104,7 +104,7 @@ export const CreditAccountsView: React.FC = () => {
       </div>
 
       {/* Search */}
-      <div className="py-3 flex items-center justify-between">
+      <div className="py-3 flex items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#8e8271]" />
           <input
@@ -112,14 +112,57 @@ export const CreditAccountsView: React.FC = () => {
             placeholder="Search account by customer or organization name, phone, or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+            className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-[#141417] border border-[#2a261f] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#8e8271] hover:text-[#f4efe8] rounded cursor-pointer"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
+
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            className="px-2.5 py-1.5 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#202026] text-[#d4af37] border border-[#2a261f] flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+            title="Reset customer search"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Search</span>
+          </button>
+        )}
       </div>
 
       {/* Grid of Accounts */}
       <div className="flex-1 overflow-y-auto grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {filtered.map((acc) => {
+        {filtered.length === 0 ? (
+          <div className="col-span-full py-16 text-center text-[#8e8271]">
+            <div className="flex flex-col items-center justify-center space-y-2.5">
+              <CreditCard className="w-8 h-8 opacity-40 text-[#d4af37]" />
+              <div className="font-semibold text-xs text-[#c4bbb0]">No credit accounts found</div>
+              <p className="text-[11px] text-[#7d7465]">
+                {search ? `No accounts match "${search}".` : 'No customer credit accounts have been opened yet.'}
+              </p>
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="mt-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Search</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          filtered.map((acc) => {
           const isHighDebt = acc.currentBalance > acc.creditLimit * 0.8;
           return (
             <div
@@ -201,7 +244,7 @@ export const CreditAccountsView: React.FC = () => {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* Record Debt Payment Modal */}

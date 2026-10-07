@@ -35,8 +35,10 @@ import {
   Landmark,
   Layers,
   CalendarCheck,
-  Sparkles
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
+import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 interface PosRegisterViewProps {
   onNavigateToHistory?: () => void;
@@ -66,6 +68,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     barcode: string;
   } | null>(null);
   const [lastRecordedSale, setLastRecordedSale] = useState<Sale | null>(null);
+  const [showClearSaleModal, setShowClearSaleModal] = useState(false);
 
   // Payment splits state
   const [payments, setPayments] = useState<PaymentSplit[]>([
@@ -162,8 +165,16 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     );
   };
 
-  const clearCart = () => {
+  const handleClearSaleClick = () => {
+    if (cart.length === 0) return;
+    setShowClearSaleModal(true);
+  };
+
+  const handleConfirmClearSale = () => {
     setCart([]);
+    setCustomerName('Walk-in Customer');
+    setHoldNote('');
+    setShowClearSaleModal(false);
   };
 
   // Hold / Park Cart
@@ -354,8 +365,18 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-[#18181d] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60"
+              className="w-full pl-9 pr-8 py-1.5 text-xs rounded-xl bg-[#18181d] border border-[#2a261f] text-[#f4efe8] placeholder-[#7d7465] focus:outline-none focus:ring-2 focus:ring-[#d4af37]/60"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#8c8273] hover:text-[#f4efe8] rounded cursor-pointer"
+                title="Clear search text"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -414,25 +435,64 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         </div>
 
         {/* Category Horizontal Filter Buttons */}
-        <div className="px-3.5 py-2 border-b border-[#26221c] flex items-center gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none bg-[#0d0d0f]">
-          {categories.map((cat) => (
+        <div className="px-3.5 py-2 border-b border-[#26221c] flex items-center justify-between gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none bg-[#0d0d0f]">
+          <div className="flex items-center gap-1.5">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
+                  selectedCategory === cat
+                    ? 'bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black font-bold shadow-xs'
+                    : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {(selectedCategory !== 'All' || searchTerm.trim()) && (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
-                selectedCategory === cat
-                  ? 'bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black font-bold shadow-xs'
-                  : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
-              }`}
+              type="button"
+              onClick={() => {
+                setSelectedCategory('All');
+                setSearchTerm('');
+              }}
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#d4af37] hover:underline flex items-center gap-1 shrink-0 ml-2 cursor-pointer bg-[#18181d] border border-[#2a261f]"
+              title="Reset search and category filter to default"
             >
-              {cat}
+              <RotateCcw className="w-3 h-3 text-[#d4af37]" />
+              <span>Reset Filters</span>
             </button>
-          ))}
+          )}
         </div>
 
         {/* Product & Services Grid */}
         <div className="flex-1 p-3.5 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 content-start">
-          {filteredProducts.map((p) => {
+          {filteredProducts.length === 0 ? (
+            <div className="col-span-full py-16 text-center text-[#8e8271]">
+              <div className="flex flex-col items-center justify-center space-y-2.5">
+                <ShoppingBag className="w-8 h-8 opacity-40 text-[#d4af37]" />
+                <div className="font-semibold text-xs text-[#c4bbb0]">No matching catalog items found</div>
+                <p className="text-[11px] text-[#7d7465]">
+                  No items match the active search query or selected category.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory('All');
+                    setSearchTerm('');
+                  }}
+                  className="mt-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Catalog Filters</span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            filteredProducts.map((p) => {
             const isServiceItem = p.isService || storage.isService(p.id) || storage.isService(p.name);
             const isLowStock = !isServiceItem && p.stock <= LOW_STOCK_THRESHOLD;
             const inCart = cart.find(c => c.product.id === p.id);
@@ -495,7 +555,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                 </div>
               </div>
             );
-          })}
+          }))}
         </div>
 
         {/* Sticky Mobile Floating Cart Bar */}
@@ -541,10 +601,13 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             </div>
             {cart.length > 0 && (
               <button
-                onClick={clearCart}
-                className="text-[11px] text-rose-400 hover:underline"
+                type="button"
+                onClick={handleClearSaleClick}
+                className="text-xs font-semibold text-rose-400 hover:text-rose-300 hover:underline flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg hover:bg-rose-950/30 transition-colors min-h-[30px]"
+                title="Reset current sale ticket"
               >
-                Clear All
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                <span>Reset Sale</span>
               </button>
             )}
           </div>
@@ -1076,6 +1139,18 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog for Clearing Current Sale */}
+      <ConfirmationDialog
+        isOpen={showClearSaleModal}
+        title="Clear Current Sale"
+        message={`Are you sure you want to clear this sale?\n\nThis will remove all ${cart.reduce((s, i) => s + i.quantity, 0)} item(s) from the current unfinished sale ticket.\n\nCompleted sales in the database will not be affected.`}
+        confirmLabel="Clear Sale"
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleConfirmClearSale}
+        onCancel={() => setShowClearSaleModal(false)}
+      />
     </div>
   );
 };
