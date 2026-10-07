@@ -268,8 +268,19 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const handleAdjustQuantity = (delta: number) => {
     if (!scannedProduct) return;
     const newQty = Math.max(1, scannedQuantity + delta);
+    const diff = newQty - scannedQuantity;
+    if (diff === 0) return;
     setScannedQuantity(newQty);
-    onScan(scannedProduct.qrCode || scannedProduct.sku, scannedProduct, delta);
+    onScan(scannedProduct.qrCode || scannedProduct.sku, scannedProduct, diff);
+  };
+
+  const handleSetExactQuantity = (newQty: number) => {
+    if (!scannedProduct) return;
+    const target = Math.max(1, newQty);
+    const diff = target - scannedQuantity;
+    if (diff === 0) return;
+    setScannedQuantity(target);
+    onScan(scannedProduct.qrCode || scannedProduct.sku, scannedProduct, diff);
   };
 
   // Manual code entry fallback
@@ -458,9 +469,28 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   >
                     <Minus className="w-3 h-3" />
                   </button>
-                  <span className="font-mono font-bold text-xs px-2 text-[#f5d77f]">
-                    Qty: {scannedQuantity}
-                  </span>
+                  <div className="flex items-center px-1">
+                    <span className="text-[10px] text-[#a89f91] mr-1 font-semibold">Qty:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="99999"
+                      value={scannedQuantity === 0 ? '' : scannedQuantity}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                        if (!isNaN(val)) {
+                          handleSetExactQuantity(val);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!scannedQuantity || scannedQuantity < 1) {
+                          handleSetExactQuantity(1);
+                        }
+                      }}
+                      className="w-10 text-center font-mono font-bold text-xs bg-transparent text-[#f5d77f] focus:outline-none focus:bg-[#202028] rounded border border-transparent focus:border-emerald-600"
+                      title="Type in quantity"
+                    />
+                  </div>
                   <button
                     type="button"
                     onClick={() => handleAdjustQuantity(1)}

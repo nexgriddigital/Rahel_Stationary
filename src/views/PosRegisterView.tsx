@@ -113,15 +113,15 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   }, [showCheckoutModal, totalAmount]);
 
   // Cart manipulation
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantityToAdd: number = 1) => {
     setCart(prev => {
       const idx = prev.findIndex(item => item.product.id === product.id);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + 1 };
+        copy[idx] = { ...copy[idx], quantity: copy[idx].quantity + quantityToAdd };
         return copy;
       }
-      return [...prev, { product, quantity: 1, appliedDiscountPercent: 0 }];
+      return [...prev, { product, quantity: Math.max(1, quantityToAdd), appliedDiscountPercent: 0 }];
     });
   };
 
@@ -136,6 +136,17 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           return item;
         })
         .filter(Boolean) as CartItem[];
+    });
+  };
+
+  const setItemQuantity = (productId: string, exactQty: number) => {
+    setCart(prev => {
+      if (exactQty <= 0) {
+        return prev.filter(item => item.product.id !== productId);
+      }
+      return prev.map(item =>
+        item.product.id === productId ? { ...item, quantity: exactQty } : item
+      );
     });
   };
 
@@ -594,22 +605,41 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    {/* Stepper with generous touch targets */}
+                    {/* Stepper with direct type-in QTY input */}
                     <div className="flex items-center rounded-xl border border-[#2a261f] bg-[#1a1a20]">
                       <button
                         onClick={() => updateQuantity(item.product.id, -1)}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-l-xl cursor-pointer"
+                        className="w-7 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-l-xl cursor-pointer"
                         title="Decrease quantity"
                         aria-label="Decrease quantity"
                       >
                         <Minus className="w-3.5 h-3.5" />
                       </button>
-                      <span className="px-2 font-mono text-xs font-bold text-[#f4efe8] min-w-6 text-center">
-                        {item.quantity}
-                      </span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="99999"
+                        value={item.quantity === 0 ? '' : item.quantity}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10);
+                          setItemQuantity(item.product.id, isNaN(val) ? 1 : Math.max(0, val));
+                        }}
+                        onBlur={() => {
+                          if (!item.quantity || item.quantity < 1) {
+                            setItemQuantity(item.product.id, 1);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            (e.target as HTMLInputElement).blur();
+                          }
+                        }}
+                        className="w-11 h-8 px-1 text-center font-mono text-xs font-bold text-[#f5d77f] bg-transparent border-x border-[#2a261f] focus:outline-none focus:bg-[#202028] focus:border-[#d4af37]"
+                        title="Type in quantity directly"
+                      />
                       <button
                         onClick={() => updateQuantity(item.product.id, 1)}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-r-xl cursor-pointer"
+                        className="w-7 h-8 flex items-center justify-center hover:bg-[#d4af37]/15 text-[#c2baa9] hover:text-[#f5d77f] rounded-r-xl cursor-pointer"
                         title="Increase quantity"
                         aria-label="Increase quantity"
                       >
