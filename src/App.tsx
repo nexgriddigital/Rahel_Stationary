@@ -72,14 +72,22 @@ export default function App() {
   });
 
   // Reactivity tick for storage updates & session tracking
-  const [, setStorageTick] = useState(0);
+  const [storageTick, setStorageTick] = useState(0);
 
   useEffect(() => {
     const unsubscribe = storage.subscribe(() => {
       setStorageTick((t) => t + 1);
       setSession(storage.getSession());
     });
-    return unsubscribe;
+    const handleDataReset = () => {
+      setCart([]);
+      setStorageTick((t) => t + 1);
+    };
+    window.addEventListener('rahel_pos_data_reset', handleDataReset);
+    return () => {
+      unsubscribe();
+      window.removeEventListener('rahel_pos_data_reset', handleDataReset);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -276,6 +284,7 @@ export default function App() {
 
           {currentTab === 'dashboard' && (
             <DashboardView
+              key={storageTick}
               onNavigate={setCurrentTab}
               onOpenScanner={() => setIsScannerOpen(true)}
             />
@@ -283,6 +292,7 @@ export default function App() {
 
           {currentTab === 'pos' && (
             <PosRegisterView
+              key={storageTick}
               onNavigateToHistory={() => setCurrentTab('sales')}
               onOpenScanner={() => setIsScannerOpen(true)}
               cart={cart}
@@ -292,6 +302,7 @@ export default function App() {
 
           {currentTab === 'inventory' && (
             <InventoryView
+              key={storageTick}
               onNavigateToBarcodeStudio={(_productIds) => {
                 setCurrentTab('barcodes');
               }}
@@ -303,6 +314,7 @@ export default function App() {
 
           {currentTab === 'services' && (
             <ServicesView
+              key={storageTick}
               onNavigateToPos={() => setCurrentTab('pos')}
               onAddServiceToPos={(srv) => {
                 handleAddToCart(storage.convertServiceToProduct(srv));
@@ -312,22 +324,22 @@ export default function App() {
           )}
 
           {currentTab === 'sales' && (
-            <SalesLedgerView onNavigateToPOS={() => setCurrentTab('pos')} />
+            <SalesLedgerView key={storageTick} onNavigateToPOS={() => setCurrentTab('pos')} />
           )}
 
-          {currentTab === 'credit' && <CreditAccountsView />}
+          {currentTab === 'credit' && <CreditAccountsView key={storageTick} />}
 
-          {currentTab === 'expenses' && <ExpenseTrackerView />}
+          {currentTab === 'expenses' && <ExpenseTrackerView key={storageTick} />}
 
-          {currentTab === 'barcodes' && <BarcodeStudioView />}
+          {currentTab === 'barcodes' && <BarcodeStudioView key={storageTick} />}
 
-          {currentTab === 'reports' && <ReportsView />}
+          {currentTab === 'reports' && <ReportsView key={storageTick} />}
 
-          {currentTab === 'staff' && <StaffView />}
+          {currentTab === 'staff' && <StaffView key={storageTick} />}
 
-          {currentTab === 'logs' && <ActivityLogsView />}
+          {currentTab === 'logs' && <ActivityLogsView key={storageTick} />}
 
-          {currentTab === 'settings' && <SettingsView />}
+          {currentTab === 'settings' && <SettingsView key={storageTick} />}
         </main>
 
         {/* Mobile Quick Bottom Navigation Bar (Smartphones & small screens) */}

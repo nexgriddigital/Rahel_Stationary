@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { StoreSettings } from '../types';
 import { storage } from '../services/storage';
-import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check, Undo2 } from 'lucide-react';
+import { Settings, Save, Download, Upload, RotateCcw, Cloud, ShieldCheck, Check, Undo2, Trash2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
 interface SettingsViewProps {
@@ -13,7 +13,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
   const [isSaved, setIsSaved] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
+  const [showDemoModal, setShowDemoModal] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,20 +67,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
   const handleExecuteFactoryReset = () => {
     setIsResetting(true);
     try {
-      storage.resetToFactoryDefaults();
+      storage.removeAllData();
       setSettings(storage.getSettings());
       onSettingsSaved?.();
-      setImportStatus('Database successfully reset to demo catalog. All initial products and settings restored.');
+      setImportStatus('All store data has been successfully removed. Your database is now completely clean and empty (0 items).');
       setIsResetting(false);
       setShowFactoryResetModal(false);
       setTimeout(() => {
         setImportStatus(null);
-      }, 4000);
+      }, 5000);
     } catch (err) {
       console.error('Factory reset failed:', err);
       setImportStatus('Failed to reset database.');
       setIsResetting(false);
       setShowFactoryResetModal(false);
+    }
+  };
+
+  const handleExecuteLoadDemo = () => {
+    setIsLoadingDemo(true);
+    try {
+      storage.loadDemoSampleData();
+      setSettings(storage.getSettings());
+      onSettingsSaved?.();
+      setImportStatus('Sample demo catalog and transactions loaded successfully.');
+      setIsLoadingDemo(false);
+      setShowDemoModal(false);
+      setTimeout(() => {
+        setImportStatus(null);
+      }, 5000);
+    } catch (err) {
+      console.error('Load demo failed:', err);
+      setImportStatus('Failed to load demo data.');
+      setIsLoadingDemo(false);
+      setShowDemoModal(false);
     }
   };
 
@@ -370,34 +392,68 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
 
             <button
               type="button"
-              onClick={() => setShowFactoryResetModal(true)}
-              className="px-4 py-2 text-xs font-semibold rounded-xl bg-rose-950/40 text-rose-300 border border-rose-800/40 hover:bg-rose-900/40 flex items-center gap-1.5 transition-colors ml-auto cursor-pointer"
+              onClick={() => setShowDemoModal(true)}
+              className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#1a1a20] hover:bg-[#22222a] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#26221c] flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Populate 14 sample stationery items and test transactions for testing"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset Factory Demo Data</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>Load Sample Demo Data</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowFactoryResetModal(true)}
+              className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-950/70 text-rose-200 border border-rose-700/60 hover:bg-rose-900/80 hover:text-white flex items-center gap-1.5 transition-colors ml-auto cursor-pointer shadow-sm shadow-rose-950/40"
+              title="Permanently remove all products, sales, accounts, expenses and shift history"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Reset & Remove All Data</span>
             </button>
           </div>
 
           {importStatus && (
-            <div className="p-2.5 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs">
-              {importStatus}
+            <div className="p-3 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{importStatus}</span>
             </div>
           )}
         </div>
       </form>
 
-      {/* Confirmation Dialog for Factory Reset */}
+      {/* Confirmation Dialog for Reset / Remove All Data */}
       <ConfirmationDialog
         isOpen={showFactoryResetModal}
-        title="Reset Store Database to Factory Demo Data?"
-        message={`This action will restore the initial stationery catalog, reset store settings, and purge all recorded custom transactions and shifts.
+        title="Reset Database & Remove All Data?"
+        message={`Are you sure you want to remove ALL store data?
 
-This action will permanently delete the selected data. This cannot be undone. Continue?`}
-        confirmLabel={isResetting ? 'Resetting...' : 'Yes, Reset Database'}
+This will permanently delete:
+• All products & inventory stock (will become 0 items)
+• All commercial services
+• All sales ledger records & receipts
+• All customer credit accounts & balances
+• All recorded expenses
+• All register shift logs & cash drawer history
+
+Your database will be reset to a completely clean, empty state ready for fresh real-world operations. This action cannot be undone.`}
+        confirmLabel={isResetting ? 'Removing All Data...' : 'Yes, Remove All Data'}
         cancelLabel="Cancel"
         variant="danger"
         onConfirm={handleExecuteFactoryReset}
         onCancel={() => setShowFactoryResetModal(false)}
+      />
+
+      {/* Confirmation Dialog for Load Demo Data */}
+      <ConfirmationDialog
+        isOpen={showDemoModal}
+        title="Load Sample Demo Catalog & Data?"
+        message={`This will populate the database with the 14 standard sample stationery products, 6 default commercial services, demo sales, and example corporate credit accounts.
+
+Existing records will be replaced with sample demo records. Continue?`}
+        confirmLabel={isLoadingDemo ? 'Loading Demo Data...' : 'Yes, Load Demo Data'}
+        cancelLabel="Cancel"
+        variant="warning"
+        onConfirm={handleExecuteLoadDemo}
+        onCancel={() => setShowDemoModal(false)}
       />
     </div>
   );

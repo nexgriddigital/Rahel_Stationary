@@ -33,6 +33,8 @@ import {
 } from './productGenerator';
 
 const STORAGE_KEYS = {
+  INITIALIZED: 'rahel_pos_initialized_v2',
+  DATA_CLEARED: 'rahel_pos_data_cleared_v2',
   PRODUCTS: 'rahel_pos_products_v1',
   SERVICES: 'rahel_pos_services_v1',
   SALES: 'rahel_pos_sales_v1',
@@ -1149,6 +1151,10 @@ class StorageService {
     if (typeof window === 'undefined') return;
 
     try {
+      const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+      const isInitialized = localStorage.getItem(STORAGE_KEYS.INITIALIZED) === 'true';
+
+      // Always guarantee settings and single admin user exist
       if (!localStorage.getItem(STORAGE_KEYS.SETTINGS)) {
         localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(DEFAULT_SETTINGS));
       }
@@ -1158,24 +1164,47 @@ class StorageService {
       if (!localStorage.getItem(STORAGE_KEYS.ACTIVE_USER)) {
         localStorage.setItem(STORAGE_KEYS.ACTIVE_USER, JSON.stringify(SEED_STAFF[0]));
       }
-      if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
+
+      // If user has cleared all store data, maintain empty arrays and do not re-seed demo data
+      if (isCleared) {
+        if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.SERVICES)) localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.SALES)) localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.LOGS)) localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.PARKED_CARTS)) localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.STOCK_MOVEMENTS)) localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify([]));
+        if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
+        return;
       }
-      if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
-        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(SEED_SALES));
+
+      if (!isInitialized) {
+        localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+        if (!localStorage.getItem(STORAGE_KEYS.PRODUCTS)) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(SEED_PRODUCTS));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.SERVICES)) {
+          localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(DEFAULT_SERVICES));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.SALES)) {
+          localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(SEED_SALES));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) {
+          localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([SEED_SHIFT]));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) {
+          localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(SEED_CREDIT_ACCOUNTS));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
+          localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SEED_EXPENSES));
+        }
+        if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
+          localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(SEED_LOGS));
+        }
       }
-      if (!localStorage.getItem(STORAGE_KEYS.SHIFTS)) {
-        localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify([SEED_SHIFT]));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.CREDIT_ACCOUNTS)) {
-        localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(SEED_CREDIT_ACCOUNTS));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.EXPENSES)) {
-        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SEED_EXPENSES));
-      }
-      if (!localStorage.getItem(STORAGE_KEYS.LOGS)) {
-        localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(SEED_LOGS));
-      }
+
       if (!localStorage.getItem(STORAGE_KEYS.PARKED_CARTS)) {
         localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify([]));
       }
@@ -1505,6 +1534,15 @@ class StorageService {
   // Document Typing is strictly prohibited and excluded.
   // ==============================================================
   public getServices(): ServiceItem[] {
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    if (isCleared) {
+      const stored = this.get<ServiceItem[]>(STORAGE_KEYS.SERVICES, []);
+      return stored.filter(s => {
+        const name = (s.name || '').trim().toLowerCase();
+        return name !== 'document typing' && !name.includes('document typing');
+      });
+    }
+
     let services = this.get<ServiceItem[]>(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES);
     let mutated = false;
 
@@ -1624,7 +1662,9 @@ class StorageService {
 
   // Products & Inventory
   public getProducts(): Product[] {
-    const products = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS);
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : SEED_PRODUCTS;
+    const products = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, fallback);
     let mutated = false;
     // Filter out any legacy Document Typing that might have been saved as a product
     const cleanProducts = products.filter(p => {
@@ -2081,8 +2121,10 @@ class StorageService {
 
   // Sales & Transactions
   public getSales(): Sale[] {
-    const list = this.get<Sale[]>(STORAGE_KEYS.SALES, ALL_SEED_SALES);
-    const effectiveList = (!list || list.length < 25) ? ALL_SEED_SALES : list;
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : ALL_SEED_SALES;
+    const list = this.get<Sale[]>(STORAGE_KEYS.SALES, fallback);
+    const effectiveList = isCleared ? list : ((!list || list.length < 25) ? ALL_SEED_SALES : list);
     return effectiveList.map(s => {
       const txnId = s.transactionId || (s.receiptNumber ? (s.receiptNumber.startsWith('TXN-') ? s.receiptNumber : s.receiptNumber.replace(/^REC-/, 'TXN-')) : `TXN-2026-${s.id.slice(-4)}`);
       let pm = s.paymentMethod;
@@ -2696,7 +2738,9 @@ class StorageService {
 
   // Cash Shifts
   public getShifts(): CashShift[] {
-    return this.get<CashShift[]>(STORAGE_KEYS.SHIFTS, [SEED_SHIFT]);
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : [SEED_SHIFT];
+    return this.get<CashShift[]>(STORAGE_KEYS.SHIFTS, fallback);
   }
 
   public getActiveShift(): CashShift | null {
@@ -2776,7 +2820,9 @@ class StorageService {
 
   // Credit Accounts
   public getCreditAccounts(): CustomerCreditAccount[] {
-    return this.get<CustomerCreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, SEED_CREDIT_ACCOUNTS);
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : SEED_CREDIT_ACCOUNTS;
+    return this.get<CustomerCreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, fallback);
   }
 
   public saveCreditAccount(account: CustomerCreditAccount): void {
@@ -2849,7 +2895,9 @@ class StorageService {
 
   // Expenses
   public getExpenses(): Expense[] {
-    return this.get<Expense[]>(STORAGE_KEYS.EXPENSES, SEED_EXPENSES);
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : SEED_EXPENSES;
+    return this.get<Expense[]>(STORAGE_KEYS.EXPENSES, fallback);
   }
 
   public addExpense(expense: Expense): void {
@@ -2876,7 +2924,9 @@ class StorageService {
 
   // Activity Logs
   public getLogs(): ActivityLog[] {
-    return this.get<ActivityLog[]>(STORAGE_KEYS.LOGS, SEED_LOGS);
+    const isCleared = localStorage.getItem(STORAGE_KEYS.DATA_CLEARED) === 'true';
+    const fallback = isCleared ? [] : SEED_LOGS;
+    return this.get<ActivityLog[]>(STORAGE_KEYS.LOGS, fallback);
   }
 
   public logActivity(action: string, category: ActivityLog['category'], details: string): void {
@@ -3129,6 +3179,8 @@ class StorageService {
       if (data.staff) {
         this.set(STORAGE_KEYS.STAFF, data.staff);
       }
+      localStorage.removeItem(STORAGE_KEYS.DATA_CLEARED);
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
       this.logActivity('DATA_RESTORE', 'security', 'Database restored from JSON backup file.');
       return true;
     } catch (e) {
@@ -3137,11 +3189,77 @@ class StorageService {
     }
   }
 
-  // Reset to demo factory defaults
+  // Remove All Data: Completely wipes all operational store data to zero items
+  public removeAllData(): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.DATA_CLEARED, 'true');
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+
+      // Clear all operational collections to empty arrays
+      this.set(STORAGE_KEYS.PRODUCTS, [], false);
+      this.set(STORAGE_KEYS.SERVICES, [], false);
+      this.set(STORAGE_KEYS.SALES, [], false);
+      this.set(STORAGE_KEYS.PARKED_CARTS, [], false);
+      this.set(STORAGE_KEYS.SHIFTS, [], false);
+      this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, [], false);
+      this.set(STORAGE_KEYS.EXPENSES, [], false);
+      this.set(STORAGE_KEYS.STOCK_MOVEMENTS, [], false);
+      this.set(STORAGE_KEYS.NOTIFICATIONS, [], false);
+
+      const wipeLog: ActivityLog = {
+        id: 'log_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        action: 'ALL_DATA_CLEARED',
+        category: 'security',
+        performedBy: this.getActiveUser()?.name || 'Administrator',
+        details: 'Store database was completely reset. All products, sales, accounts, expenses and shift logs were permanently removed.'
+      };
+      this.set(STORAGE_KEYS.LOGS, [wipeLog], false);
+
+      // Notify all reactive listeners across views
+      this.notify();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rahel_pos_data_reset'));
+      }
+    } catch (e) {
+      console.error('Failed to remove all data:', e);
+      throw e;
+    }
+  }
+
+  // Reset to factory defaults is guaranteed to completely wipe all data
   public resetToFactoryDefaults(): void {
-    localStorage.clear();
-    this.initSeeds();
-    this.notify();
+    this.removeAllData();
+  }
+
+  // Populate sample demo catalog and transactions for testing
+  public loadDemoSampleData(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.DATA_CLEARED);
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+
+      this.set(STORAGE_KEYS.PRODUCTS, SEED_PRODUCTS, false);
+      this.set(STORAGE_KEYS.SERVICES, DEFAULT_SERVICES, false);
+      this.set(STORAGE_KEYS.SALES, SEED_SALES, false);
+      this.set(STORAGE_KEYS.PARKED_CARTS, [], false);
+      this.set(STORAGE_KEYS.SHIFTS, [SEED_SHIFT], false);
+      this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, SEED_CREDIT_ACCOUNTS, false);
+      this.set(STORAGE_KEYS.EXPENSES, SEED_EXPENSES, false);
+      this.set(STORAGE_KEYS.STOCK_MOVEMENTS, [], false);
+      this.set(STORAGE_KEYS.NOTIFICATIONS, [], false);
+      this.set(STORAGE_KEYS.LOGS, SEED_LOGS, false);
+
+      this.logActivity('DEMO_DATA_LOADED', 'security', 'Sample demo catalog and sample transactions populated.');
+      this.notify();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rahel_pos_data_reset'));
+      }
+    } catch (e) {
+      console.error('Failed to load demo data:', e);
+      throw e;
+    }
   }
 }
 

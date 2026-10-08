@@ -711,7 +711,11 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                   <td colSpan={10} className="py-14 text-center text-[#8c8273]">
                     <div className="flex flex-col items-center justify-center gap-2.5">
                       <Package className="w-8 h-8 opacity-40 text-[#d4af37]" />
-                      <p className="text-xs">No inventory records match the current filters.</p>
+                      <p className="text-xs">
+                        {products.length === 0
+                          ? 'Your inventory is currently empty. Add your first product to start tracking stock.'
+                          : 'No inventory records match the current filters.'}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         {isAnyFilterActive && (
                           <button
@@ -724,11 +728,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           </button>
                         )}
                         <button
-                          onClick={() => setIsBulkImportOpen(true)}
-                          className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          onClick={() => setIsAddModalOpen(true)}
+                          className="px-3.5 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black flex items-center gap-1.5 shadow-xs cursor-pointer hover:brightness-110"
                         >
-                          <FileSpreadsheet className="w-3.5 h-3.5 text-black" />
-                          <span>Bulk Import Items</span>
+                          <Plus className="w-3.5 h-3.5 text-black" />
+                          <span>Add Product</span>
+                        </button>
+                        <button
+                          onClick={() => setIsBulkImportOpen(true)}
+                          className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3.5 h-3.5 text-[#d4af37]" />
+                          <span>Bulk Import</span>
                         </button>
                       </div>
                     </div>
