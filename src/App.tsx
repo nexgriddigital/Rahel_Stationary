@@ -9,7 +9,10 @@ import {
   ShoppingBag,
   History,
   BarChart3,
-  Menu
+  Menu,
+  ShieldCheck,
+  RotateCcw,
+  X
 } from 'lucide-react';
 import { storage } from './services/storage';
 import { CartItem, Sale, Product } from './types';
@@ -21,6 +24,7 @@ import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { UrgentRestockToast } from './components/UrgentRestockToast';
 import { useRestockWorker } from './services/useRestockWorker';
+import { useAutoBackup } from './services/useAutoBackup';
 import { UserSession } from './types';
 
 // Views
@@ -70,6 +74,10 @@ export default function App() {
     checkIntervalMs: 12000,
     onNavigateToInventory: () => setCurrentTab('inventory')
   });
+
+  // Automated backup & cache loss recovery worker
+  const { emergencyRecoverySnapshot, restoreSnapshot } = useAutoBackup({ checkIntervalMs: 60000 });
+  const [dismissedRecovery, setDismissedRecovery] = useState(false);
 
   // Reactivity tick for storage updates & session tracking
   const [storageTick, setStorageTick] = useState(0);
@@ -279,6 +287,48 @@ export default function App() {
               >
                 Add to Inventory
               </button>
+            </div>
+          )}
+
+          {/* Emergency Cache Recovery Fallback Banner */}
+          {emergencyRecoverySnapshot && !dismissedRecovery && (
+            <div className="bg-gradient-to-r from-amber-950/95 via-[#1a1410] to-amber-950/95 border-b border-amber-600/50 px-4 py-2.5 text-xs text-amber-200 flex flex-wrap items-center justify-between gap-3 shadow-lg z-40 relative animate-in slide-in-from-top-1">
+              <div className="flex items-center gap-2.5">
+                <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="font-bold text-amber-300">Automated Backup Fallback Detected:</span>{' '}
+                  <span className="opacity-90">
+                    Your store records are currently empty, but an automated snapshot from{' '}
+                    <strong className="text-[#f5d77f]">
+                      {new Date(emergencyRecoverySnapshot.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                    </strong>{' '}
+                    is available ({emergencyRecoverySnapshot.summary.totalProducts} products, {emergencyRecoverySnapshot.summary.totalSales} sales).
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    restoreSnapshot(emergencyRecoverySnapshot.id);
+                  }}
+                  className="px-3 py-1 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#e6ca65] text-black font-bold text-xs hover:brightness-110 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                >
+                  <RotateCcw className="w-3 h-3 text-black" />
+                  <span>Restore Automated Backup</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDismissedRecovery(true)}
+                  className="p-1 text-amber-400/80 hover:text-amber-200 hover:bg-white/5 rounded-lg transition-colors cursor-pointer"
+                  title="Dismiss fallback banner"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           )}
 

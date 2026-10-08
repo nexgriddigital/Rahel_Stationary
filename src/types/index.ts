@@ -366,6 +366,11 @@ export interface StoreSettings {
     databaseId?: string;
     experimentalForceLongPolling?: boolean;
   };
+  // Automated Backup Configuration
+  autoBackupEnabled?: boolean;
+  autoBackupIntervalHours?: number; // 6, 12, 24
+  autoBackupOnShiftClose?: boolean;
+  lastAutoBackupAt?: string;
 }
 
 export type NotificationSeverity = 'urgent' | 'warning' | 'info' | 'success';
@@ -386,5 +391,80 @@ export interface AppNotification {
   minThreshold?: number;
   unit?: string;
   actionUrl?: string;
+}
+
+// Backup & Recovery Types
+export interface BackupPayload {
+  settings?: StoreSettings;
+  products?: Product[];
+  services?: ServiceItem[];
+  sales?: Sale[];
+  creditAccounts?: CustomerCreditAccount[];
+  expenses?: Expense[];
+  shifts?: CashShift[];
+  stockMovements?: StockMovement[];
+  staff?: StaffUser[];
+  logs?: ActivityLog[];
+}
+
+export interface BackupEnvelope {
+  app: string;
+  version: string;
+  format: string; // 'rahel-pos-secure-backup'
+  exportedAt: string;
+  store: {
+    name: string;
+    currency: string;
+  };
+  summary: {
+    totalProducts: number;
+    totalServices: number;
+    totalSales: number;
+    totalCreditAccounts: number;
+    totalExpenses: number;
+    totalShifts: number;
+    totalStockMovements: number;
+  };
+  checksum: string;
+  payload: BackupPayload;
+}
+
+export interface LocalBackupSnapshot {
+  id: string;
+  timestamp: string;
+  trigger: 'auto_scheduled' | 'auto_shift_close' | 'manual_snapshot';
+  fileSizeEstimate: string;
+  summary: {
+    totalProducts: number;
+    totalServices: number;
+    totalSales: number;
+    totalCreditAccounts: number;
+    totalExpenses: number;
+  };
+  data: BackupEnvelope;
+}
+
+export interface BackupInspectionResult {
+  isValid: boolean;
+  error?: string;
+  format: string;
+  version: string;
+  exportedAt: string;
+  checksum: string;
+  checksumValid: boolean;
+  storeName: string;
+  currency: string;
+  counts: {
+    products: number;
+    services: number;
+    sales: number;
+    creditAccounts: number;
+    expenses: number;
+    shifts: number;
+    stockMovements: number;
+  };
+  sampleProducts: string[];
+  sampleSales: string[];
+  payload: BackupPayload;
 }
 

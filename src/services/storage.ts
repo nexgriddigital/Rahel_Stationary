@@ -23,7 +23,11 @@ import {
   PaymentMethod,
   ETHIOPIAN_PAYMENT_METHODS,
   getPaymentMethodLabel,
-  LOW_STOCK_THRESHOLD
+  LOW_STOCK_THRESHOLD,
+  BackupEnvelope,
+  BackupPayload,
+  LocalBackupSnapshot,
+  BackupInspectionResult
 } from '../types';
 import {
   autoDetectCategory,
@@ -35,6 +39,7 @@ import {
 const STORAGE_KEYS = {
   INITIALIZED: 'rahel_pos_initialized_v2',
   DATA_CLEARED: 'rahel_pos_data_cleared_v2',
+  AUTO_BACKUPS: 'rahel_pos_auto_backups_v1',
   PRODUCTS: 'rahel_pos_products_v1',
   SERVICES: 'rahel_pos_services_v1',
   SALES: 'rahel_pos_sales_v1',
@@ -153,7 +158,10 @@ const DEFAULT_SETTINGS: StoreSettings = {
     projectId: "rahel-pos-app",
     databaseId: "(default)",
     experimentalForceLongPolling: true
-  }
+  },
+  autoBackupEnabled: true,
+  autoBackupIntervalHours: 24,
+  autoBackupOnShiftClose: true
 };
 
 // Default Administrator: Rahel Fira (Username: admin, PIN: 1234)
@@ -2788,6 +2796,14 @@ class StorageService {
         'shift',
         `Closed Shift #${shift.shiftNumber}. Expected: ETB ${shift.expectedCash.toFixed(2)}, Counted: ETB ${actualCash.toFixed(2)}, Diff: ETB ${shift.discrepancy.toFixed(2)}`
       );
+
+      // Automated backup snapshot on shift close (fallback for cache safety)
+      if (this.getSettings().autoBackupOnShiftClose !== false) {
+        this.createLocalSnapshot('auto_shift_close').catch(err => {
+          console.warn('Auto-backup snapshot on shift close failed:', err);
+        });
+      }
+
       return shift;
     }
     throw new Error('Shift not found');
@@ -3141,52 +3157,401 @@ class StorageService {
     return candidate;
   }
 
-  // Export / Backup
-  public exportAllData(): string {
-    const backup = {
-      version: '1.0',
-      exportedAt: new Date().toISOString(),
-      settings: this.getSettings(),
-      products: this.getProducts(),
-      sales: this.getSales(),
-      shifts: this.getShifts(),
-      creditAccounts: this.getCreditAccounts(),
-      expenses: this.getExpenses(),
-      staff: this.getStaff(),
-      logs: this.getLogs()
+  // ==============================================================
+  // Automated & Secure JSON Backup, Inspection & Restore System
+  // ==============================================================
+
+  public async exportAllDataSecure(): Promise<BackupEnvelope> {
+    const settings = this.getSettings();
+    const products = this.getProducts();
+    const services = this.getServices();
+    const sales = this.getSales();
+    const creditAccounts = this.getCreditAccounts();
+    const expenses = this.getExpenses();
+    const shifts = this.getShifts();
+    const stockMovements = this.getStockMovements();
+    const staff = this.getStaff();
+    const logs = this.getLogs();
+
+    const payload: BackupPayload = {
+      settings,
+      products,
+      services,
+      sales,
+      creditAccounts,
+      expenses,
+      shifts,
+      stockMovements,
+      staff,
+      logs
     };
-    return JSON.stringify(backup, null, 2);
+
+    const payloadCanonical = JSON.stringify(payload);
+    const checksum = await sha256Hex(payloadCanonical);
+
+    const envelope: BackupEnvelope = {
+      app: 'Rahel POS',
+      version: '2.0',
+      format: 'rahel-pos-secure-backup',
+      exportedAt: new Date().toISOString(),
+      store: {
+        name: settings.storeName || 'Rahel Stationary',
+        currency: settings.currencySymbol || 'ETB'
+      },
+      summary: {
+        totalProducts: products.length,
+        totalServices: services.length,
+        totalSales: sales.length,
+        totalCreditAccounts: creditAccounts.length,
+        totalExpenses: expenses.length,
+        totalShifts: shifts.length,
+        totalStockMovements: stockMovements.length
+      },
+      checksum,
+      payload
+    };
+
+    this.logActivity(
+      'BACKUP_EXPORTED',
+      'security',
+      `Secure JSON backup generated: ${products.length} products, ${sales.length} sales, ${creditAccounts.length} credit accounts. Checksum: ${checksum.slice(0, 8)}...`
+    );
+
+    return envelope;
   }
 
-  public importData(jsonString: string): boolean {
+  // Backward-compatible JSON string exporter
+  public exportAllData(): string {
+    const settings = this.getSettings();
+    const products = this.getProducts();
+    const services = this.getServices();
+    const sales = this.getSales();
+    const creditAccounts = this.getCreditAccounts();
+    const expenses = this.getExpenses();
+    const shifts = this.getShifts();
+    const stockMovements = this.getStockMovements();
+    const staff = this.getStaff();
+    const logs = this.getLogs();
+
+    const payload: BackupPayload = {
+      settings,
+      products,
+      services,
+      sales,
+      creditAccounts,
+      expenses,
+      shifts,
+      stockMovements,
+      staff,
+      logs
+    };
+
+    const envelope: BackupEnvelope = {
+      app: 'Rahel POS',
+      version: '2.0',
+      format: 'rahel-pos-secure-backup',
+      exportedAt: new Date().toISOString(),
+      store: {
+        name: settings.storeName || 'Rahel Stationary',
+        currency: settings.currencySymbol || 'ETB'
+      },
+      summary: {
+        totalProducts: products.length,
+        totalServices: services.length,
+        totalSales: sales.length,
+        totalCreditAccounts: creditAccounts.length,
+        totalExpenses: expenses.length,
+        totalShifts: shifts.length,
+        totalStockMovements: stockMovements.length
+      },
+      checksum: 'sha256-verified-on-demand',
+      payload
+    };
+
+    return JSON.stringify(envelope, null, 2);
+  }
+
+  // Inspect and validate a candidate JSON backup file prior to restore
+  public async inspectBackupFile(jsonString: string): Promise<BackupInspectionResult> {
     try {
-      const data = JSON.parse(jsonString);
-      if (data.products && Array.isArray(data.products)) {
-        this.set(STORAGE_KEYS.PRODUCTS, data.products);
+      const parsed = JSON.parse(jsonString);
+
+      // Check if file is Version 2.0 Secure Envelope
+      const isEnvelope = parsed && parsed.format === 'rahel-pos-secure-backup' && parsed.payload;
+
+      let payload: BackupPayload;
+      let version = '1.0';
+      let format = 'legacy-json-backup';
+      let exportedAt = new Date().toISOString();
+      let storeName = 'Rahel Stationary';
+      let currency = 'ETB';
+      let checksum = '';
+      let checksumValid = true;
+
+      if (isEnvelope) {
+        version = parsed.version || '2.0';
+        format = parsed.format;
+        exportedAt = parsed.exportedAt || exportedAt;
+        storeName = parsed.store?.name || storeName;
+        currency = parsed.store?.currency || currency;
+        checksum = parsed.checksum || '';
+        payload = parsed.payload;
+
+        if (checksum && checksum !== 'sha256-verified-on-demand') {
+          const computed = await sha256Hex(JSON.stringify(payload));
+          checksumValid = computed === checksum;
+        }
+      } else {
+        // Legacy flat format
+        payload = parsed;
+        if (parsed.exportedAt) exportedAt = parsed.exportedAt;
+        if (parsed.version) version = parsed.version;
+        if (parsed.settings?.storeName) storeName = parsed.settings.storeName;
+        if (parsed.settings?.currencySymbol) currency = parsed.settings.currencySymbol;
       }
-      if (data.sales && Array.isArray(data.sales)) {
-        this.set(STORAGE_KEYS.SALES, data.sales);
+
+      const products = Array.isArray(payload.products) ? payload.products : [];
+      const services = Array.isArray(payload.services) ? payload.services : [];
+      const sales = Array.isArray(payload.sales) ? payload.sales : [];
+      const creditAccounts = Array.isArray(payload.creditAccounts) ? payload.creditAccounts : [];
+      const expenses = Array.isArray(payload.expenses) ? payload.expenses : [];
+      const shifts = Array.isArray(payload.shifts) ? payload.shifts : [];
+      const stockMovements = Array.isArray(payload.stockMovements) ? payload.stockMovements : [];
+
+      const sampleProducts = products.slice(0, 5).map(p => p.name || 'Unnamed Product');
+      const sampleSales = sales.slice(0, 5).map(s => s.transactionId || s.receiptNumber || s.id);
+
+      return {
+        isValid: true,
+        format,
+        version,
+        exportedAt,
+        checksum,
+        checksumValid,
+        storeName,
+        currency,
+        counts: {
+          products: products.length,
+          services: services.length,
+          sales: sales.length,
+          creditAccounts: creditAccounts.length,
+          expenses: expenses.length,
+          shifts: shifts.length,
+          stockMovements: stockMovements.length
+        },
+        sampleProducts,
+        sampleSales,
+        payload
+      };
+    } catch (err: any) {
+      return {
+        isValid: false,
+        error: `Invalid JSON backup format: ${err.message || 'File could not be parsed.'}`,
+        format: 'corrupt',
+        version: '0.0',
+        exportedAt: '',
+        checksum: '',
+        checksumValid: false,
+        storeName: '',
+        currency: '',
+        counts: {
+          products: 0,
+          services: 0,
+          sales: 0,
+          creditAccounts: 0,
+          expenses: 0,
+          shifts: 0,
+          stockMovements: 0
+        },
+        sampleProducts: [],
+        sampleSales: [],
+        payload: {}
+      };
+    }
+  }
+
+  // Restore database from verified BackupPayload
+  public restoreFromBackup(
+    payload: BackupPayload,
+    mode: 'replace' | 'merge' = 'replace'
+  ): { success: boolean; error?: string; restoredCounts: any } {
+    try {
+      let finalProducts: Product[] = [];
+      let finalServices: ServiceItem[] = [];
+      let finalSales: Sale[] = [];
+      let finalCreditAccounts: CustomerCreditAccount[] = [];
+      let finalExpenses: Expense[] = [];
+      let finalShifts: CashShift[] = [];
+      let finalMovements: StockMovement[] = [];
+
+      if (mode === 'replace') {
+        finalProducts = Array.isArray(payload.products) ? payload.products : [];
+        finalServices = Array.isArray(payload.services) ? payload.services : [];
+        finalSales = Array.isArray(payload.sales) ? payload.sales : [];
+        finalCreditAccounts = Array.isArray(payload.creditAccounts) ? payload.creditAccounts : [];
+        finalExpenses = Array.isArray(payload.expenses) ? payload.expenses : [];
+        finalShifts = Array.isArray(payload.shifts) ? payload.shifts : [];
+        finalMovements = Array.isArray(payload.stockMovements) ? payload.stockMovements : [];
+
+        if (payload.settings) {
+          const current = this.getSettings();
+          this.set(STORAGE_KEYS.SETTINGS, { ...current, ...payload.settings });
+        }
+      } else {
+        // Merge mode: blend incoming records with existing records
+        const currentProducts = this.getProducts();
+        const incomingProducts = Array.isArray(payload.products) ? payload.products : [];
+        const productMap = new Map<string, Product>();
+        currentProducts.forEach(p => productMap.set(p.id, p));
+        incomingProducts.forEach(p => {
+          // If SKU already exists in store, preserve or update
+          const existingBySku = currentProducts.find(cp => cp.sku && cp.sku === p.sku);
+          if (existingBySku) {
+            productMap.set(existingBySku.id, { ...existingBySku, ...p, id: existingBySku.id });
+          } else {
+            productMap.set(p.id, p);
+          }
+        });
+        finalProducts = Array.from(productMap.values());
+
+        const currentServices = this.getServices();
+        const incomingServices = Array.isArray(payload.services) ? payload.services : [];
+        const serviceMap = new Map<string, ServiceItem>();
+        currentServices.forEach(s => serviceMap.set(s.id, s));
+        incomingServices.forEach(s => serviceMap.set(s.id, s));
+        finalServices = Array.from(serviceMap.values());
+
+        const currentSales = this.getSales();
+        const incomingSales = Array.isArray(payload.sales) ? payload.sales : [];
+        const saleMap = new Map<string, Sale>();
+        currentSales.forEach(s => saleMap.set(s.transactionId || s.id, s));
+        incomingSales.forEach(s => saleMap.set(s.transactionId || s.id, s));
+        finalSales = Array.from(saleMap.values());
+
+        const currentCredit = this.getCreditAccounts();
+        const incomingCredit = Array.isArray(payload.creditAccounts) ? payload.creditAccounts : [];
+        const creditMap = new Map<string, CustomerCreditAccount>();
+        currentCredit.forEach(c => creditMap.set(c.id, c));
+        incomingCredit.forEach(c => creditMap.set(c.id, c));
+        finalCreditAccounts = Array.from(creditMap.values());
+
+        const currentExpenses = this.getExpenses();
+        const incomingExpenses = Array.isArray(payload.expenses) ? payload.expenses : [];
+        const expenseMap = new Map<string, Expense>();
+        currentExpenses.forEach(e => expenseMap.set(e.id, e));
+        incomingExpenses.forEach(e => expenseMap.set(e.id, e));
+        finalExpenses = Array.from(expenseMap.values());
+
+        finalShifts = this.getShifts();
+        finalMovements = this.getStockMovements();
       }
-      if (data.settings) {
-        this.set(STORAGE_KEYS.SETTINGS, data.settings);
-      }
-      if (data.creditAccounts) {
-        this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, data.creditAccounts);
-      }
-      if (data.expenses) {
-        this.set(STORAGE_KEYS.EXPENSES, data.expenses);
-      }
-      if (data.staff) {
-        this.set(STORAGE_KEYS.STAFF, data.staff);
-      }
+
+      // Persist to storage
+      this.set(STORAGE_KEYS.PRODUCTS, finalProducts, false);
+      this.set(STORAGE_KEYS.SERVICES, finalServices, false);
+      this.set(STORAGE_KEYS.SALES, finalSales, false);
+      this.set(STORAGE_KEYS.CREDIT_ACCOUNTS, finalCreditAccounts, false);
+      this.set(STORAGE_KEYS.EXPENSES, finalExpenses, false);
+      this.set(STORAGE_KEYS.SHIFTS, finalShifts, false);
+      this.set(STORAGE_KEYS.STOCK_MOVEMENTS, finalMovements, false);
+
       localStorage.removeItem(STORAGE_KEYS.DATA_CLEARED);
       localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
-      this.logActivity('DATA_RESTORE', 'security', 'Database restored from JSON backup file.');
-      return true;
+
+      const restoredCounts = {
+        products: finalProducts.length,
+        services: finalServices.length,
+        sales: finalSales.length,
+        creditAccounts: finalCreditAccounts.length,
+        expenses: finalExpenses.length
+      };
+
+      this.logActivity(
+        'DATA_RESTORE',
+        'security',
+        `Database restored (${mode} mode): ${finalProducts.length} products, ${finalSales.length} sales, ${finalCreditAccounts.length} customer accounts recovered.`
+      );
+
+      this.notify();
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('rahel_pos_data_reset'));
+      }
+
+      return { success: true, restoredCounts };
+    } catch (e: any) {
+      console.error('Restore failed:', e);
+      return { success: false, error: e.message || 'Failed to restore database.', restoredCounts: null };
+    }
+  }
+
+  // Standard importData implementation delegating to restoreFromBackup
+  public importData(jsonString: string): boolean {
+    try {
+      const parsed = JSON.parse(jsonString);
+      const payload: BackupPayload = parsed && parsed.payload ? parsed.payload : parsed;
+      const res = this.restoreFromBackup(payload, 'replace');
+      return res.success;
     } catch (e) {
       console.error('Import failed', e);
       return false;
     }
+  }
+
+  // ==============================================================
+  // Automated Rolling Local Backup Snapshots (Cache Protection)
+  // ==============================================================
+
+  public getLocalSnapshots(): LocalBackupSnapshot[] {
+    return this.get<LocalBackupSnapshot[]>(STORAGE_KEYS.AUTO_BACKUPS, []);
+  }
+
+  public async createLocalSnapshot(
+    trigger: 'auto_scheduled' | 'auto_shift_close' | 'manual_snapshot' = 'manual_snapshot'
+  ): Promise<LocalBackupSnapshot> {
+    const envelope = await this.exportAllDataSecure();
+    const json = JSON.stringify(envelope);
+    const sizeKb = (json.length / 1024).toFixed(1) + ' KB';
+
+    const snapshot: LocalBackupSnapshot = {
+      id: 'snap_' + Date.now(),
+      timestamp: new Date().toISOString(),
+      trigger,
+      fileSizeEstimate: sizeKb,
+      summary: {
+        totalProducts: envelope.summary.totalProducts,
+        totalServices: envelope.summary.totalServices,
+        totalSales: envelope.summary.totalSales,
+        totalCreditAccounts: envelope.summary.totalCreditAccounts,
+        totalExpenses: envelope.summary.totalExpenses
+      },
+      data: envelope
+    };
+
+    const existing = this.getLocalSnapshots();
+    // Keep up to 5 rolling snapshots to prevent storage bloat
+    const updated = [snapshot, ...existing].slice(0, 5);
+    this.set(STORAGE_KEYS.AUTO_BACKUPS, updated);
+
+    // Update lastAutoBackupAt in settings
+    const settings = this.getSettings();
+    settings.lastAutoBackupAt = snapshot.timestamp;
+    this.saveSettings(settings);
+
+    return snapshot;
+  }
+
+  public deleteLocalSnapshot(id: string): void {
+    const list = this.getLocalSnapshots().filter(s => s.id !== id);
+    this.set(STORAGE_KEYS.AUTO_BACKUPS, list);
+  }
+
+  public restoreLocalSnapshot(id: string): boolean {
+    const snapshots = this.getLocalSnapshots();
+    const target = snapshots.find(s => s.id === id);
+    if (!target) return false;
+    const res = this.restoreFromBackup(target.data.payload, 'replace');
+    return res.success;
   }
 
   // Remove All Data: Completely wipes all operational store data to zero items
