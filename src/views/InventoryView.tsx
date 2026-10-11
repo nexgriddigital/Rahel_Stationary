@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Product, ProductCategory, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
 import { printHtmlViaIframe } from '../services/printHelper';
 import { BarcodeRenderer } from '../components/BarcodeRenderer';
-import { BulkImportModal } from '../components/BulkImportModal';
 import { ProductBarcodeModal } from '../components/ProductBarcodeModal';
+
+const BulkImportModal = lazy(() =>
+  import('../components/BulkImportModal').then((m) => ({ default: m.BulkImportModal }))
+);
 import QRCode from 'qrcode';
 import {
   Package,
