@@ -277,7 +277,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Responsive Notification Center Panel (Mobile Centered + Desktop Anchored Dropdown) */}
           {isNotifOpen && (
-            <div className="fixed inset-x-2 top-14 sm:static sm:inset-auto sm:absolute sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-1rem)] sm:w-96 max-w-md mx-auto sm:max-w-none sm:mx-0 max-h-[82vh] rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/40 p-3 sm:p-3.5 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden">
+            <div className="fixed inset-x-2 top-14 sm:inset-auto sm:absolute sm:right-0 sm:top-full sm:mt-2 w-[calc(100vw-1rem)] sm:w-96 max-w-md mx-auto sm:max-w-none sm:mx-0 max-h-[82vh] rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/40 p-3 sm:p-3.5 space-y-3 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col overflow-hidden">
               {/* Header */}
               <div className="flex items-center justify-between pb-2 border-b border-[#26221c]">
                 <div className="flex items-center gap-2 min-w-0">

@@ -1770,6 +1770,39 @@ class StorageService {
       };
     }
 
+    // Ensure SKU uniqueness (case-insensitive)
+    const cleanSku = (product.sku || '').trim().toLowerCase();
+    const duplicateSku = list.find(p => p.id !== product.id && (p.sku || '').trim().toLowerCase() === cleanSku);
+    if (duplicateSku) {
+      return {
+        success: false,
+        error: `SKU "${product.sku}" is already assigned to "${duplicateSku.name}". Every product must have a unique SKU identifier.`
+      };
+    }
+
+    // Ensure QR Code uniqueness (case-insensitive)
+    const cleanQr = (product.qrCode || '').trim().toLowerCase();
+    if (cleanQr) {
+      const duplicateQr = list.find(p => p.id !== product.id && (p.qrCode || '').trim().toLowerCase() === cleanQr);
+      if (duplicateQr) {
+        return {
+          success: false,
+          error: `QR Code "${product.qrCode}" is already assigned to "${duplicateQr.name}". Every product must have a unique QR identifier.`
+        };
+      }
+    }
+
+    // Enforce non-negative valid prices and non-negative stock
+    if (isNaN(product.retailPrice) || product.retailPrice < 0) {
+      return { success: false, error: 'Selling price must be a valid non-negative number.' };
+    }
+    if (isNaN(product.costPrice) || product.costPrice < 0) {
+      return { success: false, error: 'Cost price must be a valid non-negative number.' };
+    }
+    if (isNaN(product.stock) || product.stock < 0) {
+      product.stock = 0;
+    }
+
     product.barcode = barcode;
     const idx = list.findIndex(p => p.id === product.id);
     const isNew = idx < 0;
@@ -3570,6 +3603,11 @@ class StorageService {
       this.set(STORAGE_KEYS.EXPENSES, [], false);
       this.set(STORAGE_KEYS.STOCK_MOVEMENTS, [], false);
       this.set(STORAGE_KEYS.NOTIFICATIONS, [], false);
+      this.set(STORAGE_KEYS.AUTO_BACKUPS, [], false);
+
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('rahel_pos_reset_status', 'Store database was completely reset. All products, sales, accounts, expenses and history have been wiped to 0 records.');
+      }
 
       const wipeLog: ActivityLog = {
         id: 'log_' + Date.now(),

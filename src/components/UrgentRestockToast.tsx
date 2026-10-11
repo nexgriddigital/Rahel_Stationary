@@ -43,7 +43,7 @@ export const UrgentRestockToast: React.FC<UrgentRestockToastProps> = ({
   if (visibleToasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+    <div className="fixed bottom-20 sm:bottom-5 right-2 sm:right-5 left-2 sm:left-auto z-50 flex flex-col gap-2.5 max-w-[calc(100vw-1rem)] sm:max-w-sm w-auto pointer-events-none">
       {visibleToasts.map((toast) => {
         const isDepleted = (toast.currentStock ?? 0) <= 0;
 

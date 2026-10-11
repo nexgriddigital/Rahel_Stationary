@@ -18,9 +18,11 @@ export function useAutoBackup(options: UseAutoBackupOptions = {}) {
     setSnapshots(list);
 
     // Check if store is empty while snapshots exist (cache loss recovery scenario)
+    // If user explicitly performed Reset/Remove All Data, do NOT falsely trigger recovery alert
+    const isCleared = typeof localStorage !== 'undefined' && localStorage.getItem('rahel_pos_data_cleared_v2') === 'true';
     const prods = storage.getProducts();
     const sales = storage.getSales();
-    if (prods.length === 0 && sales.length === 0 && list.length > 0) {
+    if (!isCleared && prods.length === 0 && sales.length === 0 && list.length > 0) {
       setEmergencyRecoverySnapshot(list[0]);
     } else {
       setEmergencyRecoverySnapshot(null);

@@ -30,7 +30,16 @@ interface SettingsViewProps {
 export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) => {
   const [settings, setSettings] = useState<StoreSettings>(storage.getSettings());
   const [isSaved, setIsSaved] = useState(false);
-  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(() => {
+    if (typeof sessionStorage !== 'undefined') {
+      const msg = sessionStorage.getItem('rahel_pos_reset_status');
+      if (msg) {
+        sessionStorage.removeItem('rahel_pos_reset_status');
+        return msg;
+      }
+    }
+    return null;
+  });
   const [showFactoryResetModal, setShowFactoryResetModal] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -198,10 +207,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
             type="button"
             onClick={handleResetFormValues}
             className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#1f1f26] text-[#c4bbb0] hover:text-[#f4efe8] border border-[#2a261f] flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Reset form fields to last saved configuration"
+            title="Discard unsaved form changes and restore saved configuration"
           >
             <Undo2 className="w-3.5 h-3.5 text-[#8e8271]" />
-            <span>Reset Form</span>
+            <span>Discard Form Changes</span>
           </button>
 
           <button
@@ -633,7 +642,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
             )}
           </div>
 
-          {/* Quick Demo Data and Danger Reset actions */}
+          {/* Quick Demo Data action */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#26221c]">
             <button
               type="button"
@@ -644,20 +653,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSettingsSaved }) =
               <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
               <span>Load Sample Demo Data</span>
             </button>
+          </div>
+        </div>
+
+        {/* Dedicated Danger Zone: Reset & Remove All Data */}
+        <div className="p-5 rounded-2xl bg-[#160d0e] border border-rose-900/60 shadow-md space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400" />
+                <h3 className="font-bold text-sm text-rose-300">
+                  Danger Zone: Database Reset & Factory Wipe
+                </h3>
+              </div>
+              <p className="text-[11px] text-[#c4a9a9] mt-1 leading-relaxed">
+                Permanently removes all products, services, sales transactions, customer credit, expenses, and shift records. The database will be completely clean and empty (0 items).
+              </p>
+            </div>
 
             <button
               type="button"
               onClick={() => setShowFactoryResetModal(true)}
-              className="px-4 py-2 text-xs font-bold rounded-xl bg-rose-950/70 text-rose-200 border border-rose-700/60 hover:bg-rose-900/80 hover:text-white flex items-center gap-1.5 transition-colors ml-auto cursor-pointer shadow-sm shadow-rose-950/40"
-              title="Permanently remove all products, sales, accounts, expenses and shift history"
+              className="px-4 py-2.5 text-xs font-bold rounded-xl bg-rose-600 hover:bg-rose-500 text-white flex items-center gap-2 transition-all cursor-pointer shadow-md shadow-rose-950 shrink-0"
+              title="Permanently remove all products, sales, accounts, expenses and store history"
             >
-              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-              <span>Reset & Remove All Data</span>
+              <Trash2 className="w-4 h-4 text-white" />
+              <span>Reset Store & Remove All Data</span>
             </button>
           </div>
 
           {importStatus && (
-            <div className="p-3 rounded-xl bg-[#d4af37]/15 border border-[#d4af37]/30 text-[#f5d77f] text-xs flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-600/50 text-emerald-200 text-xs flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
               <span>{importStatus}</span>
             </div>

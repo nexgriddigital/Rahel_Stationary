@@ -12,6 +12,7 @@ import {
   Menu,
   ShieldCheck,
   RotateCcw,
+  CheckCircle,
   X
 } from 'lucide-react';
 import { storage } from './services/storage';
@@ -81,6 +82,7 @@ export default function App() {
 
   // Reactivity tick for storage updates & session tracking
   const [storageTick, setStorageTick] = useState(0);
+  const [resetToast, setResetToast] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubscribe = storage.subscribe(() => {
@@ -90,6 +92,8 @@ export default function App() {
     const handleDataReset = () => {
       setCart([]);
       setStorageTick((t) => t + 1);
+      setResetToast('Store database reset successfully. All items, sales, and accounts removed (0 items).');
+      setTimeout(() => setResetToast(null), 5000);
     };
     window.addEventListener('rahel_pos_data_reset', handleDataReset);
     return () => {
@@ -272,6 +276,20 @@ export default function App() {
 
         {/* View Router */}
         <main className="flex-1 overflow-hidden relative">
+          {/* Database Reset Success Toast */}
+          {resetToast && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-emerald-950/95 border border-emerald-500 text-emerald-100 text-xs shadow-2xl flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="font-semibold">{resetToast}</span>
+              <button
+                onClick={() => setResetToast(null)}
+                className="ml-2 text-emerald-300/80 hover:text-white p-0.5 rounded cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* QR Code not found toast */}
           {barcodeNotFound && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 rounded-2xl bg-rose-950/90 border border-rose-700 text-rose-200 text-xs shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">

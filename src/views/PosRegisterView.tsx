@@ -218,7 +218,30 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     setPayments(copy);
   };
 
+  const handleQuickPayFull = (method: PaymentMethod) => {
+    setPayments([{ method, amount: totalAmount }]);
+    if (method === 'cash') {
+      setCashTendered(totalAmount.toString());
+    }
+  };
+
   const handleCompleteSale = () => {
+    // Check for stock overselling if negative stock is disallowed
+    if (!settings.allowNegativeStock) {
+      const freshProducts = storage.getProducts();
+      for (const item of cart) {
+        const isSrv = item.product.isService || storage.isService(item.product.id) || storage.isService(item.product.name);
+        if (!isSrv) {
+          const freshItem = freshProducts.find(p => p.id === item.product.id);
+          const currentAvailableStock = freshItem ? freshItem.stock : item.product.stock;
+          if (item.quantity > currentAvailableStock) {
+            setSplitError(`Cannot complete sale: "${item.product.name}" only has ${currentAvailableStock} units in stock (cart has ${item.quantity}). Stock overselling is prohibited.`);
+            return;
+          }
+        }
+      }
+    }
+
     const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
     if (Math.abs(totalPaid - totalAmount) > 0.05) {
       setSplitError(`Split payments total (${settings.currencySymbol} ${totalPaid.toFixed(2)}) must match order total (${settings.currencySymbol} ${totalAmount.toFixed(2)}).`);
@@ -227,6 +250,10 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
     setSplitError(null);
 
     const transactionId = 'TXN-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+
+    const primaryPaymentLabel = payments.length === 1
+      ? getPaymentMethodLabel(payments[0].method)
+      : payments.map(p => `${getPaymentMethodLabel(p.method)} (${settings.currencySymbol} ${p.amount.toFixed(2)})`).join(', ');
 
     const sale: Sale = {
       id: 'sale_' + Date.now(),
@@ -252,6 +279,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
       taxPercent: 0,
       discountAmount: Number((cart.reduce((s, i) => s + i.product.retailPrice * i.quantity, 0) - subtotal).toFixed(2)),
       total: totalAmount,
+      paymentMethod: primaryPaymentLabel,
       payments,
       status: 'completed',
       customerName: customerName,
@@ -872,29 +900,97 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                 </div>
               </div>
 
+              {/* 1-Click Pay in Full (100%) Quick Tender */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-[#a39c90]">
+                  Pay in Full (100% Quick Tender)
+                </div>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                  {ETHIOPIAN_PAYMENT_METHODS.map((pm) => {
+                    const isSelected = payments.length === 1 && payments[0].method === pm.id && payments[0].amount === totalAmount;
+                    return (
+                      <button
+                        key={pm.id}
+                        type="button"
+                        onClick={() => handleQuickPayFull(pm.id)}
+                        className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#d4af37] text-black font-bold border-[#d4af37] shadow-xs'
+                            : 'bg-[#18181d] hover:bg-[#24242c] text-[#f4efe8] border-[#2a261f]'
+                        }`}
+                        title={`Tender entire balance via ${pm.label}`}
+                      >
+                        <span className="truncate w-full text-[11px]">{pm.shortLabel}</span>
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickPayFull('store_credit')}
+                    className={`px-2 py-1.5 rounded-lg text-xs font-semibold border transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                      payments.length === 1 && payments[0].method === 'store_credit'
+                        ? 'bg-amber-500 text-black font-bold border-amber-500'
+                        : 'bg-[#18181d] hover:bg-[#24242c] text-[#f4efe8] border-[#2a261f]'
+                    }`}
+                    title="Tender entire balance to customer credit account"
+                  >
+                    <span className="truncate w-full text-[11px]">Credit Tab</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Payment Split Rows */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-[#a39c90]">
-                  <span>Payment Methods Allocated</span>
-                  <div className="flex items-center gap-1">
+                  <span>Split Tender Allocations</span>
+                  <div className="flex items-center gap-1 flex-wrap justify-end">
+                    <span className="text-[10px] text-[#8c8273] mr-1">Add Split:</span>
                     <button
                       type="button"
-                      onClick={() => handleAddSplit('card')}
-                      className="px-2 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                      onClick={() => handleAddSplit('cbe')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
                     >
-                      + Card
+                      + CBE
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleAddSplit('mobile_transfer')}
-                      className="px-2 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                      onClick={() => handleAddSplit('telebirr')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
                     >
-                      + Mobile
+                      + Telebirr
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddSplit('awash_bank')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                    >
+                      + Awash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddSplit('dashen_bank')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                    >
+                      + Dashen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddSplit('bank_of_abyssinia')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                    >
+                      + Abyssinia
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddSplit('cash')}
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                    >
+                      + Cash
                     </button>
                     <button
                       type="button"
                       onClick={() => handleAddSplit('store_credit')}
-                      className="px-2 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
+                      className="px-1.5 py-0.5 text-[10px] rounded bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] font-bold border border-[#2a261f]"
                     >
                       + Credit
                     </button>
@@ -908,17 +1004,31 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   >
                     <div className="w-8 h-8 rounded-lg bg-[#24242c] flex items-center justify-center text-[#f5d77f] shrink-0">
                       {split.method === 'cash' && <Banknote className="w-4 h-4" />}
-                      {split.method === 'card' && <CreditCard className="w-4 h-4" />}
-                      {split.method === 'mobile_transfer' && <Smartphone className="w-4 h-4" />}
-                      {split.method === 'store_credit' && <BookOpen className="w-4 h-4" />}
+                      {(split.method === 'cbe' || split.method === 'card') && <Landmark className="w-4 h-4 text-[#f5d77f]" />}
+                      {(split.method === 'telebirr' || split.method === 'mobile_transfer') && <Smartphone className="w-4 h-4 text-[#f5d77f]" />}
+                      {(split.method === 'awash_bank' || split.method === 'dashen_bank' || split.method === 'bank_of_abyssinia') && <Landmark className="w-4 h-4 text-[#f5d77f]" />}
+                      {split.method === 'store_credit' && <BookOpen className="w-4 h-4 text-amber-400" />}
                     </div>
 
-                    <div className="flex-1">
-                      <div className="text-xs font-semibold capitalize text-[#f4efe8]">
-                        {split.method.replace('_', ' ')}
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      <select
+                        value={split.method}
+                        onChange={(e) => {
+                          const copy = [...payments];
+                          copy[idx].method = e.target.value as PaymentMethod;
+                          setPayments(copy);
+                        }}
+                        className="w-full text-xs font-semibold rounded-lg border border-[#2a261f] bg-[#141417] text-[#f4efe8] px-2 py-1 focus:outline-none focus:ring-1 focus:ring-[#d4af37] truncate cursor-pointer"
+                      >
+                        {ETHIOPIAN_PAYMENT_METHODS.map((pm) => (
+                          <option key={pm.id} value={pm.id}>
+                            {pm.label}
+                          </option>
+                        ))}
+                        <option value="store_credit">Store Credit Tab ({customerName})</option>
+                      </select>
                       {split.method === 'store_credit' && (
-                        <div className="text-[10px] text-amber-400">
+                        <div className="text-[10px] text-amber-400 mt-0.5 truncate">
                           Charged to account of: {customerName}
                         </div>
                       )}
@@ -941,7 +1051,8 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                     {payments.length > 1 && (
                       <button
                         onClick={() => handleRemoveSplit(idx)}
-                        className="p-1 text-[#8c8273] hover:text-rose-400"
+                        className="p-1 text-[#8c8273] hover:text-rose-400 cursor-pointer"
+                        title="Remove payment split"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
