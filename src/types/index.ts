@@ -25,6 +25,14 @@ export interface UserSession {
   createdAt: string;
 }
 
+export interface ActiveSessionRecord {
+  token: string;
+  userId: string;
+  role: Role;
+  expiresAt: number;
+  createdAt: string;
+}
+
 export type ProductCategory = 
   | 'Writing & Pens'
   | 'Writing & Correction'

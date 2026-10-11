@@ -27,7 +27,8 @@ import {
   BackupEnvelope,
   BackupPayload,
   LocalBackupSnapshot,
-  BackupInspectionResult
+  BackupInspectionResult,
+  ActiveSessionRecord
 } from '../types';
 import {
   autoDetectCategory,
@@ -40,6 +41,7 @@ const STORAGE_KEYS = {
   INITIALIZED: 'rahel_pos_initialized_v2',
   DATA_CLEARED: 'rahel_pos_data_cleared_v2',
   AUTO_BACKUPS: 'rahel_pos_auto_backups_v1',
+  ACTIVE_SESSIONS: 'rahel_pos_active_sessions_v1',
   PRODUCTS: 'rahel_pos_products_v1',
   SERVICES: 'rahel_pos_services_v1',
   SALES: 'rahel_pos_sales_v1',
