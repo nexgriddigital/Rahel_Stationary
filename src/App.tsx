@@ -43,9 +43,35 @@ import { StaffView } from './views/StaffView';
 import { ActivityLogsView } from './views/ActivityLogsView';
 import { SettingsView } from './views/SettingsView';
 
+const VALID_TABS: NavTab[] = [
+  'dashboard',
+  'inventory',
+  'services',
+  'pos',
+  'sales',
+  'credit',
+  'expenses',
+  'barcodes',
+  'reports',
+  'staff',
+  'logs',
+  'settings'
+];
+
+function getInitialTabFromLocation(): NavTab {
+  if (typeof window === 'undefined') return 'dashboard';
+  try {
+    const hash = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase();
+    if (VALID_TABS.includes(hash as NavTab)) {
+      return hash as NavTab;
+    }
+  } catch {}
+  return 'dashboard';
+}
+
 export default function App() {
   const [session, setSession] = useState<UserSession | null>(() => storage.getSession());
-  const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [currentTab, setCurrentTab] = useState<NavTab>(() => getInitialTabFromLocation());
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcodeNotFound, setBarcodeNotFound] = useState<string | null>(null);
 
@@ -89,6 +115,20 @@ export default function App() {
       setStorageTick((t) => t + 1);
       setSession(storage.getSession());
     });
+
+    // Heartbeat check every 10 seconds to detect session expiry or invalidation immediately
+    const sessionHeartbeat = setInterval(() => {
+      const active = storage.getSession();
+      setSession(active);
+    }, 10000);
+
+    // Keep URL hash in sync with tab changes for deep-linking while ensuring route protection
+    const handleHashChange = () => {
+      const target = getInitialTabFromLocation();
+      setCurrentTab(target);
+    };
+    window.addEventListener('hashchange', handleHashChange);
+
     const handleDataReset = () => {
       setCart([]);
       setStorageTick((t) => t + 1);
@@ -98,13 +138,25 @@ export default function App() {
     window.addEventListener('rahel_pos_data_reset', handleDataReset);
     return () => {
       unsubscribe();
+      clearInterval(sessionHeartbeat);
+      window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('rahel_pos_data_reset', handleDataReset);
     };
   }, []);
 
+  const handleSelectTab = (tab: NavTab) => {
+    setCurrentTab(tab);
+    try {
+      window.location.hash = tab;
+    } catch {}
+  };
+
   const handleLogout = () => {
     storage.logout();
     setSession(null);
+    try {
+      window.location.hash = '';
+    } catch {}
   };
 
   // Update theme class on HTML element
@@ -225,7 +277,11 @@ export default function App() {
       <LoginView
         onLoginSuccess={(sess) => {
           setSession(sess);
-          setCurrentTab('dashboard');
+          const destination = getInitialTabFromLocation();
+          setCurrentTab(destination);
+          try {
+            window.location.hash = destination;
+          } catch {}
         }}
       />
     );
@@ -236,7 +292,7 @@ export default function App() {
       {/* Side Navigation Bar (Desktop & Mobile Drawer) */}
       <Sidebar
         currentTab={currentTab}
-        onSelectTab={setCurrentTab}
+        onSelectTab={handleSelectTab}
         onOpenPinModal={() => setIsPinModalOpen(true)}
         onOpenDownloadModal={() => setIsDownloadModalOpen(true)}
         onLogout={handleLogout}
@@ -413,7 +469,7 @@ export default function App() {
         {/* Mobile Quick Bottom Navigation Bar (Smartphones & small screens) */}
         <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 h-16 bg-[#0d0d0f]/95 dark:bg-[#09090b]/95 backdrop-blur-md border-t border-[#26221c] dark:border-[#221e17] px-2 flex items-center justify-around select-none shadow-2xl">
           <button
-            onClick={() => setCurrentTab('dashboard')}
+            onClick={() => handleSelectTab('dashboard')}
             className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
               currentTab === 'dashboard' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
             }`}
@@ -423,7 +479,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setCurrentTab('pos')}
+            onClick={() => handleSelectTab('pos')}
             className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors relative cursor-pointer ${
               currentTab === 'pos' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
             }`}
@@ -440,7 +496,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setCurrentTab('sales')}
+            onClick={() => handleSelectTab('sales')}
             className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
               currentTab === 'sales' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
             }`}
@@ -450,7 +506,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setCurrentTab('reports')}
+            onClick={() => handleSelectTab('reports')}
             className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-colors cursor-pointer ${
               currentTab === 'reports' ? 'text-[#f5d77f]' : 'text-[#8c8273] hover:text-[#c2baa9]'
             }`}

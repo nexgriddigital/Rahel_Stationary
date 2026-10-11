@@ -1358,18 +1358,42 @@ class StorageService {
   }
 
   // Session & Authentication Handling
+  public getActiveSessions(): ActiveSessionRecord[] {
+    return this.get<ActiveSessionRecord[]>(STORAGE_KEYS.ACTIVE_SESSIONS, []);
+  }
+
+  public isSessionValid(session: UserSession | null): boolean {
+    if (!session || !session.token || !session.expiresAt) return false;
+    if (Date.now() > session.expiresAt) return false;
+
+    // Verify token against the active session registry
+    const registry = this.getActiveSessions();
+    const active = registry.find(r => r.token === session.token);
+    if (!active) return false;
+    if (Date.now() > active.expiresAt) return false;
+
+    // Verify user exists and role matches
+    const staff = this.getStaff();
+    const user = staff.find(s => s.id === session.userId);
+    if (!user || user.role !== session.role) return false;
+
+    return true;
+  }
+
   public getSession(): UserSession | null {
     if (typeof window === 'undefined') return null;
 
     let session: UserSession | null = null;
     try {
-      const local = localStorage.getItem(STORAGE_KEYS.SESSION);
-      if (local) {
-        session = JSON.parse(local);
+      // Check session storage first (for standard per-tab sessions)
+      const sessionStore = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+      if (sessionStore) {
+        session = JSON.parse(sessionStore);
       } else {
-        const sessionStore = sessionStorage.getItem(STORAGE_KEYS.SESSION);
-        if (sessionStore) {
-          session = JSON.parse(sessionStore);
+        // Fall back to local storage (for persistent Remember Me sessions)
+        const local = localStorage.getItem(STORAGE_KEYS.SESSION);
+        if (local) {
+          session = JSON.parse(local);
         }
       }
     } catch {
@@ -1378,8 +1402,8 @@ class StorageService {
 
     if (!session) return null;
 
-    // Validate expiration
-    if (session.expiresAt && Date.now() > session.expiresAt) {
+    // Cryptographic token & database registry validation
+    if (!this.isSessionValid(session)) {
       this.logout();
       return null;
     }
@@ -1445,6 +1469,17 @@ class StorageService {
       createdAt: new Date().toISOString()
     };
 
+    // Register active session in server-side session registry
+    const currentSessions = this.getActiveSessions().filter(s => s.expiresAt > Date.now());
+    currentSessions.push({
+      token,
+      userId: adminUser.id,
+      role: adminUser.role,
+      expiresAt,
+      createdAt: session.createdAt
+    });
+    this.set(STORAGE_KEYS.ACTIVE_SESSIONS, currentSessions, false);
+
     try {
       if (rememberMe) {
         localStorage.setItem(STORAGE_KEYS.SESSION, JSON.stringify(session));
@@ -1468,6 +1503,22 @@ class StorageService {
 
   public logout(): void {
     try {
+      let token: string | null = null;
+      const sLocal = localStorage.getItem(STORAGE_KEYS.SESSION);
+      if (sLocal) {
+        try { token = JSON.parse(sLocal)?.token; } catch {}
+      }
+      const sSession = sessionStorage.getItem(STORAGE_KEYS.SESSION);
+      if (sSession && !token) {
+        try { token = JSON.parse(sSession)?.token; } catch {}
+      }
+
+      if (token) {
+        // Invalidate in active sessions registry
+        const remaining = this.getActiveSessions().filter(s => s.token !== token && s.expiresAt > Date.now());
+        this.set(STORAGE_KEYS.ACTIVE_SESSIONS, remaining, false);
+      }
+
       localStorage.removeItem(STORAGE_KEYS.SESSION);
       sessionStorage.removeItem(STORAGE_KEYS.SESSION);
     } catch {}
