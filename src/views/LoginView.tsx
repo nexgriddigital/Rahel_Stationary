@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { storage } from '../services/storage';
 import { UserSession } from '../types';
+import { BrandLogo } from '../components/BrandLogo';
 import {
   Lock,
   Mail,
@@ -144,10 +145,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       {/* Top subtle branding bar */}
       <header className="px-6 py-5 flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
-          {/* Logo Monogram */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f5d77f] via-[#d4af37] to-[#997520] text-black flex items-center justify-center font-black shadow-lg shadow-[#d4af37]/20 border border-[#f5d77f]/40">
-            <span className="text-lg tracking-tighter">RS</span>
-          </div>
+          {/* Logo Monogram from Favicon SVG */}
+          <BrandLogo size={42} showGlow />
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-[#f5d77f]">
               {settings.storeName}
@@ -174,8 +173,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
             {/* Header / Titles */}
             <div className="text-center space-y-2">
-              <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f5d77f] via-[#d4af37] to-[#997520] text-black items-center justify-center shadow-xl shadow-[#d4af37]/25 mb-1 border border-[#f5d77f]/50">
-                <span className="text-2xl font-black tracking-tighter">RS</span>
+              <div className="relative inline-flex items-center justify-center mb-1">
+                {isLoading ? (
+                  <div className="relative flex items-center justify-center">
+                    <div className="absolute -inset-2 rounded-2xl bg-[#d4af37]/25 blur-md animate-pulse" />
+                    <BrandLogo size={60} className="animate-bounce" />
+                  </div>
+                ) : (
+                  <BrandLogo size={60} showGlow />
+                )}
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-[#f4efe8]">
                 Welcome Back
@@ -307,7 +313,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    <BrandLogo size={18} className="animate-spin" />
                     <span>Verifying Credentials...</span>
                   </>
                 ) : (

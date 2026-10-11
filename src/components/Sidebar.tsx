@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { storage } from '../services/storage';
+import { BrandLogo } from './BrandLogo';
 
 export type NavTab = 
   | 'dashboard'
@@ -127,9 +128,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Top Branding Section */}
         <div className="p-3.5 pb-2 border-b border-[#26221c] dark:border-[#221e17] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#f5d77f] via-[#d4af37] to-[#997520] text-black flex items-center justify-center font-black shadow-md shadow-[#d4af37]/20">
-              <span className="text-base tracking-tighter">RS</span>
-            </div>
+            <BrandLogo size={34} showGlow />
             <div>
               <div className="font-bold text-sm leading-tight text-[#f5d77f]">
                 {settings.storeName}

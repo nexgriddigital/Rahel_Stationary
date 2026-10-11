@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { storage } from '../services/storage';
 import { Product, AppNotification, LOW_STOCK_THRESHOLD } from '../types';
+import { BrandLogo } from './BrandLogo';
 
 // Relative time helper for human-readable notification timestamps (e.g. "2 minutes ago")
 function formatRelativeTime(timestamp: string): string {
@@ -168,6 +169,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </button>
 
         <div className="flex items-center gap-2">
+          <BrandLogo size={28} className="shrink-0" />
           <span className="font-bold text-base sm:text-lg tracking-tight text-[#f5d77f]">
             {settings.storeName}
           </span>
