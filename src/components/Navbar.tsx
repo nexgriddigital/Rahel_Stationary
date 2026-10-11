@@ -679,7 +679,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </span>
                 </div>
 
-                {/* Download POS App */}
+                {/* Download POS Android APK */}
                 <button
                   onClick={() => {
                     setIsMoreMenuOpen(false);
@@ -689,10 +689,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <div className="flex items-center gap-2">
                     <Download className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Download POS App</span>
+                    <span>Download App (.APK)</span>
                   </div>
-                  <span className="text-[10px] bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30 px-1.5 py-0.2 rounded">
-                    Kiosk
+                  <span className="text-[10px] bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30 px-1.5 py-0.2 rounded font-mono font-bold">
+                    Android APK
                   </span>
                 </button>
 

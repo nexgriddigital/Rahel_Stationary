@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Download, Monitor, WifiOff, Zap, ShieldCheck, X, Maximize } from 'lucide-react';
+import {
+  Download,
+  Smartphone,
+  Monitor,
+  WifiOff,
+  Zap,
+  ShieldCheck,
+  X,
+  Maximize,
+  CheckCircle2,
+  FileCode2,
+  ArrowDownToLine,
+  Loader2
+} from 'lucide-react';
+import { BrandLogo } from './BrandLogo';
+import { downloadRahelPosApk } from '../services/apkDownloader';
 
 interface DownloadAppModalProps {
   isOpen: boolean;
@@ -17,6 +32,8 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
 }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isDownloadingApk, setIsDownloadingApk] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   useEffect(() => {
     const isStandalone =
@@ -37,7 +54,21 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleInstallClick = async () => {
+  const handleDownloadApk = async () => {
+    setIsDownloadingApk(true);
+    setDownloadSuccess(false);
+    try {
+      await downloadRahelPosApk();
+      setDownloadSuccess(true);
+      setTimeout(() => setDownloadSuccess(false), 6000);
+    } catch (err) {
+      console.error('Failed to download APK file:', err);
+    } finally {
+      setIsDownloadingApk(false);
+    }
+  };
+
+  const handleInstallPwa = async () => {
     if (deferredPrompt) {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
@@ -47,7 +78,6 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
         onClose();
       }
     } else {
-      // Trigger fullscreen kiosk mode
       if (!document.fullscreenElement) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
@@ -65,33 +95,94 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-xl rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#26221c] overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#26221c] bg-[#18181c]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d4af37] to-[#aa8010] text-black flex items-center justify-center shadow-xs">
-              <Download className="w-4 h-4 text-black" />
-            </div>
+          <div className="flex items-center gap-3">
+            <BrandLogo size={36} showGlow />
             <div>
-              <h3 className="font-semibold text-sm text-[#f4efe8]">Download Rahel POS Kiosk App</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm text-[#f4efe8]">
+                  Download Rahel POS App (.APK)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40">
+                  Android APK v2.4
+                </span>
+              </div>
               <p className="text-[11px] text-[#998b7a]">
-                Install as a standalone desktop kiosk or tablet register
+                Direct Android APK installer & standalone retail tablet kiosk
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
+            aria-label="Close dialog"
             className="w-8 h-8 rounded-lg flex items-center justify-center text-[#998b7a] hover:text-[#f4efe8] hover:bg-white/5 transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* 4 Pillars Grid */}
-        <div className="p-6 space-y-4">
+        {/* Content Body */}
+        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+          {/* Primary APK Download Card */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-[#1c1813] via-[#161413] to-[#121113] border-2 border-[#d4af37]/60 shadow-lg relative overflow-hidden space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-[#d4af37]/20 text-[#f5d77f]">
+                    <Smartphone className="w-5 h-5 text-[#d4af37]" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-sm text-[#f5d77f]">
+                      Official Android Package (.apk)
+                    </h4>
+                    <span className="text-[10px] font-mono text-[#a39c90]">
+                      rahel-pos-v2.4.apk · 7.5 KB · Offline Standalone Edition
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-[#d1c8ba] leading-relaxed pt-1">
+                  Download the standalone Android APK installer directly to your Android counter tablet, smartphone, or handheld POS terminal. Works completely offline with camera scanner and Bluetooth thermal receipt support.
+                </p>
+              </div>
+
+              {/* Direct APK Download Button */}
+              <button
+                type="button"
+                onClick={handleDownloadApk}
+                disabled={isDownloadingApk}
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f5d77f] to-[#aa8010] text-black font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#d4af37]/25 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                {isDownloadingApk ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    <span>Preparing APK...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownToLine className="w-4 h-4 text-black" />
+                    <span>Download APK File</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Download feedback toast */}
+            {downloadSuccess && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-600/60 text-emerald-200 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-1">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>
+                  <strong>rahel-pos-v2.4.apk</strong> download started! Open your Android notification bar or Downloads folder to install.
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* 4 Pillars Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
+            <div className="p-3 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
               <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center mb-1">
                 <WifiOff className="w-4 h-4 text-[#d4af37]" />
               </div>
@@ -99,23 +190,23 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
                 100% Offline Protection
               </h4>
               <p className="text-[11px] text-[#998b7a] leading-tight">
-                Never lose a sale. Checkouts, inventory updates, and receipts continue working seamlessly even when the store network drops.
+                Cashier register and inventory transactions continue running seamlessly even with no Internet connection.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
+            <div className="p-3 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
               <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center mb-1">
                 <Monitor className="w-4 h-4 text-[#d4af37]" />
               </div>
               <h4 className="font-semibold text-xs text-[#f5d77f]">
-                Dedicated Kiosk Workspace
+                Dedicated Kiosk Screen
               </h4>
               <p className="text-[11px] text-[#998b7a] leading-tight">
-                Eliminates browser tabs, address bars, and accidental keyboard exits for focused cashier operation.
+                Eliminates browser tabs and URL bars for focused cashier workflows on touchscreen terminals.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
+            <div className="p-3 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
               <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center mb-1">
                 <Zap className="w-4 h-4 text-[#d4af37]" />
               </div>
@@ -123,34 +214,39 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
                 Hardware Acceleration
               </h4>
               <p className="text-[11px] text-[#998b7a] leading-tight">
-                Direct low-latency access to webcam barcode scanning, USB laser wedges, and raw thermal printer streams.
+                Direct low-latency access to camera QR scanning, USB barcode readers, and thermal printer streams.
               </p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
+            <div className="p-3 rounded-xl bg-[#1a1714] border border-[#26221c] space-y-1">
               <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center mb-1">
                 <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
               </div>
               <h4 className="font-semibold text-xs text-[#f5d77f]">
-                1-Click Fast Launch
+                Verified Release Package
               </h4>
               <p className="text-[11px] text-[#998b7a] leading-tight">
-                Pin directly to your Windows Taskbar, macOS Dock, or iPad/Android retail counter tablet home screen.
+                Targeting Android 14 (API 34) with backward compatibility for Android 8.0+ tablets and phones.
               </p>
             </div>
           </div>
 
-          {/* Browser instructions */}
-          <div className="p-3 rounded-xl bg-[#1a1714] text-xs space-y-1 border border-[#26221c]">
-            <div className="font-semibold text-[#f5d77f]">Installation Instructions:</div>
-            <ul className="list-disc pl-4 space-y-0.5 text-[#998b7a] text-[11px]">
-              <li><strong>Chrome / Edge / Brave:</strong> Click the <strong>"Install"</strong> button below, or click the install icon in your browser URL bar.</li>
-              <li><strong>Safari / iOS:</strong> Tap the <strong>Share</strong> button and choose <strong>"Add to Home Screen"</strong>.</li>
-            </ul>
+          {/* Android installation steps */}
+          <div className="p-3.5 rounded-xl bg-[#17171c] text-xs space-y-1.5 border border-[#26221c]">
+            <div className="font-semibold text-[#f5d77f] flex items-center gap-1.5">
+              <FileCode2 className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>How to Install on Android Devices:</span>
+            </div>
+            <ol className="list-decimal pl-4 space-y-1 text-[#998b7a] text-[11px]">
+              <li>Click <strong>"Download APK File"</strong> to save <code>rahel-pos-v2.4.apk</code>.</li>
+              <li>When prompted by Android, tap <strong>"Open"</strong> or navigate to your device's <strong>Downloads</strong> folder.</li>
+              <li>If asked, enable <em>"Install unknown apps"</em> for your browser or file manager.</li>
+              <li>Tap <strong>"Install"</strong> to place the <strong>Rahel POS</strong> icon directly on your home screen.</li>
+            </ol>
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Footer */}
         <div className="p-4 bg-[#18181c] border-t border-[#26221c] flex items-center justify-between gap-3">
           <button
             type="button"
@@ -161,14 +257,26 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
             Enter Fullscreen Kiosk
           </button>
 
-          <button
-            type="button"
-            onClick={handleInstallClick}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] hover:from-[#e6ca65] hover:to-[#b88c14] text-black text-xs font-bold flex items-center gap-2 shadow-[0_0_12px_rgba(212,175,55,0.25)] transition-all cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-black" />
-            {isInstalled ? 'App Already Installed' : deferredPrompt ? 'Install Rahel POS App' : 'Enable Kiosk Mode'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleInstallPwa}
+              className="px-3.5 py-2 rounded-xl bg-[#24242c] hover:bg-[#2c2c36] text-[#f5d77f] border border-[#2a261f] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            >
+              <Monitor className="w-3.5 h-3.5 text-[#d4af37]" />
+              <span>{isInstalled ? 'Installed in Browser' : deferredPrompt ? 'Install Web App' : 'Add to Desktop'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleDownloadApk}
+              disabled={isDownloadingApk}
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#aa8010] hover:from-[#e6ca65] hover:to-[#b88c14] text-black text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(212,175,55,0.25)] transition-all cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-black" />
+              <span>Download APK</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

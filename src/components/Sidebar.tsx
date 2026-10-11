@@ -148,13 +148,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onMouseEnter={() => setShowSignHoverCard(true)}
                 onMouseLeave={() => setShowSignHoverCard(false)}
                 className="group relative flex items-center gap-1 px-2 py-1 rounded-lg bg-[#d4af37]/10 hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/30 text-[10px] font-semibold transition-all shadow-2xs"
+                title="Download Android APK / Install App"
               >
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#f5d77f] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#d4af37]"></span>
                 </span>
                 <Download className="w-3 h-3 text-[#d4af37]" />
-                <span>App</span>
+                <span>APK</span>
               </button>
 
               {/* Floating Hover Card */}
@@ -162,27 +163,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <div className="absolute left-full top-0 ml-2 w-72 p-3.5 rounded-xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#d4af37]/30 z-50 text-xs pointer-events-none animate-in fade-in zoom-in-95 duration-150">
                   <div className="font-bold text-xs text-[#f5d77f] mb-1 flex items-center gap-1.5">
                     <Download className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Rahel POS Desktop & Tablet App</span>
+                    <span>Download Android APK App</span>
                   </div>
                   <p className="text-[11px] text-[#a39c90] mb-2 leading-relaxed">
-                    Click to launch or install as a dedicated kiosk register with 4 essential hardware advantages:
+                    Click to download the standalone <strong>rahel-pos-v2.4.apk</strong> file or install as a dedicated kiosk register:
                   </p>
                   <div className="space-y-1.5 text-[11px]">
                     <div className="flex items-start gap-1.5">
                       <span className="text-[#f5d77f] font-bold">1.</span>
-                      <span><strong>100% Offline Protection:</strong> Register works and records transactions without store internet.</span>
+                      <span><strong>Direct .APK Download:</strong> Install on Android POS tablets and smartphones.</span>
                     </div>
                     <div className="flex items-start gap-1.5">
                       <span className="text-[#f5d77f] font-bold">2.</span>
-                      <span><strong>Dedicated Kiosk Workspace:</strong> Fullscreen window without browser address bar or tabs.</span>
+                      <span><strong>100% Offline Protection:</strong> Cashier checkouts work without store network.</span>
                     </div>
                     <div className="flex items-start gap-1.5">
                       <span className="text-[#f5d77f] font-bold">3.</span>
-                      <span><strong>Hardware Acceleration:</strong> Faster barcode scanner camera and receipt thermal printer response.</span>
-                    </div>
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-[#f5d77f] font-bold">4.</span>
-                      <span><strong>1-Click Fast Launch:</strong> Direct pin to taskbar, dock, or home screen.</span>
+                      <span><strong>Hardware Acceleration:</strong> Low-latency QR scanner camera & thermal printer streams.</span>
                     </div>
                   </div>
                 </div>
