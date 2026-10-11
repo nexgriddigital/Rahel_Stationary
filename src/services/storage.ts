@@ -40,6 +40,7 @@ import {
 const STORAGE_KEYS = {
   INITIALIZED: 'rahel_pos_initialized_v2',
   DATA_CLEARED: 'rahel_pos_data_cleared_v2',
+  NORMALIZED: 'rahel_pos_normalized_v1',
   AUTO_BACKUPS: 'rahel_pos_auto_backups_v1',
   ACTIVE_SESSIONS: 'rahel_pos_active_sessions_v1',
   PRODUCTS: 'rahel_pos_products_v1',
@@ -1224,33 +1225,37 @@ class StorageService {
       if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
         localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify([]));
       }
-      // Normalize products: enforce central LOW_STOCK_THRESHOLD = 3 and ensure category, SKU, and barcode are assigned
-      const storedProds = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
-      let prodsUpdated = false;
-      storedProds.forEach(p => {
-        if (p.minThreshold !== LOW_STOCK_THRESHOLD) {
-          p.minThreshold = LOW_STOCK_THRESHOLD;
-          prodsUpdated = true;
+      // Normalize products once on initial setup: enforce central LOW_STOCK_THRESHOLD = 3 and ensure category, SKU, and barcode are assigned
+      const isNormalized = localStorage.getItem(STORAGE_KEYS.NORMALIZED) === 'true';
+      if (!isNormalized) {
+        const storedProds = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
+        let prodsUpdated = false;
+        storedProds.forEach(p => {
+          if (p.minThreshold !== LOW_STOCK_THRESHOLD) {
+            p.minThreshold = LOW_STOCK_THRESHOLD;
+            prodsUpdated = true;
+          }
+          if (!p.category || p.category.trim() === '') {
+            p.category = autoDetectCategory(p.name, p.description);
+            prodsUpdated = true;
+          }
+          if (!p.sku || p.sku.trim() === '') {
+            p.sku = this.generateSku(p.category, p.name);
+            prodsUpdated = true;
+          }
+          if (!p.qrCode || p.qrCode.trim() === '') {
+            p.qrCode = p.sku.trim();
+            prodsUpdated = true;
+          }
+          if (!p.barcode || p.barcode.trim() === '') {
+            p.barcode = this.generateBarcodeNumber();
+            prodsUpdated = true;
+          }
+        });
+        if (prodsUpdated) {
+          localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(storedProds));
         }
-        if (!p.category || p.category.trim() === '') {
-          p.category = autoDetectCategory(p.name, p.description);
-          prodsUpdated = true;
-        }
-        if (!p.sku || p.sku.trim() === '') {
-          p.sku = this.generateSku(p.category, p.name);
-          prodsUpdated = true;
-        }
-        if (!p.qrCode || p.qrCode.trim() === '') {
-          p.qrCode = p.sku.trim();
-          prodsUpdated = true;
-        }
-        if (!p.barcode || p.barcode.trim() === '') {
-          p.barcode = this.generateBarcodeNumber();
-          prodsUpdated = true;
-        }
-      });
-      if (prodsUpdated) {
-        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(storedProds));
+        localStorage.setItem(STORAGE_KEYS.NORMALIZED, 'true');
       }
 
       // Always enforce single admin user: Rahel Fira with salted password hash

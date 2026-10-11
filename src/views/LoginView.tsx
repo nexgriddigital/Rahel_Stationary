@@ -71,9 +71,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      // Simulate micro-delay for realistic security feel
-      await new Promise(resolve => setTimeout(resolve, 350));
-
       const result = await storage.login(trimmedId, password, rememberMe);
 
       if (result.success && result.session) {
