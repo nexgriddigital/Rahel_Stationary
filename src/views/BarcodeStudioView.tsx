@@ -27,20 +27,68 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 
-export const BarcodeStudioView: React.FC = () => {
+interface BarcodeStudioViewProps {
+  initialSelectedIds?: string[];
+}
+
+export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSelectedIds }) => {
   // Physical products only (Services require NO inventory and NO QR codes)
   const products = storage.getProducts().filter(p => !p.isService && (p.category as string) !== 'Services');
   const settings = storage.getSettings();
 
   // Selection mapping: productId -> specific number of copies (0 or undefined = unselected)
-  // Default first 4 products selected with realistic copy counts
+  // Preserves selections across navigation, page refreshes, and batch actions
   const [selectedCopies, setSelectedCopies] = useState<Record<string, number>>(() => {
+    const savedCopies = storage.getBarcodeStudioCopies();
+
+    // 1. Explicit initialSelectedIds passed from Navigation or parent
+    if (initialSelectedIds && initialSelectedIds.length > 0) {
+      const init: Record<string, number> = {};
+      initialSelectedIds.forEach((id) => {
+        init[id] = savedCopies[id] && savedCopies[id] > 0 ? savedCopies[id] : 2;
+      });
+      return init;
+    }
+
+    // 2. Previously persisted selection IDs from storage
+    const savedIds = storage.getBarcodeStudioSelectedIds();
+    if (savedIds && savedIds.length > 0) {
+      const init: Record<string, number> = {};
+      savedIds.forEach((id) => {
+        init[id] = savedCopies[id] && savedCopies[id] > 0 ? savedCopies[id] : 2;
+      });
+      return init;
+    }
+
+    // 3. Fallback: select first 4 products
     const init: Record<string, number> = {};
     products.slice(0, 4).forEach((p, idx) => {
       init[p.id] = idx === 0 ? 4 : idx === 1 ? 6 : 2;
     });
     return init;
   });
+
+  // Keep state in sync if initialSelectedIds changes during lifecycle
+  React.useEffect(() => {
+    if (initialSelectedIds && initialSelectedIds.length > 0) {
+      setSelectedCopies((prev) => {
+        const next: Record<string, number> = {};
+        initialSelectedIds.forEach((id) => {
+          next[id] = prev[id] && prev[id] > 0 ? prev[id] : 2;
+        });
+        return next;
+      });
+    }
+  }, [initialSelectedIds]);
+
+  // Sync selection mutations to storage to survive page refreshes and tab navigations
+  React.useEffect(() => {
+    const selectedIds = Object.entries(selectedCopies)
+      .filter(([_, count]) => count > 0)
+      .map(([id]) => id);
+    storage.setBarcodeStudioSelectedIds(selectedIds);
+    storage.setBarcodeStudioCopies(selectedCopies);
+  }, [selectedCopies]);
 
   // Search filters: General search + Dedicated SKU/Barcode search filter
   const [searchTerm, setSearchTerm] = useState('');

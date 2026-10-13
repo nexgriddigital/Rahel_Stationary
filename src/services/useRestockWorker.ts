@@ -25,12 +25,14 @@ export function useRestockWorker(options: {
   checkIntervalMs?: number;
   onNavigateToInventory?: () => void;
 } = {}): UseRestockWorkerReturn {
-  const { checkIntervalMs = 12000, onNavigateToInventory } = options;
+  const { checkIntervalMs = 30000, onNavigateToInventory } = options;
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => storage.getNotifications());
   const [visualToasts, setVisualToasts] = useState<AppNotification[]>([]);
   const hasInitializedRef = useRef(false);
   const isCheckingRef = useRef(false);
+  // Track notification IDs that have already been presented as toasts to avoid re-alerting
+  const shownToastIdsRef = useRef<Set<string>>(new Set());
 
   // Sync notifications list from storage
   const syncFromStorage = useCallback(() => {
@@ -46,12 +48,16 @@ export function useRestockWorker(options: {
       syncFromStorage();
 
       if (newlyTriggered.length > 0) {
-        // Dispatch visual toast alerts for newly triggered items
-        setVisualToasts(prev => {
-          const existingIds = new Set(prev.map(p => p.id));
-          const toAdd = newlyTriggered.filter(n => !existingIds.has(n.id));
-          return [...prev, ...toAdd];
-        });
+        // Only dispatch visual toast alerts for genuinely new items not already shown to the user
+        const toAdd = newlyTriggered.filter(n => !shownToastIdsRef.current.has(n.id));
+        if (toAdd.length > 0) {
+          toAdd.forEach(n => shownToastIdsRef.current.add(n.id));
+          setVisualToasts(prev => {
+            const existingIds = new Set(prev.map(p => p.id));
+            const fresh = toAdd.filter(n => !existingIds.has(n.id));
+            return [...prev, ...fresh];
+          });
+        }
       }
     } finally {
       isCheckingRef.current = false;
@@ -69,12 +75,15 @@ export function useRestockWorker(options: {
       runImmediateCheck();
     }, checkIntervalMs);
 
-    // Reactive subscription to stock mutations (ignore audit logs and internal notification updates)
+    // Reactive subscription to stock mutations (only inventory mutations, avoid noise)
     const unsubscribe = storage.subscribe((key) => {
-      if (key && (key === 'rahel_pos_logs_v1' || key === 'rahel_pos_notifications_v1')) {
-        return;
+      if (
+        key === 'rahel_pos_products_v1' ||
+        key === 'rahel_pos_sales_v1' ||
+        key === 'rahel_pos_stock_movements_v1'
+      ) {
+        runImmediateCheck();
       }
-      runImmediateCheck();
     });
 
     return () => {
@@ -85,6 +94,7 @@ export function useRestockWorker(options: {
 
   // Dismiss a visual floating toast
   const dismissToast = useCallback((id: string) => {
+    shownToastIdsRef.current.add(id);
     setVisualToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 

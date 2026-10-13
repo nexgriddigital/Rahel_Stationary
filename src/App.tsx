@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import {
   LayoutDashboard,
   ShoppingBag,
@@ -13,35 +13,77 @@ import {
   ShieldCheck,
   RotateCcw,
   CheckCircle,
-  X
+  X,
+  Loader2
 } from 'lucide-react';
 import { storage } from './services/storage';
 import { CartItem, Sale, Product } from './types';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
-import { BarcodeScannerModal } from './components/BarcodeScannerModal';
 import { UserPinModal } from './components/UserPinModal';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
-import { DownloadAppModal } from './components/DownloadAppModal';
 import { UrgentRestockToast } from './components/UrgentRestockToast';
 import { useRestockWorker } from './services/useRestockWorker';
 import { useAutoBackup } from './services/useAutoBackup';
 import { UserSession } from './types';
 
-// Views
+// Critical view loaded directly
 import { LoginView } from './views/LoginView';
-import { DashboardView } from './views/DashboardView';
-import { PosRegisterView } from './views/PosRegisterView';
-import { InventoryView } from './views/InventoryView';
-import { ServicesView } from './views/ServicesView';
-import { SalesLedgerView } from './views/SalesLedgerView';
-import { CreditAccountsView } from './views/CreditAccountsView';
-import { ExpenseTrackerView } from './views/ExpenseTrackerView';
-import { BarcodeStudioView } from './views/BarcodeStudioView';
-import { ReportsView } from './views/ReportsView';
-import { StaffView } from './views/StaffView';
-import { ActivityLogsView } from './views/ActivityLogsView';
-import { SettingsView } from './views/SettingsView';
+
+// Code-split modals (loaded on-demand when opened)
+const BarcodeScannerModal = lazy(() =>
+  import('./components/BarcodeScannerModal').then((m) => ({ default: m.BarcodeScannerModal }))
+);
+const DownloadAppModal = lazy(() =>
+  import('./components/DownloadAppModal').then((m) => ({ default: m.DownloadAppModal }))
+);
+
+// Code-split tabs for rapid mobile load & reduced initial JS bundle
+const DashboardView = lazy(() =>
+  import('./views/DashboardView').then((m) => ({ default: m.DashboardView }))
+);
+const PosRegisterView = lazy(() =>
+  import('./views/PosRegisterView').then((m) => ({ default: m.PosRegisterView }))
+);
+const InventoryView = lazy(() =>
+  import('./views/InventoryView').then((m) => ({ default: m.InventoryView }))
+);
+const ServicesView = lazy(() =>
+  import('./views/ServicesView').then((m) => ({ default: m.ServicesView }))
+);
+const SalesLedgerView = lazy(() =>
+  import('./views/SalesLedgerView').then((m) => ({ default: m.SalesLedgerView }))
+);
+const CreditAccountsView = lazy(() =>
+  import('./views/CreditAccountsView').then((m) => ({ default: m.CreditAccountsView }))
+);
+const ExpenseTrackerView = lazy(() =>
+  import('./views/ExpenseTrackerView').then((m) => ({ default: m.ExpenseTrackerView }))
+);
+const BarcodeStudioView = lazy(() =>
+  import('./views/BarcodeStudioView').then((m) => ({ default: m.BarcodeStudioView }))
+);
+const ReportsView = lazy(() =>
+  import('./views/ReportsView').then((m) => ({ default: m.ReportsView }))
+);
+const StaffView = lazy(() =>
+  import('./views/StaffView').then((m) => ({ default: m.StaffView }))
+);
+const ActivityLogsView = lazy(() =>
+  import('./views/ActivityLogsView').then((m) => ({ default: m.ActivityLogsView }))
+);
+const SettingsView = lazy(() =>
+  import('./views/SettingsView').then((m) => ({ default: m.SettingsView }))
+);
+
+const ViewLoadingFallback = () => (
+  <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[360px] text-center">
+    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#f5d77f] to-[#aa8010] text-black flex items-center justify-center font-bold shadow-lg shadow-[#d4af37]/20 mb-3 animate-pulse">
+      <Loader2 className="w-5 h-5 animate-spin text-black" />
+    </div>
+    <div className="text-sm font-semibold text-[#f5d77f]">Loading module...</div>
+  </div>
+);
 
 const VALID_TABS: NavTab[] = [
   'dashboard',
@@ -86,6 +128,11 @@ export default function App() {
   const initialSettings = storage.getSettings();
   const [theme, setTheme] = useState<'light' | 'dark'>(initialSettings.themeMode || 'light');
 
+  // QR Studio item selection state (persisted across navigation & page refreshes)
+  const [selectedBarcodeProductIds, setSelectedBarcodeProductIds] = useState<string[]>(() =>
+    storage.getBarcodeStudioSelectedIds()
+  );
+
   // Automated background restock monitor worker
   const {
     notifications,
@@ -98,8 +145,8 @@ export default function App() {
     clearAll,
     quickRestock
   } = useRestockWorker({
-    checkIntervalMs: 12000,
-    onNavigateToInventory: () => setCurrentTab('inventory')
+    checkIntervalMs: 30000,
+    onNavigateToInventory: () => handleSelectTab('inventory')
   });
 
   // Automated backup & cache loss recovery worker
@@ -406,64 +453,76 @@ export default function App() {
             </div>
           )}
 
-          {currentTab === 'dashboard' && (
-            <DashboardView
-              key={storageTick}
-              onNavigate={setCurrentTab}
-              onOpenScanner={() => setIsScannerOpen(true)}
-            />
-          )}
+          <Suspense fallback={<ViewLoadingFallback />}>
+            {currentTab === 'dashboard' && (
+              <DashboardView
+                key={storageTick}
+                onNavigate={setCurrentTab}
+                onOpenScanner={() => setIsScannerOpen(true)}
+              />
+            )}
 
-          {currentTab === 'pos' && (
-            <PosRegisterView
-              key={storageTick}
-              onNavigateToHistory={() => setCurrentTab('sales')}
-              onOpenScanner={() => setIsScannerOpen(true)}
-              cart={cart}
-              setCart={setCart}
-            />
-          )}
+            {currentTab === 'pos' && (
+              <PosRegisterView
+                key={storageTick}
+                onNavigateToHistory={() => setCurrentTab('sales')}
+                onOpenScanner={() => setIsScannerOpen(true)}
+                cart={cart}
+                setCart={setCart}
+              />
+            )}
 
-          {currentTab === 'inventory' && (
-            <InventoryView
-              key={storageTick}
-              onNavigateToBarcodeStudio={(_productIds) => {
-                setCurrentTab('barcodes');
-              }}
-              onNavigateToServices={() => {
-                setCurrentTab('services');
-              }}
-            />
-          )}
+            {currentTab === 'inventory' && (
+              <InventoryView
+                key={storageTick}
+                onNavigateToBarcodeStudio={(productIds) => {
+                  const ids = productIds && productIds.length > 0 ? productIds : storage.getInventorySelectedIds();
+                  if (ids && ids.length > 0) {
+                    storage.setBarcodeStudioSelectedIds(ids);
+                    setSelectedBarcodeProductIds(ids);
+                  }
+                  handleSelectTab('barcodes');
+                }}
+                onNavigateToServices={() => {
+                  handleSelectTab('services');
+                }}
+              />
+            )}
 
-          {currentTab === 'services' && (
-            <ServicesView
-              key={storageTick}
-              onNavigateToPos={() => setCurrentTab('pos')}
-              onAddServiceToPos={(srv) => {
-                handleAddToCart(storage.convertServiceToProduct(srv));
-                setCurrentTab('pos');
-              }}
-            />
-          )}
+            {currentTab === 'services' && (
+              <ServicesView
+                key={storageTick}
+                onNavigateToPos={() => handleSelectTab('pos')}
+                onAddServiceToPos={(srv) => {
+                  handleAddToCart(storage.convertServiceToProduct(srv));
+                  handleSelectTab('pos');
+                }}
+              />
+            )}
 
-          {currentTab === 'sales' && (
-            <SalesLedgerView key={storageTick} onNavigateToPOS={() => setCurrentTab('pos')} />
-          )}
+            {currentTab === 'sales' && (
+              <SalesLedgerView key={storageTick} onNavigateToPOS={() => handleSelectTab('pos')} />
+            )}
 
-          {currentTab === 'credit' && <CreditAccountsView key={storageTick} />}
+            {currentTab === 'credit' && <CreditAccountsView key={storageTick} />}
 
-          {currentTab === 'expenses' && <ExpenseTrackerView key={storageTick} />}
+            {currentTab === 'expenses' && <ExpenseTrackerView key={storageTick} />}
 
-          {currentTab === 'barcodes' && <BarcodeStudioView key={storageTick} />}
+            {currentTab === 'barcodes' && (
+              <BarcodeStudioView
+                key={storageTick}
+                initialSelectedIds={selectedBarcodeProductIds}
+              />
+            )}
 
-          {currentTab === 'reports' && <ReportsView key={storageTick} />}
+            {currentTab === 'reports' && <ReportsView key={storageTick} />}
 
-          {currentTab === 'staff' && <StaffView key={storageTick} />}
+            {currentTab === 'staff' && <StaffView key={storageTick} />}
 
-          {currentTab === 'logs' && <ActivityLogsView key={storageTick} />}
+            {currentTab === 'logs' && <ActivityLogsView key={storageTick} />}
 
-          {currentTab === 'settings' && <SettingsView key={storageTick} />}
+            {currentTab === 'settings' && <SettingsView key={storageTick} />}
+          </Suspense>
         </main>
 
         {/* Mobile Quick Bottom Navigation Bar (Smartphones & small screens) */}
@@ -526,18 +585,22 @@ export default function App() {
       </div>
 
       {/* Global Interactive Modals */}
-      <BarcodeScannerModal
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onScan={(code, product, quantity) => {
-          if (product) {
-            handleAddToCart(product, quantity || 1);
-            setCurrentTab('pos');
-          } else {
-            handleBarcodeScanned(code);
-          }
-        }}
-      />
+      {isScannerOpen && (
+        <Suspense fallback={null}>
+          <BarcodeScannerModal
+            isOpen={isScannerOpen}
+            onClose={() => setIsScannerOpen(false)}
+            onScan={(code, product, quantity) => {
+              if (product) {
+                handleAddToCart(product, quantity || 1);
+                setCurrentTab('pos');
+              } else {
+                handleBarcodeScanned(code);
+              }
+            }}
+          />
+        </Suspense>
+      )}
 
       <UserPinModal
         isOpen={isPinModalOpen}
@@ -549,10 +612,14 @@ export default function App() {
         onClose={() => setIsShortcutsOpen(false)}
       />
 
-      <DownloadAppModal
-        isOpen={isDownloadModalOpen}
-        onClose={() => setIsDownloadModalOpen(false)}
-      />
+      {isDownloadModalOpen && (
+        <Suspense fallback={null}>
+          <DownloadAppModal
+            isOpen={isDownloadModalOpen}
+            onClose={() => setIsDownloadModalOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {/* Floating Visual Urgent Restock Alert Toasts */}
       <UrgentRestockToast

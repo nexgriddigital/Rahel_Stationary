@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Product, ProductCategory, LOW_STOCK_THRESHOLD } from '../types';
 import { storage } from '../services/storage';
 import { printHtmlViaIframe } from '../services/printHelper';
@@ -54,10 +54,18 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [search, setSearch] = useState('');
   const settings = storage.getSettings();
 
-  // Barcode and Selection states
+  // Barcode and Selection states (persisted across navigation and refreshes)
   const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
   const [copiedBarcodeId, setCopiedBarcodeId] = useState<string | null>(null);
-  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set());
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(() => {
+    const saved = storage.getInventorySelectedIds();
+    return new Set(saved);
+  });
+
+  // Automatically persist inventory item selections to storage
+  useEffect(() => {
+    storage.setInventorySelectedIds(Array.from(selectedProductIds));
+  }, [selectedProductIds]);
 
   // Modals
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -939,7 +947,9 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onNavigateToBarcodeStudio(Array.from(selectedProductIds));
+                  const ids = Array.from(selectedProductIds);
+                  storage.setBarcodeStudioSelectedIds(ids);
+                  onNavigateToBarcodeStudio(ids);
                 }}
                 className="px-3 py-1.5 rounded-xl bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#3a3224] text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
               >
@@ -1343,16 +1353,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
         </div>
       )}
       {/* Bulk Import Modal */}
-      <BulkImportModal
-        isOpen={isBulkImportOpen}
-        onClose={() => setIsBulkImportOpen(false)}
-        onSuccess={(added, updated) => {
-          refreshList();
-          setSuccessNotification(`Successfully imported ${added} new items and updated ${updated} existing records.`);
-          setTimeout(() => setSuccessNotification(null), 6000);
-        }}
-        onNavigateToBarcodeStudio={onNavigateToBarcodeStudio}
-      />
+      {isBulkImportOpen && (
+        <Suspense fallback={null}>
+          <BulkImportModal
+            isOpen={isBulkImportOpen}
+            onClose={() => setIsBulkImportOpen(false)}
+            onSuccess={(added, updated) => {
+              refreshList();
+              setSuccessNotification(`Successfully imported ${added} new items and updated ${updated} existing records.`);
+              setTimeout(() => setSuccessNotification(null), 6000);
+            }}
+            onNavigateToBarcodeStudio={onNavigateToBarcodeStudio}
+          />
+        </Suspense>
+      )}
 
       {/* Product Barcode Preview Modal (Eye button modal) */}
       <ProductBarcodeModal

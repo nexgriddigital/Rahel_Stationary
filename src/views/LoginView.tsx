@@ -15,8 +15,9 @@ import {
   X,
   ArrowRight,
   Loader2,
+  Sparkles,
   HelpCircle,
-  Sparkles
+  Check
 } from 'lucide-react';
 
 interface LoginViewProps {
@@ -26,7 +27,7 @@ interface LoginViewProps {
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const settings = storage.getSettings();
 
-  // Form states
+  // Form states - initialized clean to avoid browser auto-prompting
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,8 +37,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Forgot password modal
+  // Password Recovery / Reset Modal states
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [resetIdentifier, setResetIdentifier] = useState('Rahel@RFStationary.com');
   const [resetPin, setResetPin] = useState('');
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [resetConfirmPassword, setResetConfirmPassword] = useState('');
@@ -45,10 +47,9 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Fast autofill for convenience / demo
-  const handleQuickFill = () => {
-    setIdentifier('admin');
-    setPassword('Stationery@2026');
+  // Helper action: Populate default account email securely (without exposing password)
+  const handleUseDefaultAccount = () => {
+    setIdentifier('Rahel@RFStationary.com');
     setErrorMessage(null);
   };
 
@@ -56,15 +57,14 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    // Validation
     const trimmedId = identifier.trim();
     if (!trimmedId) {
-      setErrorMessage('Please enter your username or email address.');
+      setErrorMessage('Please enter your administrator email (Rahel@RFStationary.com) or username.');
       return;
     }
 
     if (!password) {
-      setErrorMessage('Please enter your account password or PIN.');
+      setErrorMessage('Please enter your account password.');
       return;
     }
 
@@ -76,7 +76,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       if (result.success && result.session) {
         onLoginSuccess(result.session);
       } else {
-        setErrorMessage(result.error || 'Invalid username/email or password. Please try again.');
+        setErrorMessage(result.error || 'Invalid email or password. Please verify your credentials.');
         setIsLoading(false);
       }
     } catch (err) {
@@ -91,43 +91,54 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setResetError(null);
     setResetSuccess(null);
 
+    const trimmedIdentifier = resetIdentifier.trim();
+    if (!trimmedIdentifier) {
+      setResetError('Please enter your registered email address (e.g. Rahel@RFStationary.com).');
+      return;
+    }
+
     if (!resetPin.trim()) {
-      setResetError('Please enter your 4-digit Security PIN.');
+      setResetError('Please enter your 4-digit Administrator Security PIN.');
       return;
     }
 
     if (resetNewPassword.length < 6) {
-      setResetError('New password must be at least 6 characters long.');
+      setResetError('New password must be at least 6 characters in length.');
       return;
     }
 
     if (resetNewPassword !== resetConfirmPassword) {
-      setResetError('Password confirmation does not match.');
+      setResetError('Password confirmation does not match the new password.');
       return;
     }
 
     setIsResetting(true);
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      const res = await storage.resetPasswordWithPin(resetPin.trim(), resetNewPassword);
+      await new Promise(resolve => setTimeout(resolve, 350));
+      const res = await storage.resetPasswordWithVerification(
+        trimmedIdentifier,
+        resetPin.trim(),
+        resetNewPassword
+      );
 
       if (res.success) {
-        setResetSuccess('Password updated successfully! You can now log in with your new password.');
-        setPassword(resetNewPassword);
+        setResetSuccess('Identity verified! Workstation password updated successfully. You can now sign in.');
+        setIdentifier(trimmedIdentifier);
+        setPassword('');
         setTimeout(() => {
           setIsForgotModalOpen(false);
           setResetPin('');
           setResetNewPassword('');
           setResetConfirmPassword('');
           setResetSuccess(null);
-        }, 1500);
+        }, 1600);
       } else {
-        setResetError(res.error || 'Failed to reset password.');
+        setResetError(res.error || 'Identity verification failed. Please check your credentials and PIN.');
       }
     } catch (err) {
       console.error('Reset error:', err);
-      setResetError('Failed to reset password. Please check your PIN.');
+      setResetError('Failed to reset password. Please verify your identity.');
     } finally {
       setIsResetting(false);
     }
@@ -181,10 +192,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 )}
               </div>
               <h2 className="text-2xl font-bold tracking-tight text-[#f4efe8]">
-                Welcome Back
+                Workstation Login
               </h2>
               <p className="text-xs text-[#998b7a]">
-                Sign in to continue to your retail POS & inventory workstation.
+                Sign in to access your retail POS, catalog & store inventory.
               </p>
             </div>
 
@@ -201,25 +212,33 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               </div>
             )}
 
-            {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-4.5" noValidate>
+            {/* Login Form with anti-autofill configuration */}
+            <form
+              onSubmit={handleLogin}
+              autoComplete="off"
+              noValidate
+              className="space-y-4.5"
+            >
               {/* Username or Email Input */}
               <div className="space-y-1.5">
                 <label
-                  htmlFor="identifier"
+                  htmlFor="rf_login_identifier"
                   className="block text-xs font-semibold text-[#c4bbb0]"
                 >
-                  Username or Email
+                  Email or Username
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#736657]">
                     <User className="w-4 h-4" />
                   </div>
                   <input
-                    id="identifier"
+                    id="rf_login_identifier"
+                    name="rf_login_identifier"
                     type="text"
-                    autoComplete="username"
-                    autoFocus
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     required
                     disabled={isLoading}
                     value={identifier}
@@ -227,31 +246,35 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                       setIdentifier(e.target.value);
                       if (errorMessage) setErrorMessage(null);
                     }}
-                    placeholder="admin or rahel@rahelstationary.com"
+                    placeholder="Rahel@RFStationary.com"
                     className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-[#1a1714] border border-[#2a241c] text-xs font-medium text-[#f4efe8] placeholder-[#665b4d] focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all disabled:opacity-50"
                   />
                 </div>
               </div>
 
-              {/* Password Input */}
+              {/* Password Input & Prominent Forgot Password Trigger */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label
-                    htmlFor="password"
+                    htmlFor="rf_login_password"
                     className="block text-xs font-semibold text-[#c4bbb0]"
                   >
                     Password
                   </label>
+                  {/* Clear & Easy-to-find Forgot Password Button */}
                   <button
                     type="button"
                     onClick={() => {
+                      setResetIdentifier(identifier || 'Rahel@RFStationary.com');
                       setResetError(null);
                       setResetSuccess(null);
                       setIsForgotModalOpen(true);
                     }}
-                    className="text-[11px] font-medium text-[#d4af37] hover:text-[#f5d77f] hover:underline transition-colors cursor-pointer"
+                    className="text-xs font-semibold text-[#d4af37] hover:text-[#f5d77f] hover:underline flex items-center gap-1 transition-colors cursor-pointer py-0.5 px-1 rounded"
+                    title="Reset your password using your administrator security PIN"
                   >
-                    Forgot Password?
+                    <KeyRound className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Forgot Password?</span>
                   </button>
                 </div>
                 <div className="relative">
@@ -259,9 +282,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     <Lock className="w-4 h-4" />
                   </div>
                   <input
-                    id="password"
+                    id="rf_login_password"
+                    name="rf_login_password"
                     type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
+                    autoComplete="new-password"
+                    autoCorrect="off"
+                    spellCheck={false}
                     required
                     disabled={isLoading}
                     value={password}
@@ -269,7 +295,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                       setPassword(e.target.value);
                       if (errorMessage) setErrorMessage(null);
                     }}
-                    placeholder="Enter password or 4-digit PIN"
+                    placeholder="Enter account password"
                     className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-[#1a1714] border border-[#2a241c] text-xs font-medium text-[#f4efe8] placeholder-[#665b4d] focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-all disabled:opacity-50 font-mono tracking-wide"
                   />
                   <button
@@ -297,7 +323,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                     className="w-4 h-4 rounded border-[#2a241c] bg-[#1a1714] text-[#d4af37] focus:ring-[#d4af37] focus:ring-offset-0 cursor-pointer accent-[#d4af37]"
                   />
                   <span className="text-xs text-[#998b7a]">
-                    Remember me on this workstation
+                    Remember session on this workstation
                   </span>
                 </label>
               </div>
@@ -322,26 +348,44 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
               </button>
             </form>
 
-            {/* Quick Demonstration Credentials Helper Card */}
+            {/* Default Account Details Helper Card (Secure, does not expose raw passwords) */}
             <div className="pt-2 border-t border-[#26221c]">
               <div className="p-3 rounded-2xl bg-[#1a1714] border border-[#26221c] flex items-center justify-between">
                 <div className="space-y-0.5">
                   <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#f5d77f]">
-                    <Sparkles className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Administrator Credentials:</span>
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
+                    <span>Default Administrator Account:</span>
                   </div>
-                  <div className="text-[10px] text-[#998b7a] font-mono">
-                    User: <strong className="text-[#f4efe8]">admin</strong> · Pass: <strong className="text-[#f4efe8]">Stationery@2026</strong>
+                  <div className="text-[10px] text-[#998b7a]">
+                    Email: <strong className="text-[#f4efe8] font-mono">Rahel@RFStationary.com</strong>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={handleQuickFill}
-                  className="px-2.5 py-1 rounded-lg bg-[#d4af37]/15 hover:bg-[#d4af37]/25 text-[#f5d77f] border border-[#d4af37]/35 text-[10px] font-bold transition-all cursor-pointer"
+                  onClick={handleUseDefaultAccount}
+                  className="px-2.5 py-1 rounded-lg bg-[#d4af37]/15 hover:bg-[#d4af37]/25 text-[#f5d77f] border border-[#d4af37]/35 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
                 >
-                  Auto-Fill
+                  <Mail className="w-3 h-3 text-[#d4af37]" />
+                  <span>Use Email</span>
                 </button>
               </div>
+            </div>
+
+            {/* Bottom Password Reset Link for Visibility */}
+            <div className="text-center pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetIdentifier(identifier || 'Rahel@RFStationary.com');
+                  setResetError(null);
+                  setResetSuccess(null);
+                  setIsForgotModalOpen(true);
+                }}
+                className="text-[11px] text-[#998b7a] hover:text-[#f5d77f] transition-colors cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <KeyRound className="w-3 h-3 text-[#d4af37]" />
+                <span>Forgot your password? <strong>Reset password with Security PIN &rarr;</strong></span>
+              </button>
             </div>
           </div>
 
@@ -363,19 +407,24 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
         Offline-First Retail Management System
       </footer>
 
-      {/* Forgot Password / PIN Recovery Modal */}
+      {/* Secure Password Recovery / Reset Modal with Identity Verification */}
       {isForgotModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="w-full max-w-sm rounded-2xl bg-[#141417] text-[#f4efe8] border border-[#2a241c] shadow-2xl overflow-hidden">
+          <div className="w-full max-w-md rounded-2xl bg-[#141417] text-[#f4efe8] border border-[#2a241c] shadow-2xl overflow-hidden">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#26221c] bg-[#18181c]">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-[#d4af37]/15 text-[#f5d77f] flex items-center justify-center">
                   <KeyRound className="w-4 h-4 text-[#d4af37]" />
                 </div>
-                <h3 className="font-bold text-sm text-[#f4efe8]">
-                  Password Recovery
-                </h3>
+                <div>
+                  <h3 className="font-bold text-sm text-[#f4efe8]">
+                    Secure Password Recovery
+                  </h3>
+                  <p className="text-[10px] text-[#998b7a]">
+                    Verify identity to reset administrator workstation password
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
@@ -387,68 +436,114 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             </div>
 
             {/* Modal Content */}
-            <form onSubmit={handleResetPassword} className="p-5 space-y-4">
-              <p className="text-xs text-[#998b7a] leading-relaxed">
-                Verify your <strong>4-digit Administrator PIN</strong> (Default: <code>1234</code>) to reset your workstation password.
-              </p>
+            <form onSubmit={handleResetPassword} autoComplete="off" className="p-5 space-y-4">
+              <div className="p-3 rounded-xl bg-[#1a1714] border border-[#26221c] text-xs text-[#998b7a] leading-relaxed flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                <span>
+                  To protect store data, identity verification requires your registered email and <strong>4-digit Administrator PIN</strong> (Default: <code className="text-[#f5d77f] font-mono">1234</code>).
+                </span>
+              </div>
 
               {resetError && (
-                <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{resetError}</span>
+                <div
+                  role="alert"
+                  className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-rose-200 text-xs flex items-start gap-2 animate-in fade-in duration-150"
+                >
+                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                  <span className="flex-1 leading-snug">{resetError}</span>
                 </div>
               )}
 
               {resetSuccess && (
-                <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-800/50 text-emerald-200 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{resetSuccess}</span>
+                <div
+                  role="status"
+                  className="p-3 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-xs flex items-start gap-2 animate-in fade-in duration-150"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <span className="flex-1 leading-snug font-medium">{resetSuccess}</span>
                 </div>
               )}
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#c4bbb0]">
-                  4-Digit Security PIN
-                </label>
-                <input
-                  type="password"
-                  maxLength={4}
-                  required
-                  value={resetPin}
-                  onChange={(e) => setResetPin(e.target.value.replace(/\D/g, ''))}
-                  placeholder="e.g. 1234"
-                  className="w-full px-3.5 py-2 text-xs font-mono font-bold rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f5d77f] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-                />
+              {/* Step 1: Identity Verification Fields */}
+              <div className="space-y-3 pt-1">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#c4bbb0]">
+                    1. Registered Email or Username
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoComplete="off"
+                    value={resetIdentifier}
+                    onChange={(e) => {
+                      setResetIdentifier(e.target.value);
+                      if (resetError) setResetError(null);
+                    }}
+                    placeholder="Rahel@RFStationary.com"
+                    className="w-full px-3.5 py-2 text-xs font-medium rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#c4bbb0]">
+                    2. 4-Digit Administrator Security PIN
+                  </label>
+                  <input
+                    type="password"
+                    maxLength={4}
+                    required
+                    autoComplete="off"
+                    value={resetPin}
+                    onChange={(e) => {
+                      setResetPin(e.target.value.replace(/\D/g, ''));
+                      if (resetError) setResetError(null);
+                    }}
+                    placeholder="Enter 4-digit PIN (e.g. 1234)"
+                    className="w-full px-3.5 py-2 text-xs font-mono font-bold tracking-widest rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f5d77f] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#c4bbb0]">
-                  New Password (min 6 characters)
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={resetNewPassword}
-                  onChange={(e) => setResetNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  className="w-full px-3.5 py-2 text-xs font-medium rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-                />
+              {/* Step 2: New Password Fields */}
+              <div className="space-y-3 pt-2 border-t border-[#26221c]">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#c4bbb0]">
+                    3. New Password (minimum 6 characters)
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    value={resetNewPassword}
+                    onChange={(e) => {
+                      setResetNewPassword(e.target.value);
+                      if (resetError) setResetError(null);
+                    }}
+                    placeholder="Enter new password"
+                    className="w-full px-3.5 py-2 text-xs font-medium rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-[#c4bbb0]">
+                    4. Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    autoComplete="new-password"
+                    value={resetConfirmPassword}
+                    onChange={(e) => {
+                      setResetConfirmPassword(e.target.value);
+                      if (resetError) setResetError(null);
+                    }}
+                    placeholder="Re-enter new password"
+                    className="w-full px-3.5 py-2 text-xs font-medium rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="block text-xs font-semibold text-[#c4bbb0]">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  value={resetConfirmPassword}
-                  onChange={(e) => setResetConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                  className="w-full px-3.5 py-2 text-xs font-medium rounded-xl bg-[#1a1714] border border-[#2a241c] text-[#f4efe8] focus:outline-none focus:ring-1 focus:ring-[#d4af37]"
-                />
-              </div>
-
+              {/* Action Buttons */}
               <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
@@ -464,8 +559,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 >
                   {isResetting ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin text-black" />
-                  ) : null}
-                  <span>Update Password</span>
+                  ) : (
+                    <Check className="w-3.5 h-3.5 text-black font-bold" />
+                  )}
+                  <span>Verify Identity & Reset</span>
                 </button>
               </div>
             </form>

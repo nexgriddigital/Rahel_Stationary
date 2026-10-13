@@ -73,7 +73,7 @@ export const StaffView: React.FC = () => {
 
     const updatedUser: StaffUser = {
       ...adminUser,
-      email: newEmail.trim() || adminUser.email || 'admin@rahelstationary.local',
+      email: newEmail.trim() || adminUser.email || 'Rahel@RFStationary.com',
       pin: updatedPin,
       passwordHash: updatedPasswordHash,
       passwordSalt: updatedPasswordSalt,
