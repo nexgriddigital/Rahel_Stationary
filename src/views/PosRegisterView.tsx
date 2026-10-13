@@ -36,7 +36,9 @@ import {
   Layers,
   CalendarCheck,
   Sparkles,
-  RotateCcw
+  RotateCcw,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 
@@ -69,6 +71,19 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
   } | null>(null);
   const [lastRecordedSale, setLastRecordedSale] = useState<Sale | null>(null);
   const [showClearSaleModal, setShowClearSaleModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('rahel_pos_view_mode') as 'grid' | 'list') || 'grid';
+    }
+    return 'grid';
+  });
+
+  const handleToggleViewMode = (mode: 'grid' | 'list') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('rahel_pos_view_mode', mode);
+    } catch {}
+  };
 
   // Payment splits state
   const [payments, setPayments] = useState<PaymentSplit[]>([
@@ -380,7 +395,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
       </div>
 
       {/* Left Area: Product Catalog & Category Filters */}
-      <div className={`flex-1 flex flex-col border-r border-[#26221c] overflow-hidden ${
+      <div className={`flex-1 min-h-0 flex flex-col border-r border-[#26221c] overflow-hidden ${
         mobileTab === 'catalog' ? 'flex' : 'hidden lg:flex'
       }`}>
         {/* Search & Quick Actions Bar */}
@@ -429,47 +444,51 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
         </div>
 
         {/* Quick Commercial Services Shortcut Bar */}
-        <div className="px-3.5 py-2 bg-[#121216] border-b border-[#26221c] flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none select-none">
-          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#d4af37] shrink-0 mr-1">
-            <Layers className="w-3.5 h-3.5" />
-            <span>Quick Services:</span>
+        {services.filter(s => s.isActive).length > 0 && (
+          <div className="px-3.5 py-2 bg-[#121216] border-b border-[#26221c] flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-none select-none">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-[#d4af37] shrink-0 mr-1">
+              <Layers className="w-3.5 h-3.5" />
+              <span>Quick Services:</span>
+            </div>
+            {services.filter(s => s.isActive).map((srv) => (
+              <button
+                key={srv.id}
+                type="button"
+                onClick={() => {
+                  const prod = storage.convertServiceToProduct(srv);
+                  addToCart(prod);
+                  setBarcodeToast({
+                    productName: srv.name,
+                    retailPrice: srv.price,
+                    barcode: 'Service (No Inventory)'
+                  });
+                  setTimeout(() => setBarcodeToast(null), 2500);
+                }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer active:scale-95 border ${
+                  srv.name === 'Passport Appointment'
+                    ? 'bg-[#d4af37]/20 text-[#f5d77f] border-[#d4af37]/60 hover:bg-[#d4af37]/30 shadow-xs'
+                    : 'bg-[#18181e] text-[#e0d8cc] border-[#2c2820] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
+                }`}
+                title={`Add 1× ${srv.name} (${settings.currencySymbol} ${srv.price.toFixed(2)})`}
+              >
+                <span>{srv.name}</span>
+                <span className="font-mono text-xs font-bold text-[#f5d77f]">
+                  {settings.currencySymbol} {srv.price.toFixed(2)}
+                </span>
+              </button>
+            ))}
           </div>
-          {services.filter(s => s.isActive).map((srv) => (
-            <button
-              key={srv.id}
-              onClick={() => {
-                const prod = storage.convertServiceToProduct(srv);
-                addToCart(prod);
-                setBarcodeToast({
-                  productName: srv.name,
-                  retailPrice: srv.price,
-                  barcode: 'Service (No Inventory)'
-                });
-                setTimeout(() => setBarcodeToast(null), 2500);
-              }}
-              className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-all cursor-pointer active:scale-95 border ${
-                srv.name === 'Passport Appointment'
-                  ? 'bg-[#d4af37]/20 text-[#f5d77f] border-[#d4af37]/60 hover:bg-[#d4af37]/30 shadow-xs'
-                  : 'bg-[#18181e] text-[#e0d8cc] border-[#2c2820] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
-              }`}
-              title={`Add 1× ${srv.name} (${settings.currencySymbol} ${srv.price.toFixed(2)})`}
-            >
-              <span>{srv.name}</span>
-              <span className="font-mono text-[11px] font-bold text-[#f5d77f]">
-                {settings.currencySymbol} {srv.price.toFixed(2)}
-              </span>
-            </button>
-          ))}
-        </div>
+        )}
 
-        {/* Category Horizontal Filter Buttons */}
-        <div className="px-3.5 py-2 border-b border-[#26221c] flex items-center justify-between gap-1.5 overflow-x-auto whitespace-nowrap scrollbar-none bg-[#0d0d0f]">
-          <div className="flex items-center gap-1.5">
+        {/* Category Horizontal Filter Buttons & Layout Toggle */}
+        <div className="px-3.5 py-2.5 border-b border-[#26221c] flex items-center justify-between gap-2 overflow-x-auto whitespace-nowrap scrollbar-none bg-[#0d0d0f]">
+          <div className="flex items-center gap-1.5 shrink-0">
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-gradient-to-r from-[#d4af37] to-[#c59b27] text-black font-bold shadow-xs'
                     : 'bg-[#18181d] text-[#c2baa9] border border-[#2a261f] hover:border-[#d4af37]/40 hover:text-[#f5d77f]'
@@ -480,111 +499,252 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
             ))}
           </div>
 
-          {(selectedCategory !== 'All' || searchTerm.trim()) && (
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('All');
-                setSearchTerm('');
-              }}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-[#d4af37] hover:underline flex items-center gap-1 shrink-0 ml-2 cursor-pointer bg-[#18181d] border border-[#2a261f]"
-              title="Reset search and category filter to default"
-            >
-              <RotateCcw className="w-3 h-3 text-[#d4af37]" />
-              <span>Reset Filters</span>
-            </button>
-          )}
-        </div>
-
-        {/* Product & Services Grid */}
-        <div className="flex-1 p-3.5 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5 content-start">
-          {filteredProducts.length === 0 ? (
-            <div className="col-span-full py-16 text-center text-[#8e8271]">
-              <div className="flex flex-col items-center justify-center space-y-2.5">
-                <ShoppingBag className="w-8 h-8 opacity-40 text-[#d4af37]" />
-                <div className="font-semibold text-xs text-[#c4bbb0]">No matching catalog items found</div>
-                <p className="text-[11px] text-[#7d7465]">
-                  No items match the active search query or selected category.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory('All');
-                    setSearchTerm('');
-                  }}
-                  className="mt-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Catalog Filters</span>
-                </button>
-              </div>
-            </div>
-          ) : (
-            filteredProducts.map((p) => {
-            const isServiceItem = p.isService || storage.isService(p.id) || storage.isService(p.name);
-            const isLowStock = !isServiceItem && p.stock <= LOW_STOCK_THRESHOLD;
-            const inCart = cart.find(c => c.product.id === p.id);
-            return (
-              <div
-                key={p.id}
-                onClick={() => addToCart(p)}
-                className={`group p-3 rounded-2xl hover:border-[#d4af37]/70 border text-left transition-all hover:shadow-xs active:scale-98 flex flex-col justify-between relative overflow-hidden cursor-pointer ${
-                  isServiceItem
-                    ? 'bg-[#14151b] border-emerald-950/80 hover:border-emerald-500/60'
-                    : 'bg-[#141417] border-[#2a261f]'
-                }`}
+          <div className="flex items-center gap-2 shrink-0">
+            {(selectedCategory !== 'All' || searchTerm.trim()) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setSearchTerm('');
+                }}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-[#d4af37] hover:underline flex items-center gap-1 cursor-pointer bg-[#18181d] border border-[#2a261f]"
+                title="Reset search and category filter to default"
               >
-                {/* Active in cart indicator badge */}
-                {inCart && (
-                  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[#d4af37] text-black text-[10px] font-bold font-mono shadow-2xs">
-                    {inCart.quantity} in cart
-                  </div>
-                )}
+                <RotateCcw className="w-3 h-3 text-[#d4af37]" />
+                <span>Reset</span>
+              </button>
+            )}
 
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] text-[#8c8273] uppercase tracking-wide truncate">
-                      {isServiceItem ? 'Commercial Service' : p.category}
-                    </div>
-                    {isServiceItem && (
-                      <span className="px-1.5 py-0.2 rounded-md bg-emerald-950/80 text-emerald-300 border border-emerald-800/50 text-[9px] font-mono font-bold">
-                        Service
-                      </span>
-                    )}
-                  </div>
-
-                  <h4 className="font-semibold text-xs leading-snug line-clamp-2 text-[#f4efe8] mt-1 group-hover:text-[#f5d77f]">
-                    {p.name}
-                  </h4>
-                  <div className="text-[10px] font-mono text-[#8c8273] mt-1">
-                    {isServiceItem ? 'No inventory / No QR code' : `SKU: ${p.sku}`}
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-2 border-t border-[#26221c] flex items-center justify-between">
-                  <span className="text-sm font-bold font-mono text-[#f5d77f]">
-                    {settings.currencySymbol} {p.retailPrice.toFixed(2)}
-                  </span>
-                  {isServiceItem ? (
-                    <span className="text-[10px] font-mono font-semibold text-emerald-400">
-                      Per {p.unit || 'job'}
-                    </span>
-                  ) : (
-                    <span
-                      className={`text-[10px] font-mono font-medium ${
-                        isLowStock
-                          ? 'text-amber-400 font-bold'
-                          : 'text-[#8c8273]'
-                      }`}
-                    >
-                      {isLowStock ? `Low: ${p.stock}` : `${p.stock} ${p.unit}`}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          }))}
+            {/* Grid vs List View Mode Toggle */}
+            <div className="flex items-center bg-[#18181d] p-0.5 rounded-xl border border-[#2a261f]">
+              <button
+                type="button"
+                onClick={() => handleToggleViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-[#d4af37] text-black shadow-xs'
+                    : 'text-[#8c8273] hover:text-[#f4efe8]'
+                }`}
+                title="Cards Grid View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => handleToggleViewMode('list')}
+                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-[#d4af37] text-black shadow-xs'
+                    : 'text-[#8c8273] hover:text-[#f4efe8]'
+                }`}
+                title="Detailed Table List View"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
         </div>
+
+        {/* Product & Services Catalog View */}
+        {filteredProducts.length === 0 ? (
+          <div className="flex-1 min-h-0 p-8 flex items-center justify-center text-center text-[#8e8271]">
+            <div className="flex flex-col items-center justify-center space-y-3 max-w-sm">
+              <div className="w-14 h-14 rounded-2xl bg-[#1a1714] border border-[#26221c] flex items-center justify-center">
+                <ShoppingBag className="w-7 h-7 text-[#d4af37]" />
+              </div>
+              <div className="font-bold text-sm text-[#f4efe8]">No matching catalog items</div>
+              <p className="text-xs text-[#8c8273] leading-relaxed">
+                No stationery products or services match &quot;{searchTerm || selectedCategory}&quot;.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCategory('All');
+                  setSearchTerm('');
+                }}
+                className="mt-2 px-4 py-2 rounded-xl text-xs font-bold bg-[#1e1e24] text-[#f5d77f] border border-[#d4af37]/40 hover:bg-[#d4af37]/20 flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>Show All Products</span>
+              </button>
+            </div>
+          </div>
+        ) : viewMode === 'grid' ? (
+          <div className="flex-1 min-h-0 p-3.5 sm:p-5 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3.5 sm:gap-4 content-start">
+            {filteredProducts.map((p) => {
+              const isServiceItem = p.isService || storage.isService(p.id) || storage.isService(p.name);
+              const isLowStock = !isServiceItem && p.stock <= LOW_STOCK_THRESHOLD;
+              const isOutOfStock = !isServiceItem && p.stock <= 0;
+              const inCart = cart.find(c => c.product.id === p.id);
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => addToCart(p)}
+                  className={`group p-4 rounded-2xl border text-left transition-all hover:shadow-lg hover:shadow-black/60 active:scale-[0.98] flex flex-col justify-between relative cursor-pointer min-h-[145px] sm:min-h-[155px] select-none ${
+                    isServiceItem
+                      ? 'bg-[#14151b] border-emerald-950 hover:border-emerald-500/80'
+                      : isOutOfStock
+                      ? 'bg-[#151213] border-rose-950 hover:border-rose-700/80'
+                      : isLowStock
+                      ? 'bg-[#171410] border-amber-950 hover:border-amber-600/80'
+                      : 'bg-[#141417] border-[#26221c] hover:border-[#d4af37]/80'
+                  }`}
+                >
+                  {/* Top Badges: Category & In-Cart */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-[#d4af37] uppercase tracking-wider truncate">
+                      {isServiceItem ? 'Commercial Service' : p.category}
+                    </span>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {isServiceItem && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-950/90 text-emerald-300 border border-emerald-800/60 text-[9px] font-mono font-bold">
+                          Service
+                        </span>
+                      )}
+                      {inCart && (
+                        <span className="px-2 py-0.5 rounded-full bg-[#d4af37] text-black text-[10px] font-black font-mono shadow-xs">
+                          {inCart.quantity} in cart
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Product Title & Code */}
+                  <div className="my-2.5 flex-1">
+                    <h4 className="font-bold text-xs sm:text-sm leading-snug line-clamp-2 text-[#f4efe8] group-hover:text-[#f5d77f] transition-colors">
+                      {p.name}
+                    </h4>
+                    <div className="text-[10px] sm:text-[11px] font-mono text-[#8c8273] mt-1 flex items-center gap-1.5">
+                      <span>{isServiceItem ? 'No inventory tracking' : `SKU: ${p.sku || 'N/A'}`}</span>
+                    </div>
+                  </div>
+
+                  {/* Price & Stock Badge */}
+                  <div className="pt-2.5 border-t border-[#26221c] flex items-center justify-between gap-2">
+                    <span className="text-base sm:text-lg font-black font-mono text-[#f5d77f]">
+                      {settings.currencySymbol} {p.retailPrice.toFixed(2)}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {isServiceItem ? (
+                        <span className="text-[11px] font-mono font-semibold text-emerald-400">
+                          Per {p.unit || 'job'}
+                        </span>
+                      ) : isOutOfStock ? (
+                        <span className="text-[10px] font-mono font-bold text-rose-400 bg-rose-950/80 border border-rose-800/60 px-1.5 py-0.5 rounded">
+                          0 stock
+                        </span>
+                      ) : isLowStock ? (
+                        <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 border border-amber-800/60 px-1.5 py-0.5 rounded">
+                          Low: {p.stock} {p.unit}
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-mono text-[#a39c90]">
+                          {p.stock} {p.unit}
+                        </span>
+                      )}
+
+                      <span className="w-6 h-6 rounded-lg bg-[#d4af37]/15 group-hover:bg-[#d4af37] text-[#f5d77f] group-hover:text-black flex items-center justify-center transition-all shrink-0">
+                        <Plus className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex-1 min-h-0 p-3.5 sm:p-5 overflow-y-auto">
+            <div className="rounded-2xl border border-[#26221c] bg-[#141417] overflow-hidden shadow-xl">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead className="bg-[#18181d] text-[#8c8273] uppercase text-[10px] font-bold tracking-wider border-b border-[#26221c]">
+                  <tr>
+                    <th className="py-3 px-4">Item & Description</th>
+                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3">SKU / Code</th>
+                    <th className="py-3 px-3 text-right">Price</th>
+                    <th className="py-3 px-3 text-center">Stock</th>
+                    <th className="py-3 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#221e18]">
+                  {filteredProducts.map((p) => {
+                    const isServiceItem = p.isService || storage.isService(p.id) || storage.isService(p.name);
+                    const isLowStock = !isServiceItem && p.stock <= LOW_STOCK_THRESHOLD;
+                    const isOutOfStock = !isServiceItem && p.stock <= 0;
+                    const inCart = cart.find(c => c.product.id === p.id);
+
+                    return (
+                      <tr
+                        key={p.id}
+                        onClick={() => addToCart(p)}
+                        className="hover:bg-[#1a1a20] transition-colors cursor-pointer group"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-xs sm:text-sm text-[#f4efe8] group-hover:text-[#f5d77f] transition-colors line-clamp-1">
+                              {p.name}
+                            </span>
+                            {inCart && (
+                              <span className="px-1.5 py-0.2 rounded-full bg-[#d4af37] text-black text-[9px] font-bold font-mono shrink-0">
+                                {inCart.quantity} in cart
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="text-[11px] font-semibold text-[#d4af37]">
+                            {isServiceItem ? 'Commercial Service' : p.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[11px] text-[#8c8273]">
+                          {isServiceItem ? 'Service' : p.sku || 'N/A'}
+                        </td>
+                        <td className="py-3 px-3 text-right font-mono font-bold text-sm text-[#f5d77f]">
+                          {settings.currencySymbol} {p.retailPrice.toFixed(2)}
+                        </td>
+                        <td className="py-3 px-3 text-center">
+                          {isServiceItem ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/50 text-[10px] font-mono">
+                              Service
+                            </span>
+                          ) : isOutOfStock ? (
+                            <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800/50 text-[10px] font-mono font-bold">
+                              0 stock
+                            </span>
+                          ) : isLowStock ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/50 text-[10px] font-mono font-bold">
+                              Low: {p.stock} {p.unit}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-xs text-[#a39c90]">
+                              {p.stock} {p.unit}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart(p);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-[#d4af37]/15 group-hover:bg-[#d4af37] text-[#f5d77f] group-hover:text-black text-xs font-bold inline-flex items-center gap-1 transition-all"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Sticky Mobile Floating Cart Bar */}
         {cart.length > 0 && (
