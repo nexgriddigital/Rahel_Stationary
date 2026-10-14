@@ -14,9 +14,12 @@ import {
   RotateCcw,
   CheckCircle,
   X,
-  Loader2
+  Loader2,
+  Clock,
+  AlertTriangle
 } from 'lucide-react';
 import { storage } from './services/storage';
+import { authService, ServerSession } from './services/auth';
 import { CartItem, Sale, Product } from './types';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
@@ -112,7 +115,11 @@ function getInitialTabFromLocation(): NavTab {
 }
 
 export default function App() {
-  const [session, setSession] = useState<UserSession | null>(() => storage.getSession());
+  const [session, setSession] = useState<ServerSession | null>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [expiredReason, setExpiredReason] = useState<string | null>(null);
+  const [expiryWarningSeconds, setExpiryWarningSeconds] = useState<number | null>(null);
+
   const [currentTab, setCurrentTab] = useState<NavTab>(() => getInitialTabFromLocation());
   const [cart, setCart] = useState<CartItem[]>([]);
   const [barcodeNotFound, setBarcodeNotFound] = useState<string | null>(null);
@@ -157,19 +164,59 @@ export default function App() {
   const [storageTick, setStorageTick] = useState(0);
   const [resetToast, setResetToast] = useState<string | null>(null);
 
+  // Initial authentication check & expiration subscriptions
   useEffect(() => {
-    const unsubscribe = storage.subscribe(() => {
-      setStorageTick((t) => t + 1);
-      setSession(storage.getSession());
+    let isMounted = true;
+
+    // Check with server immediately on startup: validates session & 60-min inactivity timeout
+    authService.checkSession().then((res) => {
+      if (!isMounted) return;
+      if (res.authenticated && res.session) {
+        setSession(res.session);
+        setExpiredReason(null);
+      } else {
+        setSession(null);
+        if (res.error === 'SESSION_EXPIRED') {
+          setExpiredReason(res.message || 'Your session expired due to inactivity. Please log in again.');
+        }
+      }
+      setIsCheckingAuth(false);
     });
 
-    // Heartbeat check every 10 seconds to detect session expiry or invalidation immediately
-    const sessionHeartbeat = setInterval(() => {
-      const active = storage.getSession();
-      setSession(active);
-    }, 10000);
+    const unsubSession = authService.subscribe((s) => {
+      setSession(s);
+    });
 
-    // Keep URL hash in sync with tab changes for deep-linking while ensuring route protection
+    const unsubExpiry = authService.onExpiration((reason) => {
+      setSession(null);
+      setExpiredReason(reason);
+      setExpiryWarningSeconds(null);
+      try {
+        window.location.hash = '';
+      } catch {}
+    });
+
+    // Session validation heartbeat & inactivity warning poll every 20 seconds
+    const interval = setInterval(async () => {
+      const status = await authService.checkSession();
+      if (!isMounted) return;
+      if (!status.authenticated) {
+        setSession(null);
+        setExpiryWarningSeconds(null);
+      } else if (status.remainingSeconds !== undefined) {
+        // Show warning if 5 minutes (300 seconds) or less remain before inactivity expiration
+        if (status.remainingSeconds <= 300 && status.remainingSeconds > 0) {
+          setExpiryWarningSeconds(status.remainingSeconds);
+        } else {
+          setExpiryWarningSeconds(null);
+        }
+      }
+    }, 20000);
+
+    const unsubscribeStorage = storage.subscribe(() => {
+      setStorageTick((t) => t + 1);
+    });
+
     const handleHashChange = () => {
       const target = getInitialTabFromLocation();
       setCurrentTab(target);
@@ -183,13 +230,32 @@ export default function App() {
       setTimeout(() => setResetToast(null), 5000);
     };
     window.addEventListener('rahel_pos_data_reset', handleDataReset);
+
     return () => {
-      unsubscribe();
-      clearInterval(sessionHeartbeat);
+      isMounted = false;
+      unsubSession();
+      unsubExpiry();
+      clearInterval(interval);
+      unsubscribeStorage();
       window.removeEventListener('hashchange', handleHashChange);
       window.removeEventListener('rahel_pos_data_reset', handleDataReset);
     };
   }, []);
+
+  // Track meaningful user activity to refresh server 60-minute inactivity timer
+  useEffect(() => {
+    if (!session) return;
+    const handleUserActivity = () => {
+      authService.recordActivity();
+      setExpiryWarningSeconds(null);
+    };
+
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+    events.forEach((ev) => window.addEventListener(ev, handleUserActivity, { passive: true }));
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, handleUserActivity));
+    };
+  }, [session]);
 
   const handleSelectTab = (tab: NavTab) => {
     setCurrentTab(tab);
@@ -198,9 +264,12 @@ export default function App() {
     } catch {}
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await authService.logout();
     storage.logout();
     setSession(null);
+    setExpiredReason(null);
+    setExpiryWarningSeconds(null);
     try {
       window.location.hash = '';
     } catch {}
@@ -318,12 +387,35 @@ export default function App() {
     }
   };
 
+  // Initial loading state while verifying workstation session
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0c] text-[#f4efe8] flex flex-col items-center justify-center p-6 text-center select-none">
+        <div className="relative mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#f5d77f] to-[#aa8010] flex items-center justify-center shadow-xl shadow-[#d4af37]/20 animate-pulse">
+            <ShieldCheck className="w-7 h-7 text-black" />
+          </div>
+        </div>
+        <h2 className="text-base font-bold text-[#f5d77f] tracking-tight">
+          Rahel Stationary Workstation
+        </h2>
+        <p className="text-xs text-[#a89f91] mt-1 flex items-center gap-2 justify-center">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#d4af37]" />
+          Verifying workstation session...
+        </p>
+      </div>
+    );
+  }
+
   // Unauthenticated users are protected and must log in
   if (!session) {
     return (
       <LoginView
+        expiredReason={expiredReason}
         onLoginSuccess={(sess) => {
           setSession(sess);
+          setExpiredReason(null);
+          setExpiryWarningSeconds(null);
           const destination = getInitialTabFromLocation();
           setCurrentTab(destination);
           try {
@@ -336,6 +428,48 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0c] text-[#f4efe8] flex antialiased">
+      {/* Session Inactivity Pre-Expiration Warning Banner */}
+      {expiryWarningSeconds !== null && (
+        <div
+          role="alert"
+          className="fixed top-4 right-4 z-50 max-w-sm w-full p-4 rounded-2xl bg-[#1c1409]/95 border-2 border-amber-500 text-amber-100 shadow-2xl shadow-black/80 flex items-start gap-3 backdrop-blur-md animate-in fade-in slide-in-from-top-3"
+        >
+          <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+          <div className="flex-1 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <h4 className="font-bold text-xs text-amber-300 uppercase tracking-wider">
+                Inactivity Warning
+              </h4>
+              <span className="font-mono font-bold text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                {Math.floor(expiryWarningSeconds / 60)}m {expiryWarningSeconds % 60}s
+              </span>
+            </div>
+            <p className="text-xs text-amber-200/90 leading-relaxed">
+              Your workstation session will automatically expire due to 60 minutes of inactivity.
+            </p>
+            <div className="pt-1.5 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  authService.recordActivity(true);
+                  setExpiryWarningSeconds(null);
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-black font-extrabold text-xs shadow-md transition-all cursor-pointer"
+              >
+                Stay Signed In
+              </button>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/60 text-amber-300 text-xs transition-colors cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Side Navigation Bar (Desktop & Mobile Drawer) */}
       <Sidebar
         currentTab={currentTab}

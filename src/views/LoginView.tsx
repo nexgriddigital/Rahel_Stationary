@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { storage } from '../services/storage';
-import { UserSession } from '../types';
+import { authService, ServerSession } from '../services/auth';
 import { BrandLogo } from '../components/BrandLogo';
 import {
   Lock,
@@ -17,21 +17,22 @@ import {
   Loader2,
   Sparkles,
   HelpCircle,
-  Check
+  Check,
+  Clock
 } from 'lucide-react';
 
 interface LoginViewProps {
-  onLoginSuccess: (session: UserSession) => void;
+  onLoginSuccess: (session: ServerSession) => void;
+  expiredReason?: string | null;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
+export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, expiredReason }) => {
   const settings = storage.getSettings();
 
   // Form states - initialized clean to avoid browser auto-prompting
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
 
   // Status states
   const [isLoading, setIsLoading] = useState(false);
@@ -71,7 +72,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     setIsLoading(true);
 
     try {
-      const result = await storage.login(trimmedId, password, rememberMe);
+      const result = await authService.login(trimmedId, password);
 
       if (result.success && result.session) {
         onLoginSuccess(result.session);
@@ -116,7 +117,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
     try {
       await new Promise(resolve => setTimeout(resolve, 350));
-      const res = await storage.resetPasswordWithVerification(
+      const res = await authService.resetPasswordWithVerification(
         trimmedIdentifier,
         resetPin.trim(),
         resetNewPassword
@@ -198,6 +199,20 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 Sign in to access your retail POS, catalog & store inventory.
               </p>
             </div>
+
+            {/* Session Expired / Inactivity Notice */}
+            {expiredReason && !errorMessage && (
+              <div
+                role="alert"
+                className="p-3.5 rounded-2xl bg-amber-950/50 border border-amber-600/80 text-amber-200 text-xs flex items-start gap-2.5 animate-in fade-in slide-in-from-top-2 duration-150"
+              >
+                <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 leading-relaxed">
+                  <span className="font-semibold text-amber-300">Session Expired:</span>{' '}
+                  {expiredReason}
+                </div>
+              </div>
+            )}
 
             {/* Error Alert Box */}
             {errorMessage && (
@@ -313,19 +328,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                 </div>
               </div>
 
-              {/* Remember Me Checkbox */}
-              <div className="flex items-center justify-between pt-0.5">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded border-[#2a241c] bg-[#1a1714] text-[#d4af37] focus:ring-[#d4af37] focus:ring-offset-0 cursor-pointer accent-[#d4af37]"
-                  />
-                  <span className="text-xs text-[#998b7a]">
-                    Remember session on this workstation
-                  </span>
-                </label>
+              {/* Strict Inactivity Security Notice */}
+              <div className="flex items-center gap-2 py-1 px-2.5 rounded-lg bg-[#141210] border border-[#2a241c] text-[#998b7a] text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37] shrink-0" />
+                <span>Strict 60-minute inactivity security timeout enforced</span>
               </div>
 
               {/* Prominent Login Button */}

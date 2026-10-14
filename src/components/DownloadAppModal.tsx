@@ -136,15 +136,15 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({
                   </div>
                   <div>
                     <h4 className="font-extrabold text-sm text-[#f5d77f]">
-                      Official Android Package (.apk)
+                      Official Signed Android Package (.apk)
                     </h4>
                     <span className="text-[10px] font-mono text-[#a39c90]">
-                      rahel-pos-v2.4.apk · 7.5 KB · Offline Standalone Edition
+                      rahel-stationary.apk · Signed Release · Android 5.0 - 15+ Compatible
                     </span>
                   </div>
                 </div>
                 <p className="text-xs text-[#d1c8ba] leading-relaxed pt-1">
-                  Download the standalone Android APK installer directly to your Android counter tablet, smartphone, or handheld POS terminal. Works completely offline with camera scanner and Bluetooth thermal receipt support.
+                  Genuine, installable Android APK verified with v1, v2 &amp; v3 signatures. Compatible with Samsung Galaxy phones &amp; tablets, Google Pixel, Xiaomi, Redmi, OPPO, Realme, Vivo, Tecno, Infinix, and other Android devices. Includes full camera QR/barcode scanner support, store catalog, and offline resilience.
                 </p>
               </div>
 

@@ -672,7 +672,7 @@ export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSel
                       }`}
                     >
                       {/* Selection Checkbox for each product row */}
-                      <td className="py-2.5 px-4 text-center">
+                      <td className="py-3 px-4 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -682,27 +682,28 @@ export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSel
                       </td>
 
                       {/* Product Name & Category */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-3 px-3.5">
                         <div
                           onClick={() => handleToggleProduct(prod.id, !isSelected)}
                           className="cursor-pointer select-none"
                         >
-                          <div className="font-semibold text-xs text-[#f4efe8]">
+                          <div className="font-bold text-sm text-[#f4efe8] leading-tight">
                             {prod.name}
                           </div>
-                          <div className="text-[10px] text-[#998b7a]">
-                            {prod.category} {prod.description ? `· ${prod.description}` : ''}
+                          <div className="text-xs text-[#a89f91] mt-0.5">
+                            <span className="font-medium text-[#c4bbb0]">{prod.category}</span>
+                            {prod.description ? ` · ${prod.description}` : ''}
                           </div>
                         </div>
                       </td>
 
                       {/* SKU (with highlight if matched) */}
-                      <td className="py-2.5 px-3 font-mono text-[11px]">
+                      <td className="py-3 px-3 font-mono text-xs">
                         <span
                           className={
                             isSkuMatch
-                              ? 'bg-[#d4af37]/25 text-[#f5d77f] px-1.5 py-0.5 rounded font-bold border border-[#d4af37]/40'
-                              : 'text-[#c4bbb0]'
+                              ? 'bg-[#d4af37]/25 text-[#f5d77f] px-2 py-0.5 rounded font-bold border border-[#d4af37]/40'
+                              : 'text-[#d6cec3] font-medium'
                           }
                         >
                           {prod.sku}
@@ -710,12 +711,12 @@ export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSel
                       </td>
 
                       {/* QR Code ID (with highlight if matched) */}
-                      <td className="py-2.5 px-3 font-mono text-[11px]">
+                      <td className="py-3 px-3 font-mono text-xs">
                         <span
                           className={
                             isBarcodeMatch
-                              ? 'bg-[#d4af37]/25 text-[#f5d77f] px-1.5 py-0.5 rounded font-bold border border-[#d4af37]/40'
-                              : 'text-[#e6ca65] font-semibold'
+                              ? 'bg-[#d4af37]/25 text-[#f5d77f] px-2 py-0.5 rounded font-bold border border-[#d4af37]/40'
+                              : 'text-[#f0d479] font-semibold'
                           }
                         >
                           {prod.qrCode || prod.sku}
@@ -723,9 +724,9 @@ export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSel
                       </td>
 
                       {/* In Stock */}
-                      <td className="py-2.5 px-3 text-right font-mono">
-                        <div className="flex items-center justify-end gap-1">
-                          <span className={isLow ? 'text-amber-400 font-bold' : 'text-[#f4efe8]'}>
+                      <td className="py-3 px-3 text-right font-mono">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <span className={isLow ? 'text-amber-400 font-bold text-xs' : 'text-[#f4efe8] text-xs font-semibold'}>
                             {prod.stock} {prod.unit}
                           </span>
                           {isLow && (
@@ -738,7 +739,7 @@ export const BarcodeStudioView: React.FC<BarcodeStudioViewProps> = ({ initialSel
                       </td>
 
                       {/* Retail Price */}
-                      <td className="py-2.5 px-3 text-right font-mono font-bold text-[#f5d77f]">
+                      <td className="py-3 px-3 text-right font-mono font-bold text-sm text-[#f5d77f]">
                         {settings.currencySymbol} {prod.retailPrice.toFixed(2)}
                       </td>
 

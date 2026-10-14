@@ -566,12 +566,12 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         )}
                       </button>
                       <div>
-                        <div className="font-semibold text-xs text-[#f4efe8]">{prod.name}</div>
-                        <div className="text-[10px] text-[#998b7a] mt-0.5 flex flex-wrap items-center gap-1.5">
-                          <span className="px-1.5 py-0.5 rounded bg-[#1c1c22] text-[#d4af37] font-medium">
+                        <div className="font-bold text-sm text-[#f4efe8] leading-snug">{prod.name}</div>
+                        <div className="text-xs text-[#a89f91] mt-1 flex flex-wrap items-center gap-1.5">
+                          <span className="px-1.5 py-0.5 rounded bg-[#1c1c22] text-[#f5d77f] font-semibold border border-[#d4af37]/20">
                             {prod.category}
                           </span>
-                          <span>SKU: {prod.sku || 'N/A'}</span>
+                          <span className="font-mono text-[#d6cec3]">SKU: {prod.sku || 'N/A'}</span>
                         </div>
                       </div>
                     </div>
@@ -792,20 +792,20 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                           )}
                         </button>
                       </td>
-                      <td className="py-2.5 px-4">
-                        <div className="font-semibold text-xs text-[#f4efe8]">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-sm text-[#f4efe8] leading-tight">
                           {prod.name}
                         </div>
                         {prod.description && (
-                          <div className="text-[10px] text-[#8c8273] truncate max-w-xs">
+                          <div className="text-xs text-[#a89f91] mt-0.5 truncate max-w-sm">
                             {prod.description}
                           </div>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-[11px] text-[#a39c90]">
+                      <td className="py-3 px-3 text-xs text-[#d6cec3] font-medium">
                         {prod.category}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#c4bbb0]">
+                      <td className="py-3 px-3 font-mono text-xs text-[#d6cec3]">
                         {prod.sku}
                       </td>
                       <td className="py-2.5 px-3">
