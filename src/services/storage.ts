@@ -1126,8 +1126,36 @@ class StorageService {
   private isNotifying = false;
   private pendingNotifyKeys = new Set<string>();
 
+  // Multi-Device Central Sync Engine
+  private syncPushTimeout: any = null;
+  private currentServerVersion = 0;
+  private isSyncingFromServer = false;
+
   constructor() {
     this.initSeeds();
+
+    if (typeof window !== 'undefined') {
+      // 1. Fetch authoritative central store data immediately on startup
+      this.fetchServerData(false);
+
+      // 2. Poll for updates committed by other devices every 2 seconds for real-time uniformity
+      setInterval(() => {
+        this.pollServerVersion();
+      }, 2000);
+
+      // 3. Immediately poll when user switches back to the tab, unlocks their phone, or comes online
+      window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.pollServerVersion();
+        }
+      });
+      window.addEventListener('focus', () => {
+        this.pollServerVersion();
+      });
+      window.addEventListener('online', () => {
+        this.syncNow();
+      });
+    }
   }
 
   public subscribe(listener: (key?: string) => void): () => void {
@@ -1299,9 +1327,163 @@ class StorageService {
       if (notifyListeners) {
         this.notify(key);
       }
+      this.checkAndScheduleSync(key);
     } catch (e) {
       console.error(`Failed to store key ${key}`, e);
     }
+  }
+
+  // Check if modified key is part of central store database and schedule debounced sync
+  private checkAndScheduleSync(key: string) {
+    const syncKeys = [
+      STORAGE_KEYS.PRODUCTS,
+      STORAGE_KEYS.SERVICES,
+      STORAGE_KEYS.SALES,
+      STORAGE_KEYS.CREDIT_ACCOUNTS,
+      STORAGE_KEYS.EXPENSES,
+      STORAGE_KEYS.SHIFTS,
+      STORAGE_KEYS.STOCK_MOVEMENTS,
+      STORAGE_KEYS.LOGS,
+      STORAGE_KEYS.SETTINGS,
+      STORAGE_KEYS.STAFF,
+      STORAGE_KEYS.NOTIFICATIONS,
+      STORAGE_KEYS.PARKED_CARTS
+    ];
+    if (syncKeys.includes(key) && !this.isSyncingFromServer) {
+      if (this.syncPushTimeout) clearTimeout(this.syncPushTimeout);
+      this.syncPushTimeout = setTimeout(() => {
+        this.pushStoreDataToServer();
+      }, 300);
+    }
+  }
+
+  public async pushStoreDataToServer(): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    try {
+      const payload = {
+        products: this.getProducts(),
+        services: this.getServices(),
+        sales: this.getSales(),
+        creditAccounts: this.getCreditAccounts(),
+        expenses: this.getExpenses(),
+        shifts: this.getShifts(),
+        stockMovements: this.getStockMovements(),
+        logs: this.getLogs(),
+        settings: this.getSettings(),
+        staff: this.getStaff(),
+        notifications: this.getNotifications(),
+        parkedCarts: this.getParkedCarts()
+      };
+
+      const res = await fetch('/api/store/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: payload })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.version) {
+          this.currentServerVersion = data.version;
+          localStorage.setItem('rahel_pos_server_version', String(data.version));
+          localStorage.setItem('rahel_pos_last_sync_time', new Date().toISOString());
+        }
+        // If server returned merged dataset, update local state cleanly
+        if (data.data) {
+          this.applyServerSnapshot(data.data, data.version);
+        }
+        return true;
+      }
+      return false;
+    } catch (e) {
+      console.warn('Could not sync store data to server:', e);
+      return false;
+    }
+  }
+
+  private applyServerSnapshot(d: any, version: number) {
+    if (!d) return;
+    this.isSyncingFromServer = true;
+    try {
+      if (Array.isArray(d.products)) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(d.products));
+      if (Array.isArray(d.services)) localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(d.services));
+      if (Array.isArray(d.sales)) localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(d.sales));
+      if (Array.isArray(d.creditAccounts)) localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(d.creditAccounts));
+      if (Array.isArray(d.expenses)) localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(d.expenses));
+      if (Array.isArray(d.shifts)) localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(d.shifts));
+      if (Array.isArray(d.stockMovements)) localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify(d.stockMovements));
+      if (Array.isArray(d.logs)) localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(d.logs));
+      if (d.settings && typeof d.settings === 'object' && Object.keys(d.settings).length > 0) {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(d.settings));
+      }
+      if (Array.isArray(d.staff) && d.staff.length > 0) localStorage.setItem(STORAGE_KEYS.STAFF, JSON.stringify(d.staff));
+      if (Array.isArray(d.notifications)) localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(d.notifications));
+      if (Array.isArray(d.parkedCarts)) localStorage.setItem(STORAGE_KEYS.PARKED_CARTS, JSON.stringify(d.parkedCarts));
+
+      this.currentServerVersion = version;
+      localStorage.setItem('rahel_pos_server_version', String(version));
+      localStorage.setItem('rahel_pos_last_sync_time', new Date().toISOString());
+      localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+      this.notify();
+    } finally {
+      this.isSyncingFromServer = false;
+    }
+  }
+
+  public async fetchServerData(force = false): Promise<boolean> {
+    if (typeof window === 'undefined') return false;
+    try {
+      this.isSyncingFromServer = true;
+      const res = await fetch('/api/store/data');
+      if (!res.ok) return false;
+      const resData = await res.json();
+      if (!resData || !resData.data) return false;
+
+      const serverVersion = resData.version || 1;
+      const localVersion = parseInt(localStorage.getItem('rahel_pos_server_version') || '0', 10);
+
+      if (force || serverVersion > localVersion || localVersion === 0) {
+        this.applyServerSnapshot(resData.data, serverVersion);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.warn('Error fetching server store data:', err);
+      return false;
+    } finally {
+      this.isSyncingFromServer = false;
+    }
+  }
+
+  public async pollServerVersion(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    try {
+      const res = await fetch('/api/store/version');
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverVersion = data.version || 1;
+      const localVersion = parseInt(localStorage.getItem('rahel_pos_server_version') || '0', 10);
+      if (serverVersion > localVersion) {
+        await this.fetchServerData(true);
+      }
+    } catch {}
+  }
+
+  /**
+   * Force immediate bidirectional sync across all devices
+   */
+  public async syncNow(): Promise<boolean> {
+    await this.pushStoreDataToServer();
+    return await this.fetchServerData(true);
+  }
+
+  public getSyncStatus() {
+    const ver = this.currentServerVersion || parseInt(localStorage.getItem('rahel_pos_server_version') || '1', 10);
+    return {
+      version: ver,
+      isSyncing: this.isSyncingFromServer,
+      lastSyncTime: localStorage.getItem('rahel_pos_last_sync_time') || new Date().toISOString()
+    };
   }
 
   // Settings
@@ -3782,6 +3964,7 @@ class StorageService {
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('rahel_pos_data_reset'));
+        fetch('/api/store/reset', { method: 'POST' }).catch(() => {});
       }
     } catch (e) {
       console.error('Failed to remove all data:', e);
@@ -3816,6 +3999,7 @@ class StorageService {
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('rahel_pos_data_reset'));
+        this.pushStoreDataToServer();
       }
     } catch (e) {
       console.error('Failed to load demo data:', e);

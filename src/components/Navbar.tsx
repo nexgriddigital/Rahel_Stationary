@@ -136,13 +136,28 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, []);
 
-  const handleManualSync = () => {
+  const [syncStatus, setSyncStatus] = useState(() => storage.getSyncStatus());
+
+  // Listen to storage sync events
+  useEffect(() => {
+    const unsub = storage.subscribe(() => {
+      setSyncStatus(storage.getSyncStatus());
+    });
+    return unsub;
+  }, []);
+
+  const handleManualSync = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
+    try {
+      await storage.syncNow();
       setLastSyncTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-      storage.logActivity('CLOUD_SYNC', 'security', 'Manual Cloud Firestore sync executed successfully.');
-    }, 900);
+      setSyncStatus(storage.getSyncStatus());
+      storage.logActivity('CLOUD_SYNC', 'security', 'Central store data synced uniformly across all devices.');
+    } catch (e) {
+      console.warn('Manual sync error:', e);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Filter notifications for the dropdown
@@ -507,6 +522,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
+        {/* Multi-Device Uniform Cloud Sync Status Indicator */}
+        <button
+          onClick={handleManualSync}
+          disabled={isSyncing}
+          title={`Multi-Device Central Sync: Active & Uniform (Version ${syncStatus.version}) · Last synced: ${lastSyncTime}. Click to force sync all devices.`}
+          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 border border-[#2a261f] text-xs text-[#c2baa9] hover:text-[#f5d77f] transition-all cursor-pointer"
+        >
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <span className="text-[11px] font-medium hidden md:inline text-[#e0d8cc]">Sync v{syncStatus.version}</span>
+          <RefreshCw className={`w-3.5 h-3.5 text-[#d4af37] ${isSyncing ? 'animate-spin' : ''}`} />
+        </button>
+
         {/* POS Cart Pill with Live Item Badge */}
         <button
           onClick={onOpenCartDrawer}
@@ -579,14 +606,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
 
-              {/* Cloud Firestore Sync Status & Manual Sync Now */}
+              {/* Central Multi-Device Uniform Cloud Sync Status */}
               <div className="p-2.5 rounded-xl bg-[#1a1a20] border border-[#2a261f] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
                   <CloudCheck className="w-4 h-4 text-[#d4af37] shrink-0" />
                   <div>
-                    <div className="font-semibold text-[11px] text-[#f4efe8]">Firestore Cloud Sync</div>
+                    <div className="font-semibold text-[11px] text-[#f4efe8]">Multi-Device Central Sync</div>
                     <div className="text-[10px] text-[#8c8273]">
-                      Offline-first · Synced: {lastSyncTime}
+                      Uniform v{syncStatus.version} · Synced: {lastSyncTime}
                     </div>
                   </div>
                 </div>

@@ -1,0 +1,41 @@
+[
+  {
+    "id": "a754593e9373ac3a13142711ee756017b78f0479ad574bc3c428b5f84b2db72e",
+    "userId": "user_1",
+    "username": "admin",
+    "email": "Rahel@RFStationary.com",
+    "name": "Rahel Fira",
+    "role": "admin",
+    "createdAt": 1791965018118,
+    "lastActivityAt": 1791965018118,
+    "expiresAt": 1791968618118,
+    "ip": "127.0.0.1",
+    "userAgent": "curl/7.88.1"
+  },
+  {
+    "id": "c296a6d9b219b3dc68cf0f5dc0e7d62348c455edc6c6d4f8a2b342a8ae88199c",
+    "userId": "user_1",
+    "username": "admin",
+    "email": "Rahel@RFStationary.com",
+    "name": "Rahel Fira",
+    "role": "admin",
+    "createdAt": 1791965023749,
+    "lastActivityAt": 1791965023749,
+    "expiresAt": 1791968623749,
+    "ip": "127.0.0.1",
+    "userAgent": "curl/7.88.1"
+  },
+  {
+    "id": "044565236219eb17e4117317ae017adf9f20f66777fc5e7dce0b8a7dc656b4db",
+    "userId": "user_1",
+    "username": "admin",
+    "email": "Rahel@RFStationary.com",
+    "name": "Rahel Fira",
+    "role": "admin",
+    "createdAt": 1791965090329,
+    "lastActivityAt": 1791965090329,
+    "expiresAt": 1791968690329,
+    "ip": "127.0.0.1",
+    "userAgent": "curl/7.88.1"
+  }
+]

@@ -1,0 +1,2612 @@
+{
+  "version": 1,
+  "updatedAt": "2026-10-14T08:03:52.353Z",
+  "products": [
+    {
+      "id": "prod_1",
+      "name": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+      "sku": "PPR-A4-80G",
+      "qrCode": "PPR-A4-80G",
+      "barcode": "890123456001",
+      "category": "Paper & Notebooks",
+      "costPrice": 4.2,
+      "retailPrice": 7.5,
+      "stock": 64,
+      "minThreshold": 3,
+      "unit": "ream",
+      "description": "High opacity ultra-bright paper for laser and inkjet high-speed printing.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_2",
+      "name": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+      "sku": "PEN-PIL-G2B",
+      "qrCode": "PEN-PIL-G2B",
+      "barcode": "890123456002",
+      "category": "Writing & Pens",
+      "costPrice": 1.1,
+      "retailPrice": 2.25,
+      "stock": 82,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "description": "Smooth writing quick-drying archival black gel ink.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_3",
+      "name": "Pilot G2 0.7mm Retractable Gel Pen (Blue)",
+      "sku": "PEN-PIL-G2BL",
+      "qrCode": "PEN-PIL-G2BL",
+      "barcode": "890123456003",
+      "category": "Writing & Pens",
+      "costPrice": 1.1,
+      "retailPrice": 2.25,
+      "stock": 3,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "description": "Smooth writing quick-drying archival blue gel ink.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_4",
+      "name": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+      "sku": "NBK-MOL-A5D",
+      "qrCode": "NBK-MOL-A5D",
+      "barcode": "890123456004",
+      "category": "Paper & Notebooks",
+      "costPrice": 13.5,
+      "retailPrice": 24,
+      "stock": 18,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "description": "FSC-certified ivory acid-free paper with ribbon bookmark and back pocket.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_5",
+      "name": "Thermal Receipt Paper Roll 80x80mm (Box of 50)",
+      "sku": "POS-ROL-8080",
+      "qrCode": "POS-ROL-8080",
+      "barcode": "890123456005",
+      "category": "Printing & Copying",
+      "costPrice": 32,
+      "retailPrice": 52,
+      "stock": 12,
+      "minThreshold": 3,
+      "unit": "box",
+      "description": "BPA-free high sensitivity thermal paper for POS receipt printers.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_6",
+      "name": "Glossy Photo Paper A4 (230gsm, 50 Sheets)",
+      "sku": "PPR-GLS-A450",
+      "qrCode": "PPR-GLS-A450",
+      "barcode": "890123456006",
+      "category": "Printing & Copying",
+      "costPrice": 6.8,
+      "retailPrice": 12.5,
+      "stock": 24,
+      "minThreshold": 3,
+      "unit": "pack",
+      "description": "High-gloss cast-coated instant-dry waterproof photo paper.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_7",
+      "name": "Color Laser Printing Service (A4 Single Page)",
+      "sku": "SRV-CLR-A4",
+      "qrCode": "SRV-CLR-A4",
+      "barcode": "890123456007",
+      "category": "Printing & Copying",
+      "costPrice": 0.12,
+      "retailPrice": 0.65,
+      "stock": 9999,
+      "minThreshold": 3,
+      "unit": "page",
+      "description": "Heavy toner crisp commercial high-resolution color laser printout.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_8",
+      "name": "Document Binding Spiral Comb (Up to 100pgs)",
+      "sku": "SRV-BND-SPR",
+      "qrCode": "SRV-BND-SPR",
+      "barcode": "890123456008",
+      "category": "Binding & Lamination",
+      "costPrice": 0.85,
+      "retailPrice": 3.5,
+      "stock": 140,
+      "minThreshold": 3,
+      "unit": "book",
+      "description": "Clear PVC front cover, black leatherette back, plastic spiral binding.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_9",
+      "name": "Matte Lamination Pouches A4 (125 Micron, 100 pcs)",
+      "sku": "LAM-MTE-A4",
+      "qrCode": "LAM-MTE-A4",
+      "barcode": "890123456009",
+      "category": "Binding & Lamination",
+      "costPrice": 11.2,
+      "retailPrice": 19.95,
+      "stock": 1,
+      "minThreshold": 3,
+      "unit": "pack",
+      "description": "Anti-glare thermal lamination pouches for ID, menu, and signage protection.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_10",
+      "name": "Staedtler Mars Lumograph Art Pencil Set (12 Tins)",
+      "sku": "ART-STD-LUM",
+      "qrCode": "ART-STD-LUM",
+      "barcode": "890123456010",
+      "category": "Art & Craft",
+      "costPrice": 10.4,
+      "retailPrice": 18.5,
+      "stock": 16,
+      "minThreshold": 3,
+      "unit": "tin",
+      "description": "Graded graphite pencils 6B to 4H for sketching, drafting, and illustration.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_11",
+      "name": "Heavy Duty Stapler (100 Sheets Capacity)",
+      "sku": "DSK-STP-HD100",
+      "qrCode": "DSK-STP-HD100",
+      "barcode": "890123456011",
+      "category": "Desk & Office",
+      "costPrice": 16.5,
+      "retailPrice": 29,
+      "stock": 9,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "description": "Metal body with calibrated adjustable paper guide and anti-jam mechanism.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_12",
+      "name": "Custom Self-Inking Rubber Stamp (40x40mm)",
+      "sku": "STP-SLF-4040",
+      "qrCode": "STP-SLF-4040",
+      "barcode": "890123456012",
+      "category": "Custom Stamps & Signs",
+      "costPrice": 8.5,
+      "retailPrice": 22,
+      "stock": 45,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "description": "Precision laser-engraved polymer stamp pad with refillable black ink.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_13",
+      "name": "Kraft Padded Bubble Envelopes #2 (Pack of 25)",
+      "sku": "PKG-ENV-KRF2",
+      "qrCode": "PKG-ENV-KRF2",
+      "barcode": "890123456013",
+      "category": "Packaging & Envelopes",
+      "costPrice": 7.2,
+      "retailPrice": 14.5,
+      "stock": 35,
+      "minThreshold": 3,
+      "unit": "pack",
+      "description": "Self-seal tamper-evident tear strip with air cushion bubble lining.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "prod_14",
+      "name": "Architectural Tracing Paper Roll (90gsm, 20m)",
+      "sku": "PPR-TRC-90G",
+      "qrCode": "PPR-TRC-90G",
+      "barcode": "890123456014",
+      "category": "Paper & Notebooks",
+      "costPrice": 9.8,
+      "retailPrice": 18,
+      "stock": 2,
+      "minThreshold": 3,
+      "unit": "roll",
+      "description": "High transparency translucent parchment for CAD overlays and manual sketching.",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    }
+  ],
+  "services": [
+    {
+      "id": "srv_printing",
+      "name": "Printing",
+      "price": 5,
+      "unit": "page",
+      "description": "B&W and color laser document printing on A4/A3 paper.",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.709Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "srv_laminating",
+      "name": "Laminating",
+      "price": 25,
+      "unit": "pouch",
+      "description": "Hot thermal plastic protective lamination for ID cards, documents, certificates & passes.",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.710Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "srv_photocopying",
+      "name": "Photocopying",
+      "price": 3,
+      "unit": "copy",
+      "description": "High-speed sharp document photocopying (single or double-sided).",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.710Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "srv_scanning",
+      "name": "Scanning",
+      "price": 10,
+      "unit": "doc",
+      "description": "Optical digital high-resolution document scanning to PDF, flash drive, or email.",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.710Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "srv_binding",
+      "name": "Binding",
+      "price": 45,
+      "unit": "book",
+      "description": "Comb, spiral wire, and thermal document binding with protective PVC covers.",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.710Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    },
+    {
+      "id": "srv_passport_appointment",
+      "name": "Passport Appointment",
+      "price": 150,
+      "unit": "appointment",
+      "description": "Official biometric passport online booking, document verification & appointment scheduling.",
+      "isActive": true,
+      "createdAt": "2026-10-14T07:44:50.710Z",
+      "updatedAt": "2026-10-14T07:44:50.710Z"
+    }
+  ],
+  "sales": [
+    {
+      "id": "sale_1",
+      "transactionId": "TXN-2026-8840",
+      "receiptNumber": "TXN-2026-8840",
+      "timestamp": "2026-10-14T04:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 10,
+          "total": 75,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 10,
+          "total": 22.5,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_3",
+          "productName": "Casio FX-991EX Scientific Calculator",
+          "sku": "CAL-CAS-991",
+          "barcode": "890123456003",
+          "unitPrice": 30,
+          "costPrice": 18,
+          "quantity": 2,
+          "total": 60,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 157.5,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 157.5,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 157.5
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Client"
+    },
+    {
+      "id": "sale_2",
+      "transactionId": "TXN-2026-8841",
+      "receiptNumber": "TXN-2026-8841",
+      "timestamp": "2026-10-14T06:14:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 1,
+          "total": 24,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_10",
+          "productName": "Staedtler Mars Lumograph Art Pencil Set (12 Tins)",
+          "sku": "ART-STD-LUM",
+          "barcode": "890123456010",
+          "unitPrice": 18.5,
+          "costPrice": 10.4,
+          "quantity": 1,
+          "total": 18.5,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 42.5,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 2.13,
+      "total": 40.37,
+      "paymentMethod": "CBE",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 40.37,
+          "reference": "CBE-TXN-9941"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Sara Alem"
+    },
+    {
+      "id": "sale_today_3",
+      "transactionId": "TXN-2026-8842",
+      "receiptNumber": "TXN-2026-8842",
+      "timestamp": "2026-10-14T06:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_5",
+          "productName": "Thermal Receipt Paper Roll 80x80mm (Box of 50)",
+          "sku": "POS-ROL-8080",
+          "barcode": "890123456005",
+          "unitPrice": 52,
+          "costPrice": 32,
+          "quantity": 4,
+          "total": 208,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 208,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 208,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 208,
+          "reference": "AWASH-8842"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Fineline Architects"
+    },
+    {
+      "id": "sale_today_service_passport",
+      "transactionId": "TXN-2026-8843",
+      "receiptNumber": "TXN-2026-8843",
+      "timestamp": "2026-10-14T07:14:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "srv_passport_appointment",
+          "productName": "Passport Appointment",
+          "sku": "SRV-PASS-APPT",
+          "barcode": "",
+          "unitPrice": 150,
+          "costPrice": 0,
+          "quantity": 1,
+          "total": 150,
+          "discountPercent": 0,
+          "isService": true
+        },
+        {
+          "productId": "srv_photocopying",
+          "productName": "Photocopying",
+          "sku": "SRV-PHOTOCOPY",
+          "barcode": "",
+          "unitPrice": 3,
+          "costPrice": 0,
+          "quantity": 5,
+          "total": 15,
+          "discountPercent": 0,
+          "isService": true
+        }
+      ],
+      "subtotal": 165,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 165,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 165,
+          "reference": "TLB-PASS-8843"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Yohannes Bekele"
+    },
+    {
+      "id": "sale_prev_1a",
+      "transactionId": "TXN-2026-8835",
+      "receiptNumber": "TXN-2026-8835",
+      "timestamp": "2026-10-13T05:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_5",
+          "productName": "Thermal Receipt Paper Roll 80x80mm (Box of 50)",
+          "sku": "POS-ROL-8080",
+          "barcode": "890123456005",
+          "unitPrice": 20.8,
+          "costPrice": 12,
+          "quantity": 5,
+          "total": 104,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 104,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 104,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 104,
+          "reference": "TELEBIRR-8835"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Addis Commercial Bank"
+    },
+    {
+      "id": "sale_prev_1b",
+      "transactionId": "TXN-2026-8836",
+      "receiptNumber": "TXN-2026-8836",
+      "timestamp": "2026-10-13T03:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_100",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 10,
+          "total": 75,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 10,
+          "total": 22.5,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 97.5,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 97.5,
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 97.5
+        }
+      ],
+      "status": "completed",
+      "customerName": "Yared Stationery",
+      "paymentMethod": "Cash"
+    },
+    {
+      "id": "sale_prev_2a",
+      "receiptNumber": "REC-2026-8830",
+      "timestamp": "2026-10-12T04:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_99",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 5,
+          "total": 120,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_6",
+          "productName": "Glossy Photo Paper A4 (230gsm, 50 Sheets)",
+          "sku": "PPR-GLS-A450",
+          "barcode": "890123456006",
+          "unitPrice": 12.5,
+          "costPrice": 6.8,
+          "quantity": 3,
+          "total": 37.5,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 157.5,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 157.5,
+      "payments": [
+        {
+          "method": "mobile_transfer",
+          "amount": 157.5,
+          "reference": "TELEBIRR-8891"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Bethlehem Studio",
+      "transactionId": "TXN-2026-8830",
+      "paymentMethod": "Telebirr"
+    },
+    {
+      "id": "sale_prev_3a",
+      "receiptNumber": "REC-2026-8824",
+      "timestamp": "2026-10-11T05:44:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_98",
+      "items": [
+        {
+          "productId": "prod_5",
+          "productName": "Thermal Receipt Paper Roll 80x80mm (Box of 50)",
+          "sku": "POS-ROL-8080",
+          "barcode": "890123456005",
+          "unitPrice": 52,
+          "costPrice": 32,
+          "quantity": 4,
+          "total": 208,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 6,
+          "total": 45,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 253,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 253,
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 253
+        }
+      ],
+      "status": "completed",
+      "customerName": "St. George Academy",
+      "transactionId": "TXN-2026-8824",
+      "paymentMethod": "Cash"
+    },
+    {
+      "id": "sale_prev_4a",
+      "receiptNumber": "REC-2026-8818",
+      "timestamp": "2026-10-10T04:24:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_97",
+      "items": [
+        {
+          "productId": "prod_10",
+          "productName": "Staedtler Mars Lumograph Art Pencil Set (12 Tins)",
+          "sku": "ART-STD-LUM",
+          "barcode": "890123456010",
+          "unitPrice": 18.5,
+          "costPrice": 10.4,
+          "quantity": 8,
+          "total": 148,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 12,
+          "total": 27,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 175,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 175,
+      "payments": [
+        {
+          "method": "card",
+          "amount": 175,
+          "reference": "AWASH-9912"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Fineline Architects",
+      "transactionId": "TXN-2026-8818",
+      "paymentMethod": "CBE"
+    },
+    {
+      "id": "sale_prev_5a",
+      "receiptNumber": "REC-2026-8812",
+      "timestamp": "2026-10-09T05:14:50.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_96",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 25,
+          "total": 187.5,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_6",
+          "productName": "Glossy Photo Paper A4 (230gsm, 50 Sheets)",
+          "sku": "PPR-GLS-A450",
+          "barcode": "890123456006",
+          "unitPrice": 12.5,
+          "costPrice": 6.8,
+          "quantity": 4,
+          "total": 50,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 237.5,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 237.5,
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 237.5
+        }
+      ],
+      "status": "completed",
+      "customerName": "National Printing Bureau",
+      "transactionId": "TXN-2026-8812",
+      "paymentMethod": "Cash"
+    },
+    {
+      "id": "sale_prev_6a",
+      "receiptNumber": "REC-2026-8805",
+      "timestamp": "2026-10-08T05:31:30.710Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "shiftId": "shift_95",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 6,
+          "total": 144,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 8,
+          "total": 18,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 162,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 162,
+      "payments": [
+        {
+          "method": "mobile_transfer",
+          "amount": 162,
+          "reference": "TELEBIRR-7701"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Elias Worku",
+      "transactionId": "TXN-2026-8805",
+      "paymentMethod": "Telebirr"
+    },
+    {
+      "id": "sale_hist_2026_9_1",
+      "transactionId": "TXN-2026-0901",
+      "receiptNumber": "TXN-2026-0901",
+      "timestamp": "2026-09-01T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 13,
+          "total": 114.1,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 163,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 163,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 163,
+          "reference": "CBE-TXN-117"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_2",
+      "transactionId": "TXN-2026-0902",
+      "receiptNumber": "TXN-2026-0902",
+      "timestamp": "2026-09-02T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 15,
+          "total": 130.2,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 186,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 186,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 186,
+          "reference": "Telebirr-TXN-234"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_3",
+      "transactionId": "TXN-2026-0903",
+      "receiptNumber": "TXN-2026-0903",
+      "timestamp": "2026-09-03T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 17,
+          "total": 146.3,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 209,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 209,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 209,
+          "reference": "Awash Bank-TXN-351"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_4",
+      "transactionId": "TXN-2026-0904",
+      "receiptNumber": "TXN-2026-0904",
+      "timestamp": "2026-09-04T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 19,
+          "total": 162.4,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 232,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 232,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 232,
+          "reference": "Dashen Bank-TXN-468"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_5",
+      "transactionId": "TXN-2026-0905",
+      "receiptNumber": "TXN-2026-0905",
+      "timestamp": "2026-09-05T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 26,
+          "total": 224,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 320,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 320,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 320,
+          "reference": "Bank of Abyssinia-TXN-585"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_6",
+      "transactionId": "TXN-2026-0906",
+      "receiptNumber": "TXN-2026-0906",
+      "timestamp": "2026-09-06T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 28,
+          "total": 240.1,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 343,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 343,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 343
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_7",
+      "transactionId": "TXN-2026-0907",
+      "receiptNumber": "TXN-2026-0907",
+      "timestamp": "2026-09-07T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 25,
+          "total": 210.7,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 301,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 301,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 301,
+          "reference": "CBE-TXN-819"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_8",
+      "transactionId": "TXN-2026-0908",
+      "receiptNumber": "TXN-2026-0908",
+      "timestamp": "2026-09-08T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 27,
+          "total": 226.8,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 324,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 324,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 324,
+          "reference": "Telebirr-TXN-936"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_9",
+      "transactionId": "TXN-2026-0909",
+      "receiptNumber": "TXN-2026-0909",
+      "timestamp": "2026-09-09T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 13,
+          "total": 109.9,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 157,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 157,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 157,
+          "reference": "Awash Bank-TXN-1053"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_10",
+      "transactionId": "TXN-2026-0910",
+      "receiptNumber": "TXN-2026-0910",
+      "timestamp": "2026-09-10T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 15,
+          "total": 126,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 180,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 180,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 180,
+          "reference": "Dashen Bank-TXN-1170"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_11",
+      "transactionId": "TXN-2026-0911",
+      "receiptNumber": "TXN-2026-0911",
+      "timestamp": "2026-09-11T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 16,
+          "total": 142.1,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 203,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 203,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 203,
+          "reference": "Bank of Abyssinia-TXN-1287"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_12",
+      "transactionId": "TXN-2026-0912",
+      "receiptNumber": "TXN-2026-0912",
+      "timestamp": "2026-09-12T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 24,
+          "total": 203.7,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 291,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 291,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 291
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_13",
+      "transactionId": "TXN-2026-0913",
+      "receiptNumber": "TXN-2026-0913",
+      "timestamp": "2026-09-13T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 26,
+          "total": 219.8,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 314,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 314,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 314,
+          "reference": "CBE-TXN-1521"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_14",
+      "transactionId": "TXN-2026-0914",
+      "receiptNumber": "TXN-2026-0914",
+      "timestamp": "2026-09-14T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 22,
+          "total": 190.4,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 272,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 272,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 272,
+          "reference": "Telebirr-TXN-1638"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_15",
+      "transactionId": "TXN-2026-0915",
+      "receiptNumber": "TXN-2026-0915",
+      "timestamp": "2026-09-15T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 24,
+          "total": 206.5,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 295,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 295,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 295,
+          "reference": "Awash Bank-TXN-1755"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_16",
+      "transactionId": "TXN-2026-0916",
+      "receiptNumber": "TXN-2026-0916",
+      "timestamp": "2026-09-16T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 26,
+          "total": 222.6,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 318,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 318,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 318,
+          "reference": "Dashen Bank-TXN-1872"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_17",
+      "transactionId": "TXN-2026-0917",
+      "receiptNumber": "TXN-2026-0917",
+      "timestamp": "2026-09-17T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 12,
+          "total": 105.7,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 151,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 151,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 151,
+          "reference": "Bank of Abyssinia-TXN-1989"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_18",
+      "transactionId": "TXN-2026-0918",
+      "receiptNumber": "TXN-2026-0918",
+      "timestamp": "2026-09-18T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 14,
+          "total": 121.8,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 174,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 174,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 174
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_19",
+      "transactionId": "TXN-2026-0919",
+      "receiptNumber": "TXN-2026-0919",
+      "timestamp": "2026-09-19T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 21,
+          "total": 183.4,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 262,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 262,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 262,
+          "reference": "CBE-TXN-2223"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_20",
+      "transactionId": "TXN-2026-0920",
+      "receiptNumber": "TXN-2026-0920",
+      "timestamp": "2026-09-20T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 23,
+          "total": 199.5,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 285,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 285,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 285,
+          "reference": "Telebirr-TXN-2340"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_21",
+      "transactionId": "TXN-2026-0921",
+      "receiptNumber": "TXN-2026-0921",
+      "timestamp": "2026-09-21T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 20,
+          "total": 170.1,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 243,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 243,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 243,
+          "reference": "Awash Bank-TXN-2457"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_22",
+      "transactionId": "TXN-2026-0922",
+      "receiptNumber": "TXN-2026-0922",
+      "timestamp": "2026-09-22T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 22,
+          "total": 186.2,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 266,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 266,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 266,
+          "reference": "Dashen Bank-TXN-2574"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_23",
+      "transactionId": "TXN-2026-0923",
+      "receiptNumber": "TXN-2026-0923",
+      "timestamp": "2026-09-23T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 24,
+          "total": 202.3,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 289,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 289,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 289,
+          "reference": "Bank of Abyssinia-TXN-2691"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_24",
+      "transactionId": "TXN-2026-0924",
+      "receiptNumber": "TXN-2026-0924",
+      "timestamp": "2026-09-24T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 26,
+          "total": 218.4,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 312,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 312,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 312
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_25",
+      "transactionId": "TXN-2026-0925",
+      "receiptNumber": "TXN-2026-0925",
+      "timestamp": "2026-09-25T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 12,
+          "total": 101.5,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 145,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 145,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 145,
+          "reference": "CBE-TXN-2925"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_26",
+      "transactionId": "TXN-2026-0926",
+      "receiptNumber": "TXN-2026-0926",
+      "timestamp": "2026-09-26T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 19,
+          "total": 163.1,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 233,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 233,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 233,
+          "reference": "Telebirr-TXN-3042"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_27",
+      "transactionId": "TXN-2026-0927",
+      "receiptNumber": "TXN-2026-0927",
+      "timestamp": "2026-09-27T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 21,
+          "total": 179.2,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 256,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 256,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 256,
+          "reference": "Awash Bank-TXN-3159"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_hist_2026_9_28",
+      "transactionId": "TXN-2026-0928",
+      "receiptNumber": "TXN-2026-0928",
+      "timestamp": "2026-09-28T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 17,
+          "total": 149.8,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 214,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 214,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 214,
+          "reference": "Dashen Bank-TXN-3276"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_29",
+      "transactionId": "TXN-2026-0929",
+      "receiptNumber": "TXN-2026-0929",
+      "timestamp": "2026-09-29T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 19,
+          "total": 165.9,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 237,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 237,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 237,
+          "reference": "Bank of Abyssinia-TXN-3393"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Walk-in Retail"
+    },
+    {
+      "id": "sale_hist_2026_9_30",
+      "transactionId": "TXN-2026-0930",
+      "receiptNumber": "TXN-2026-0930",
+      "timestamp": "2026-09-30T14:30:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_1",
+          "productName": "A4 Double A Copier Paper (80gsm, 500 Sheets)",
+          "sku": "PPR-A4-80G",
+          "barcode": "890123456001",
+          "unitPrice": 7.5,
+          "costPrice": 4.2,
+          "quantity": 21,
+          "total": 182,
+          "discountPercent": 0
+        },
+        {
+          "productId": "prod_2",
+          "productName": "Pilot G2 0.7mm Retractable Gel Pen (Black)",
+          "sku": "PEN-PIL-G2B",
+          "barcode": "890123456002",
+          "unitPrice": 2.25,
+          "costPrice": 1.1,
+          "quantity": 4,
+          "total": 9,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 260,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 260,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 260
+        }
+      ],
+      "status": "completed",
+      "customerName": "Commercial Client"
+    },
+    {
+      "id": "sale_curr_2026_10_1",
+      "transactionId": "TXN-2026-1001",
+      "receiptNumber": "TXN-2026-1001",
+      "timestamp": "2026-10-01T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 191,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 191,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 191,
+          "reference": "Awash Bank-TXN-219"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_2",
+      "transactionId": "TXN-2026-1002",
+      "receiptNumber": "TXN-2026-1002",
+      "timestamp": "2026-10-02T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 222,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 222,
+      "paymentMethod": "Dashen Bank",
+      "payments": [
+        {
+          "method": "dashen_bank",
+          "amount": 222,
+          "reference": "Dashen Bank-TXN-438"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_3",
+      "transactionId": "TXN-2026-1003",
+      "receiptNumber": "TXN-2026-1003",
+      "timestamp": "2026-10-03T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 253,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 253,
+      "paymentMethod": "Bank of Abyssinia",
+      "payments": [
+        {
+          "method": "bank_of_abyssinia",
+          "amount": 253,
+          "reference": "Bank of Abyssinia-TXN-657"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_4",
+      "transactionId": "TXN-2026-1004",
+      "receiptNumber": "TXN-2026-1004",
+      "timestamp": "2026-10-04T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 284,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 284,
+      "paymentMethod": "Cash",
+      "payments": [
+        {
+          "method": "cash",
+          "amount": 284
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_5",
+      "transactionId": "TXN-2026-1005",
+      "receiptNumber": "TXN-2026-1005",
+      "timestamp": "2026-10-05T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 315,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 315,
+      "paymentMethod": "Commercial Bank of Ethiopia (CBE)",
+      "payments": [
+        {
+          "method": "cbe",
+          "amount": 315,
+          "reference": "CBE-TXN-1095"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_6",
+      "transactionId": "TXN-2026-1006",
+      "receiptNumber": "TXN-2026-1006",
+      "timestamp": "2026-10-06T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 346,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 346,
+      "paymentMethod": "Telebirr",
+      "payments": [
+        {
+          "method": "telebirr",
+          "amount": 346,
+          "reference": "Telebirr-TXN-1314"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    },
+    {
+      "id": "sale_curr_2026_10_7",
+      "transactionId": "TXN-2026-1007",
+      "receiptNumber": "TXN-2026-1007",
+      "timestamp": "2026-10-07T15:00:00.000Z",
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "items": [
+        {
+          "productId": "prod_4",
+          "productName": "Moleskine Classic Hardcover Dotted Journal (A5, Black)",
+          "sku": "NBK-MOL-A5D",
+          "barcode": "890123456004",
+          "unitPrice": 24,
+          "costPrice": 13.5,
+          "quantity": 2,
+          "total": 48,
+          "discountPercent": 0
+        }
+      ],
+      "subtotal": 167,
+      "taxAmount": 0,
+      "taxPercent": 0,
+      "discountAmount": 0,
+      "total": 167,
+      "paymentMethod": "Awash Bank",
+      "payments": [
+        {
+          "method": "awash_bank",
+          "amount": 167,
+          "reference": "Awash Bank-TXN-1533"
+        }
+      ],
+      "status": "completed",
+      "customerName": "Store Client"
+    }
+  ],
+  "creditAccounts": [
+    {
+      "id": "cred_1",
+      "customerName": "Apex Architects & Planners Ltd",
+      "phone": "+1 (555) 912-4401",
+      "email": "accounts@apexarchitects.com",
+      "creditLimit": 1200,
+      "currentBalance": 345.5,
+      "dueDate": "2026-10-15",
+      "createdAt": "2026-08-01T09:00:00.000Z",
+      "lastPaymentDate": "2026-09-20T14:30:00.000Z",
+      "notes": "Monthly corporate blueprint printing and drafting supply contract.",
+      "transactions": [
+        {
+          "id": "tx_c1",
+          "saleId": "REC-2026-8812",
+          "date": "2026-09-28T11:20:00.000Z",
+          "type": "charge",
+          "amount": 215.5,
+          "note": "Plotter bond rolls and custom blueprints",
+          "receivedBy": "Rahel Fira"
+        },
+        {
+          "id": "tx_c2",
+          "saleId": "REC-2026-8835",
+          "date": "2026-10-01T15:10:00.000Z",
+          "type": "charge",
+          "amount": 130,
+          "note": "Spiral comb presentation booklets",
+          "receivedBy": "Rahel Fira"
+        }
+      ]
+    },
+    {
+      "id": "cred_2",
+      "customerName": "Sunrise Academy Private School",
+      "phone": "+1 (555) 774-1290",
+      "email": "bursar@sunriseacademy.edu",
+      "creditLimit": 800,
+      "currentBalance": 184,
+      "dueDate": "2026-10-10",
+      "createdAt": "2026-07-15T08:30:00.000Z",
+      "lastPaymentDate": "2026-09-15T10:00:00.000Z",
+      "notes": "Exam papers and end-of-term student report booklet printing.",
+      "transactions": [
+        {
+          "id": "tx_c3",
+          "saleId": "REC-2026-8809",
+          "date": "2026-09-26T16:45:00.000Z",
+          "type": "charge",
+          "amount": 184,
+          "note": "Double A paper 20 reams + staple supplies",
+          "receivedBy": "Rahel Fira"
+        }
+      ]
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp_1",
+      "date": "2026-10-13T18:24:50.710Z",
+      "category": "Printing Toner",
+      "amount": 88,
+      "paidVia": "Cash Register",
+      "description": "Black toner replenishment for Xerox C8030 laser copier",
+      "recordedBy": "Rahel Fira",
+      "receiptReference": "SUP-TN-9921"
+    },
+    {
+      "id": "exp_2",
+      "date": "2026-10-12T07:44:50.710Z",
+      "category": "Packaging Supplies",
+      "amount": 45,
+      "paidVia": "Petty Cash",
+      "description": "Fragile stamp tape and brown kraft wrapping paper",
+      "recordedBy": "Rahel Fira",
+      "receiptReference": "PKG-7712"
+    }
+  ],
+  "shifts": [
+    {
+      "id": "shift_101",
+      "shiftNumber": 101,
+      "cashierId": "user_1",
+      "cashierName": "Rahel Fira",
+      "openedAt": "2026-10-14T03:44:50.710Z",
+      "openingFloat": 150,
+      "expectedCash": 312.5,
+      "cashDrops": [
+        {
+          "id": "drop_1",
+          "amount": 100,
+          "reason": "Safe deposit mid-day transfer",
+          "timestamp": "2026-10-14T05:44:50.710Z"
+        }
+      ],
+      "status": "open",
+      "notes": "Morning shift commenced with ETB 150.00 float change."
+    }
+  ],
+  "stockMovements": [],
+  "logs": [
+    {
+      "id": "log_1",
+      "timestamp": "2026-10-14T03:44:50.710Z",
+      "action": "REGISTER_OPEN",
+      "category": "shift",
+      "performedBy": "Rahel Fira",
+      "details": "Shift #101 opened with float amount ETB 150.00"
+    },
+    {
+      "id": "log_2",
+      "timestamp": "2026-10-14T04:24:50.710Z",
+      "action": "PRICE_UPDATE",
+      "category": "inventory",
+      "performedBy": "Rahel Fira",
+      "details": "Updated retail price of Pilot G2 Black from ETB 2.10 to ETB 2.25"
+    },
+    {
+      "id": "log_3",
+      "timestamp": "2026-10-14T05:44:50.710Z",
+      "action": "CASH_DROP",
+      "category": "shift",
+      "performedBy": "Rahel Fira",
+      "details": "Cash drop of ETB 100.00 transferred to back-office drop safe."
+    }
+  ],
+  "staff": [
+    {
+      "id": "user_1",
+      "name": "Rahel Fira",
+      "username": "admin",
+      "email": "Rahel@RFStationary.com",
+      "role": "admin",
+      "pin": "1234",
+      "passwordHash": "c194c94e3e8642e12ee7e9d2a767fcc9a92353b6a8b0870d6772348ec79bf3aa",
+      "passwordSalt": "40ec3781bfc70bb275f925c6f3f08da9",
+      "approved": true,
+      "lastActive": "2026-10-14T07:44:50.710Z"
+    }
+  ],
+  "notifications": [],
+  "parkedCarts": [],
+  "settings": {
+    "storeName": "Rahel Stationary",
+    "tagline": "Stationery, Fine Papers & Commercial Printing",
+    "address": "Suite 104, Commerce Plaza, Retail District",
+    "phone": "+1 (555) 382-9011",
+    "taxNumber": "",
+    "taxRatePercent": 0,
+    "currencySymbol": "ETB",
+    "receiptHeader": "Thank you for shopping at Rahel Stationary!\nSpecialist Print & Office Supplies",
+    "receiptFooter": "Goods once sold can be exchanged within 7 days with valid receipt.\nNo cash refunds on custom printing services.",
+    "lowStockThresholdDefault": 10,
+    "allowNegativeStock": false,
+    "themeMode": "dark",
+    "enableFirestoreSync": false,
+    "firestoreConfig": {
+      "projectId": "rahel-pos-app",
+      "databaseId": "(default)",
+      "experimentalForceLongPolling": true
+    },
+    "autoBackupEnabled": true,
+    "autoBackupIntervalHours": 24,
+    "autoBackupOnShiftClose": true
+  }
+}

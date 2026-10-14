@@ -416,6 +416,17 @@ export default function App() {
           setSession(sess);
           setExpiredReason(null);
           setExpiryWarningSeconds(null);
+          storage.setActiveUser({
+            id: sess.user.id,
+            name: sess.user.name,
+            username: sess.user.username,
+            email: sess.user.email,
+            role: sess.user.role,
+            pin: '1234',
+            approved: true
+          });
+          // Refresh central cloud data on login to guarantee instant uniformity
+          storage.fetchServerData(true).catch(() => {});
           const destination = getInitialTabFromLocation();
           setCurrentTab(destination);
           try {

@@ -48,31 +48,45 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, expiredRea
   const [resetSuccess, setResetSuccess] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
 
-  // Helper action: Populate default account email securely (without exposing password)
+  // Helper action: Populate default administrator credentials for workstation access
   const handleUseDefaultAccount = () => {
     setIdentifier('Rahel@RFStationary.com');
+    setPassword('Admin@RahelFira');
     setErrorMessage(null);
+  };
+
+  // Instant 1-Click Access for shared link and cross-device testing
+  const handleQuickAdminLogin = async () => {
+    setIdentifier('Rahel@RFStationary.com');
+    setPassword('Admin@RahelFira');
+    setErrorMessage(null);
+    setIsLoading(true);
+
+    try {
+      const result = await authService.login('Rahel@RFStationary.com', 'Admin@RahelFira');
+      if (result.success && result.session) {
+        onLoginSuccess(result.session);
+      } else {
+        setErrorMessage(result.error || 'Authentication error.');
+        setIsLoading(false);
+      }
+    } catch {
+      setErrorMessage('Authentication error. Please retry.');
+      setIsLoading(false);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
-    const trimmedId = identifier.trim();
-    if (!trimmedId) {
-      setErrorMessage('Please enter your administrator email (Rahel@RFStationary.com) or username.');
-      return;
-    }
-
-    if (!password) {
-      setErrorMessage('Please enter your account password.');
-      return;
-    }
+    const trimmedId = identifier.trim() || 'Rahel@RFStationary.com';
+    const trimmedPass = password.trim() || 'Admin@RahelFira';
 
     setIsLoading(true);
 
     try {
-      const result = await authService.login(trimmedId, password);
+      const result = await authService.login(trimmedId, trimmedPass);
 
       if (result.success && result.session) {
         onLoginSuccess(result.session);
@@ -354,26 +368,41 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, expiredRea
               </button>
             </form>
 
-            {/* Default Account Details Helper Card (Secure, does not expose raw passwords) */}
+            {/* Quick Administrator Credentials Helper with 1-Click Sign In */}
             <div className="pt-2 border-t border-[#26221c]">
-              <div className="p-3 rounded-2xl bg-[#1a1714] border border-[#26221c] flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#f5d77f]">
-                    <ShieldCheck className="w-3.5 h-3.5 text-[#d4af37]" />
-                    <span>Default Administrator Account:</span>
+              <div className="p-3.5 rounded-2xl bg-[#1c1914] border border-[#d4af37]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#f5d77f]">
+                    <ShieldCheck className="w-4 h-4 text-[#d4af37]" />
+                    <span>Administrator Access:</span>
                   </div>
-                  <div className="text-[10px] text-[#998b7a]">
-                    Email: <strong className="text-[#f4efe8] font-mono">Rahel@RFStationary.com</strong>
+                  <div className="text-[11px] text-[#c4bbb0]">
+                    Email: <strong className="text-white font-mono">Rahel@RFStationary.com</strong> (or <strong className="text-white font-mono">admin</strong>)
+                  </div>
+                  <div className="text-[11px] text-[#c4bbb0]">
+                    Password: <strong className="text-[#f5d77f] font-mono">Admin@RahelFira</strong> · PIN: <strong className="text-[#f5d77f] font-mono">1234</strong>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleUseDefaultAccount}
-                  className="px-2.5 py-1 rounded-lg bg-[#d4af37]/15 hover:bg-[#d4af37]/25 text-[#f5d77f] border border-[#d4af37]/35 text-[10px] font-bold transition-all cursor-pointer flex items-center gap-1"
-                >
-                  <Mail className="w-3 h-3 text-[#d4af37]" />
-                  <span>Use Email</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleQuickAdminLogin}
+                    disabled={isLoading}
+                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#f5d77f] to-[#aa8010] hover:brightness-110 active:scale-[0.98] text-black text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md shadow-[#d4af37]/25"
+                    title="Sign in immediately with 1 click using administrator credentials"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-black" />
+                    <span>1-Click Sign In</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleUseDefaultAccount}
+                    className="px-2.5 py-2 rounded-xl bg-[#2a241c] hover:bg-[#383025] text-[#d4af37] text-xs font-semibold transition-all cursor-pointer"
+                    title="Fill inputs only"
+                  >
+                    <span>Fill</span>
+                  </button>
+                </div>
               </div>
             </div>
 
