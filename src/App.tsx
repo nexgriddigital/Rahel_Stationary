@@ -174,6 +174,8 @@ export default function App() {
       if (res.authenticated && res.session) {
         setSession(res.session);
         setExpiredReason(null);
+        // Force-refresh central database snapshot on workstation boot/refresh
+        storage.fetchServerData(true).catch(() => {});
       } else {
         setSession(null);
         if (res.error === 'SESSION_EXPIRED') {

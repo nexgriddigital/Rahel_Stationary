@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "updatedAt": "2026-10-14T08:03:52.353Z",
+  "version": 4,
+  "updatedAt": "2026-10-14T08:32:44.851Z",
   "products": [
     {
       "id": "prod_1",
@@ -2568,6 +2568,46 @@
       "category": "shift",
       "performedBy": "Rahel Fira",
       "details": "Cash drop of ETB 100.00 transferred to back-office drop safe."
+    },
+    {
+      "id": "log_1791965147832e26t",
+      "timestamp": "2026-10-14T08:05:47.832Z",
+      "action": "RESTOCK_ALERT_TRIGGERED",
+      "category": "inventory",
+      "performedBy": "Rahel Fira",
+      "details": "Urgent Restock alert triggered for Architectural Tracing Paper Roll (90gsm, 20m) (Stock: 2, Min Threshold: 3)"
+    },
+    {
+      "id": "log_17919651478298sfo",
+      "timestamp": "2026-10-14T08:05:47.829Z",
+      "action": "RESTOCK_ALERT_TRIGGERED",
+      "category": "inventory",
+      "performedBy": "Rahel Fira",
+      "details": "Urgent Restock alert triggered for Matte Lamination Pouches A4 (125 Micron, 100 pcs) (Stock: 1, Min Threshold: 3)"
+    },
+    {
+      "id": "log_1791965147828ow2y",
+      "timestamp": "2026-10-14T08:05:47.828Z",
+      "action": "RESTOCK_ALERT_TRIGGERED",
+      "category": "inventory",
+      "performedBy": "Rahel Fira",
+      "details": "Urgent Restock alert triggered for Pilot G2 0.7mm Retractable Gel Pen (Blue) (Stock: 3, Min Threshold: 3)"
+    },
+    {
+      "id": "log_17919651778464ta7",
+      "timestamp": "2026-10-14T08:06:17.846Z",
+      "action": "SETTINGS_UPDATE",
+      "category": "security",
+      "performedBy": "Rahel Fira",
+      "details": "Store settings updated by active staff."
+    },
+    {
+      "id": "log_179196517784320j5",
+      "timestamp": "2026-10-14T08:06:17.843Z",
+      "action": "BACKUP_EXPORTED",
+      "category": "security",
+      "performedBy": "Rahel Fira",
+      "details": "Secure JSON backup generated: 14 products, 48 sales, 2 credit accounts. Checksum: 276b51e7..."
     }
   ],
   "staff": [
@@ -2584,7 +2624,56 @@
       "lastActive": "2026-10-14T07:44:50.710Z"
     }
   ],
-  "notifications": [],
+  "notifications": [
+    {
+      "id": "notif_restock_prod_14",
+      "title": "Restock Alert: Architectural Tracing Paper Roll (90gsm, 20m)",
+      "message": "Low stock threshold reached! Current stock is 2 roll (Safety threshold: 3 roll).",
+      "type": "restock_alert",
+      "severity": "warning",
+      "timestamp": "2026-10-14T08:05:47.829Z",
+      "read": false,
+      "productId": "prod_14",
+      "productName": "Architectural Tracing Paper Roll (90gsm, 20m)",
+      "sku": "PPR-TRC-90G",
+      "currentStock": 2,
+      "minThreshold": 3,
+      "unit": "roll",
+      "actionUrl": "inventory"
+    },
+    {
+      "id": "notif_restock_prod_9",
+      "title": "Restock Alert: Matte Lamination Pouches A4 (125 Micron, 100 pcs)",
+      "message": "Low stock threshold reached! Current stock is 1 pack (Safety threshold: 3 pack).",
+      "type": "restock_alert",
+      "severity": "warning",
+      "timestamp": "2026-10-14T08:05:47.828Z",
+      "read": false,
+      "productId": "prod_9",
+      "productName": "Matte Lamination Pouches A4 (125 Micron, 100 pcs)",
+      "sku": "LAM-MTE-A4",
+      "currentStock": 1,
+      "minThreshold": 3,
+      "unit": "pack",
+      "actionUrl": "inventory"
+    },
+    {
+      "id": "notif_restock_prod_3",
+      "title": "Restock Alert: Pilot G2 0.7mm Retractable Gel Pen (Blue)",
+      "message": "Low stock threshold reached! Current stock is 3 pcs (Safety threshold: 3 pcs).",
+      "type": "restock_alert",
+      "severity": "warning",
+      "timestamp": "2026-10-14T08:05:47.827Z",
+      "read": false,
+      "productId": "prod_3",
+      "productName": "Pilot G2 0.7mm Retractable Gel Pen (Blue)",
+      "sku": "PEN-PIL-G2BL",
+      "currentStock": 3,
+      "minThreshold": 3,
+      "unit": "pcs",
+      "actionUrl": "inventory"
+    }
+  ],
   "parkedCarts": [],
   "settings": {
     "storeName": "Rahel Stationary",
@@ -2607,6 +2696,7 @@
     },
     "autoBackupEnabled": true,
     "autoBackupIntervalHours": 24,
-    "autoBackupOnShiftClose": true
+    "autoBackupOnShiftClose": true,
+    "lastAutoBackupAt": "2026-10-14T08:06:17.843Z"
   }
 }

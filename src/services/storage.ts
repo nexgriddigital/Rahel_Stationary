@@ -1130,13 +1130,16 @@ class StorageService {
   private syncPushTimeout: any = null;
   private currentServerVersion = 0;
   private isSyncingFromServer = false;
+  private deletedProductIds: Set<string> = new Set();
+  private deletedServiceIds: Set<string> = new Set();
+  private deletedExpenseIds: Set<string> = new Set();
 
   constructor() {
     this.initSeeds();
 
     if (typeof window !== 'undefined') {
-      // 1. Fetch authoritative central store data immediately on startup
-      this.fetchServerData(false);
+      // 1. Fetch authoritative central store data immediately on startup (force true to guarantee freshness across devices)
+      this.fetchServerData(true);
 
       // 2. Poll for updates committed by other devices every 2 seconds for real-time uniformity
       setInterval(() => {
@@ -1353,13 +1356,21 @@ class StorageService {
       if (this.syncPushTimeout) clearTimeout(this.syncPushTimeout);
       this.syncPushTimeout = setTimeout(() => {
         this.pushStoreDataToServer();
-      }, 300);
+      }, 50);
     }
   }
 
   public async pushStoreDataToServer(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
     try {
+      const token = localStorage.getItem('rahel_pos_session_token') || sessionStorage.getItem('rahel_pos_session_token') || '';
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const payload = {
         products: this.getProducts(),
         services: this.getServices(),
@@ -1372,25 +1383,34 @@ class StorageService {
         settings: this.getSettings(),
         staff: this.getStaff(),
         notifications: this.getNotifications(),
-        parkedCarts: this.getParkedCarts()
+        parkedCarts: this.getParkedCarts(),
+        deletedProductIds: Array.from(this.deletedProductIds),
+        deletedServiceIds: Array.from(this.deletedServiceIds),
+        deletedExpenseIds: Array.from(this.deletedExpenseIds)
       };
 
       const res = await fetch('/api/store/sync', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers,
         body: JSON.stringify({ data: payload })
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.version) {
+        // Clear deleted tracked IDs once successfully committed
+        this.deletedProductIds.clear();
+        this.deletedServiceIds.clear();
+        this.deletedExpenseIds.clear();
+
+        if (data && data.version) {
           this.currentServerVersion = data.version;
           localStorage.setItem('rahel_pos_server_version', String(data.version));
           localStorage.setItem('rahel_pos_last_sync_time', new Date().toISOString());
         }
         // If server returned merged dataset, update local state cleanly
-        if (data.data) {
-          this.applyServerSnapshot(data.data, data.version);
+        if (data && data.data) {
+          this.applyServerSnapshot(data.data, data.version || this.currentServerVersion);
         }
         return true;
       }
@@ -1405,11 +1425,75 @@ class StorageService {
     if (!d) return;
     this.isSyncingFromServer = true;
     try {
-      if (Array.isArray(d.products)) localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(d.products));
-      if (Array.isArray(d.services)) localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(d.services));
-      if (Array.isArray(d.sales)) localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(d.sales));
-      if (Array.isArray(d.creditAccounts)) localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(d.creditAccounts));
-      if (Array.isArray(d.expenses)) localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(d.expenses));
+      if (Array.isArray(d.products)) {
+        // Smart merge: retain any local pending products not yet in server snapshot unless deleted
+        const localProds = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
+        const serverMap = new Map<string, Product>();
+        for (const p of d.products) {
+          if (p && p.id && !this.deletedProductIds.has(p.id)) {
+            serverMap.set(p.id, p);
+          }
+        }
+        let pendingPushNeeded = false;
+        for (const lp of localProds) {
+          if (lp && lp.id && !serverMap.has(lp.id) && !this.deletedProductIds.has(lp.id)) {
+            // Locally added item: keep it so it's never lost!
+            serverMap.set(lp.id, lp);
+            pendingPushNeeded = true;
+          }
+        }
+        const mergedProducts = Array.from(serverMap.values());
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mergedProducts));
+        if (pendingPushNeeded) {
+          setTimeout(() => this.pushStoreDataToServer(), 100);
+        }
+      }
+
+      if (Array.isArray(d.services)) {
+        const localServices = this.get<ServiceItem[]>(STORAGE_KEYS.SERVICES, []);
+        const serverMap = new Map<string, ServiceItem>();
+        for (const s of d.services) {
+          if (s && s.id && !this.deletedServiceIds.has(s.id)) {
+            serverMap.set(s.id, s);
+          }
+        }
+        let pendingPush = false;
+        for (const ls of localServices) {
+          if (ls && ls.id && !serverMap.has(ls.id) && !this.deletedServiceIds.has(ls.id)) {
+            serverMap.set(ls.id, ls);
+            pendingPush = true;
+          }
+        }
+        localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(Array.from(serverMap.values())));
+        if (pendingPush) {
+          setTimeout(() => this.pushStoreDataToServer(), 100);
+        }
+      }
+
+      if (Array.isArray(d.sales)) {
+        const localSales = this.get<Sale[]>(STORAGE_KEYS.SALES, []);
+        const salesMap = new Map<string, Sale>();
+        for (const s of d.sales) if (s && s.id) salesMap.set(s.id, s);
+        for (const ls of localSales) if (ls && ls.id && !salesMap.has(ls.id)) salesMap.set(ls.id, ls);
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(Array.from(salesMap.values())));
+      }
+
+      if (Array.isArray(d.creditAccounts)) {
+        const localCreds = this.get<CreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, []);
+        const credMap = new Map<string, CreditAccount>();
+        for (const c of d.creditAccounts) if (c && c.id) credMap.set(c.id, c);
+        for (const lc of localCreds) if (lc && lc.id && !credMap.has(lc.id)) credMap.set(lc.id, lc);
+        localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(Array.from(credMap.values())));
+      }
+
+      if (Array.isArray(d.expenses)) {
+        const localExp = this.get<ExpenseRecord[]>(STORAGE_KEYS.EXPENSES, []);
+        const expMap = new Map<string, ExpenseRecord>();
+        for (const e of d.expenses) if (e && e.id && !this.deletedExpenseIds.has(e.id)) expMap.set(e.id, e);
+        for (const le of localExp) if (le && le.id && !expMap.has(le.id) && !this.deletedExpenseIds.has(le.id)) expMap.set(le.id, le);
+        localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(Array.from(expMap.values())));
+      }
+
       if (Array.isArray(d.shifts)) localStorage.setItem(STORAGE_KEYS.SHIFTS, JSON.stringify(d.shifts));
       if (Array.isArray(d.stockMovements)) localStorage.setItem(STORAGE_KEYS.STOCK_MOVEMENTS, JSON.stringify(d.stockMovements));
       if (Array.isArray(d.logs)) localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(d.logs));
@@ -1434,7 +1518,14 @@ class StorageService {
     if (typeof window === 'undefined') return false;
     try {
       this.isSyncingFromServer = true;
-      const res = await fetch('/api/store/data');
+      const token = localStorage.getItem('rahel_pos_session_token') || sessionStorage.getItem('rahel_pos_session_token') || '';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/store/data', {
+        credentials: 'include',
+        headers
+      });
       if (!res.ok) return false;
       const resData = await res.json();
       if (!resData || !resData.data) return false;
@@ -1442,7 +1533,7 @@ class StorageService {
       const serverVersion = resData.version || 1;
       const localVersion = parseInt(localStorage.getItem('rahel_pos_server_version') || '0', 10);
 
-      if (force || serverVersion > localVersion || localVersion === 0) {
+      if (force || serverVersion >= localVersion || localVersion === 0) {
         this.applyServerSnapshot(resData.data, serverVersion);
         return true;
       }
@@ -1458,7 +1549,14 @@ class StorageService {
   public async pollServerVersion(): Promise<void> {
     if (typeof window === 'undefined') return;
     try {
-      const res = await fetch('/api/store/version');
+      const token = localStorage.getItem('rahel_pos_session_token') || sessionStorage.getItem('rahel_pos_session_token') || '';
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/store/version', {
+        credentials: 'include',
+        headers
+      });
       if (!res.ok) return;
       const data = await res.json();
       const serverVersion = data.version || 1;
@@ -1901,18 +1999,22 @@ class StorageService {
 
     if (idx >= 0) {
       services[idx] = { ...service, updatedAt: now };
+      this.deletedServiceIds.delete(service.id);
       this.logActivity('SERVICE_UPDATED', 'inventory', `Updated service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
     } else {
-      services.push({
+      const newService = {
         ...service,
         id: service.id || ('srv_' + Date.now()),
         createdAt: now,
         updatedAt: now
-      });
+      };
+      this.deletedServiceIds.delete(newService.id);
+      services.push(newService);
       this.logActivity('SERVICE_CREATED', 'inventory', `Added service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
     }
 
     this.set(STORAGE_KEYS.SERVICES, services);
+    this.pushStoreDataToServer();
     return { success: true };
   }
 
@@ -1921,9 +2023,11 @@ class StorageService {
     const target = services.find(s => s.id === id);
     if (!target) return { success: false, error: 'Service not found.' };
 
+    this.deletedServiceIds.add(id);
     const remaining = services.filter(s => s.id !== id);
     this.set(STORAGE_KEYS.SERVICES, remaining);
     this.logActivity('SERVICE_DELETED', 'inventory', `Deleted service "${target.name}".`);
+    this.pushStoreDataToServer();
     return { success: true };
   }
 
@@ -2094,6 +2198,10 @@ class StorageService {
     }
 
     product.barcode = barcode;
+    const nowIso = new Date().toISOString();
+    product.updatedAt = nowIso;
+    this.deletedProductIds.delete(product.id);
+
     const idx = list.findIndex(p => p.id === product.id);
     const isNew = idx < 0;
     if (isNew) {
@@ -2103,7 +2211,7 @@ class StorageService {
         productId: product.id,
         productName: product.name,
         sku: product.sku,
-        timestamp: new Date().toISOString(),
+        timestamp: nowIso,
         type: 'IN',
         quantityChange: product.stock,
         previousStock: 0,
@@ -2121,7 +2229,7 @@ class StorageService {
           productId: product.id,
           productName: product.name,
           sku: product.sku,
-          timestamp: new Date().toISOString(),
+          timestamp: nowIso,
           type: stockDiff > 0 ? 'IN' : 'AUDIT',
           quantityChange: stockDiff,
           previousStock: prev.stock,
@@ -2134,6 +2242,7 @@ class StorageService {
       this.logActivity('PRODUCT_UPDATED', 'inventory', `Updated product ${product.name} (Barcode: ${product.barcode})`);
     }
     this.set(STORAGE_KEYS.PRODUCTS, list);
+    this.pushStoreDataToServer();
     return { success: true };
   }
 
@@ -2404,9 +2513,11 @@ class StorageService {
     const list = this.getProducts();
     const prod = list.find(p => p.id === id);
     if (prod) {
+      this.deletedProductIds.add(id);
       const filtered = list.filter(p => p.id !== id);
       this.set(STORAGE_KEYS.PRODUCTS, filtered);
       this.logActivity('PRODUCT_DELETED', 'inventory', `Removed product ${prod.name} (SKU: ${prod.sku})`);
+      this.pushStoreDataToServer();
     }
   }
 
@@ -2418,6 +2529,7 @@ class StorageService {
       prod.stock = Math.max(0, prod.stock + quantityChange);
       prod.updatedAt = new Date().toISOString();
       this.set(STORAGE_KEYS.PRODUCTS, list);
+      this.pushStoreDataToServer();
 
       this.logStockMovement({
         id: 'mov_' + Date.now(),

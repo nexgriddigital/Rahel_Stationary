@@ -584,28 +584,35 @@ app.get('/api/store/data', (_req: Request, res: Response) => {
 
 function mergeCollection<T extends { id?: string; updatedAt?: string; timestamp?: string | number }>(
   existing: T[] = [],
-  incoming: T[] = []
+  incoming: T[] = [],
+  deletedIds: string[] = []
 ): T[] {
-  if (!Array.isArray(incoming) || incoming.length === 0) return Array.isArray(existing) ? existing : [];
-  if (!Array.isArray(existing) || existing.length === 0) return incoming;
-
+  const deletedSet = new Set(deletedIds || []);
   const map = new Map<string, T>();
-  for (const item of existing) {
-    if (item && item.id) {
-      map.set(item.id, item);
+
+  if (Array.isArray(existing)) {
+    for (const item of existing) {
+      if (item && item.id && !deletedSet.has(item.id)) {
+        map.set(item.id, item);
+      }
     }
   }
 
-  for (const item of incoming) {
-    if (!item || !item.id) continue;
-    if (!map.has(item.id)) {
-      map.set(item.id, item);
-    } else {
-      const prev = map.get(item.id)!;
-      const prevTime = new Date(prev.updatedAt || prev.timestamp || 0).getTime();
-      const currTime = new Date(item.updatedAt || item.timestamp || 0).getTime();
-      if (currTime >= prevTime) {
-        map.set(item.id, { ...prev, ...item });
+  if (Array.isArray(incoming)) {
+    for (const item of incoming) {
+      if (!item || !item.id || deletedSet.has(item.id)) continue;
+      if (!map.has(item.id)) {
+        map.set(item.id, {
+          ...item,
+          updatedAt: item.updatedAt || new Date().toISOString()
+        });
+      } else {
+        const prev = map.get(item.id)!;
+        const prevTime = new Date(prev.updatedAt || prev.timestamp || 0).getTime();
+        const currTime = new Date(item.updatedAt || item.timestamp || Date.now()).getTime();
+        if (currTime >= prevTime || !prev.updatedAt) {
+          map.set(item.id, { ...prev, ...item });
+        }
       }
     }
   }
@@ -623,15 +630,19 @@ app.post('/api/store/sync', (req: Request, res: Response) => {
   const nextVersion = (current.version || 1) + 1;
   const now = new Date().toISOString();
 
-  // Smart multi-device merge: preserves items, sales, accounts from all devices
+  const deletedProductIds = Array.isArray(inc.deletedProductIds) ? inc.deletedProductIds : [];
+  const deletedServiceIds = Array.isArray(inc.deletedServiceIds) ? inc.deletedServiceIds : [];
+  const deletedExpenseIds = Array.isArray(inc.deletedExpenseIds) ? inc.deletedExpenseIds : [];
+
+  // Smart multi-device merge: preserves items, sales, accounts from all devices without resurrecting deletions
   const merged = {
     version: nextVersion,
     updatedAt: now,
-    products: mergeCollection(current.products, inc.products),
-    services: mergeCollection(current.services, inc.services),
+    products: mergeCollection(current.products, inc.products, deletedProductIds),
+    services: mergeCollection(current.services, inc.services, deletedServiceIds),
     sales: mergeCollection(current.sales, inc.sales),
     creditAccounts: mergeCollection(current.creditAccounts, inc.creditAccounts),
-    expenses: mergeCollection(current.expenses, inc.expenses),
+    expenses: mergeCollection(current.expenses, inc.expenses, deletedExpenseIds),
     shifts: mergeCollection(current.shifts, inc.shifts),
     stockMovements: mergeCollection(current.stockMovements, inc.stockMovements),
     logs: mergeCollection(current.logs, inc.logs),

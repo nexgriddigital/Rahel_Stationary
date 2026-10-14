@@ -522,12 +522,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Multi-Device Uniform Cloud Sync Status Indicator */}
+        {/* Multi-Device Uniform Cloud Sync Status Indicator (Visible on Mobile & Desktop) */}
         <button
           onClick={handleManualSync}
           disabled={isSyncing}
           title={`Multi-Device Central Sync: Active & Uniform (Version ${syncStatus.version}) · Last synced: ${lastSyncTime}. Click to force sync all devices.`}
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 border border-[#2a261f] text-xs text-[#c2baa9] hover:text-[#f5d77f] transition-all cursor-pointer"
+          className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 border border-[#2a261f] text-xs text-[#c2baa9] hover:text-[#f5d77f] transition-all cursor-pointer"
         >
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
           <span className="text-[11px] font-medium hidden md:inline text-[#e0d8cc]">Sync v{syncStatus.version}</span>

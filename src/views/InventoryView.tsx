@@ -34,7 +34,8 @@ import {
   AlertCircle,
   FileText,
   Layers,
-  RotateCcw
+  RotateCcw,
+  RefreshCw
 } from 'lucide-react';
 import { ConfirmationDialog } from '../components/ConfirmationDialog';
 import { exportInventoryReportPDF, exportLowStockReportPDF } from '../services/pdfReportGenerator';
@@ -52,7 +53,32 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
   const [filterMode, setFilterMode] = useState<'all' | 'low_stock'>('all');
   const [selectedCat, setSelectedCat] = useState<string>('All');
   const [search, setSearch] = useState('');
+  const [isSyncingCloud, setIsSyncingCloud] = useState(false);
   const settings = storage.getSettings();
+
+  // Real-time synchronization: update products whenever storage changes (cloud pull, poller, other device)
+  useEffect(() => {
+    const unsub = storage.subscribe(() => {
+      setProducts(storage.getProducts());
+    });
+    return unsub;
+  }, []);
+
+  const handleSyncWithCloud = async () => {
+    setIsSyncingCloud(true);
+    try {
+      await storage.syncNow();
+      const updated = storage.getProducts();
+      setProducts(updated);
+      setSuccessNotification(`Catalog synchronized! ${updated.length} items verified across all devices.`);
+      setTimeout(() => setSuccessNotification(null), 3500);
+    } catch {
+      setFormError('Cloud sync error. Please verify network connection.');
+      setTimeout(() => setFormError(null), 4000);
+    } finally {
+      setIsSyncingCloud(false);
+    }
+  };
 
   // Barcode and Selection states (persisted across navigation and refreshes)
   const [barcodeModalProduct, setBarcodeModalProduct] = useState<Product | null>(null);
@@ -408,6 +434,17 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
           >
             <FileText className="w-3.5 h-3.5 text-[#f5d77f]" />
             <span>Export Catalog PDF</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleSyncWithCloud}
+            disabled={isSyncingCloud}
+            className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-[#141417] hover:bg-[#d4af37]/20 text-[#f5d77f] border border-[#d4af37]/40 flex items-center gap-1.5 transition-colors shadow-2xs hover:border-[#d4af37] cursor-pointer disabled:opacity-50"
+            title="Force immediate multi-device sync with central server"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-[#f5d77f] ${isSyncingCloud ? 'animate-spin' : ''}`} />
+            <span>{isSyncingCloud ? 'Syncing...' : 'Sync Cloud'}</span>
           </button>
 
           <button
