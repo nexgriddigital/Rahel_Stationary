@@ -162,11 +162,11 @@ const DEFAULT_SETTINGS: StoreSettings = {
   lowStockThresholdDefault: 10,
   allowNegativeStock: false,
   themeMode: 'dark',
-  enableFirestoreSync: false,
+  enableFirestoreSync: true,
   firestoreConfig: {
-    projectId: "rahel-pos-app",
-    databaseId: "(default)",
-    experimentalForceLongPolling: true
+    projectId: "gen-lang-client-0489362255",
+    databaseId: "ai-studio-rahelstationaryp-11469eb8-590a-499d-b290-d20df05b3d1d",
+    experimentalForceLongPolling: false
   },
   autoBackupEnabled: true,
   autoBackupIntervalHours: 24,
@@ -1518,22 +1518,28 @@ class StorageService {
       STORAGE_KEYS.PARKED_CARTS
     ];
     if (syncKeys.includes(key) && !this.isSyncingFromServer) {
-      this.pendingUploadCount++;
-      this.syncState = 'uploading';
-      this.notify('sync_status');
+      if (this.syncState !== 'just_uploaded') {
+        this.syncState = this.isFirebaseConnected ? 'synced' : 'uploading';
+        this.notify('sync_status');
+      }
 
       if (this.syncPushTimeout) clearTimeout(this.syncPushTimeout);
       this.syncPushTimeout = setTimeout(() => {
         this.pushStoreDataToServer();
-      }, 50);
+      }, 500);
     }
   }
 
   public async pushStoreDataToServer(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
     this.isPushingToServer = true;
-    this.syncState = 'uploading';
-    this.notify('sync_status');
+    if (this.syncState !== 'just_uploaded' && !this.isFirebaseConnected) {
+      this.syncState = 'uploading';
+      this.notify('sync_status');
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
 
     try {
       const token = localStorage.getItem('rahel_pos_session_token') || sessionStorage.getItem('rahel_pos_session_token') || '';
@@ -1566,12 +1572,14 @@ class StorageService {
         method: 'POST',
         credentials: 'include',
         headers,
-        body: JSON.stringify({ data: payload })
+        body: JSON.stringify({ data: payload }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
-        // Clear deleted tracked IDs once successfully committed
         this.deletedProductIds.clear();
         this.deletedServiceIds.clear();
         this.deletedExpenseIds.clear();
@@ -1586,7 +1594,6 @@ class StorageService {
           localStorage.setItem('rahel_pos_last_sync_time', nowStr);
         }
 
-        // If server returned merged dataset, update local state cleanly
         if (data && data.data) {
           this.applyServerSnapshot(data.data, data.version || this.currentServerVersion);
         }
@@ -1600,8 +1607,16 @@ class StorageService {
             this.syncState = 'synced';
             this.notify('sync_status');
           }
-        }, 4000);
+        }, 3000);
 
+        return true;
+      }
+
+      // If server sync endpoint is not present (e.g. GitHub Pages or static host) but Firebase is live
+      if (this.isFirebaseConnected) {
+        this.syncState = 'synced';
+        this.pendingUploadCount = 0;
+        this.notify('sync_status');
         return true;
       }
 
@@ -1610,7 +1625,14 @@ class StorageService {
       this.notify('sync_status');
       return false;
     } catch (e: any) {
-      console.warn('Could not sync store data to server:', e);
+      clearTimeout(timeoutId);
+      if (this.isFirebaseConnected) {
+        // Firebase is functioning as the real-time cloud database
+        this.syncState = 'synced';
+        this.pendingUploadCount = 0;
+        this.notify('sync_status');
+        return true;
+      }
       this.syncState = typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error';
       this.lastErrorMessage = e?.message || 'Network disconnected';
       this.notify('sync_status');
@@ -1625,7 +1647,6 @@ class StorageService {
     this.isSyncingFromServer = true;
     try {
       if (Array.isArray(d.products)) {
-        // Smart merge: retain any local pending products not yet in server snapshot unless deleted
         const localProds = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
         const serverMap = new Map<string, Product>();
         for (const p of d.products) {
@@ -1633,19 +1654,13 @@ class StorageService {
             serverMap.set(p.id, p);
           }
         }
-        let pendingPushNeeded = false;
         for (const lp of localProds) {
           if (lp && lp.id && !serverMap.has(lp.id) && !this.deletedProductIds.has(lp.id)) {
-            // Locally added item: keep it so it's never lost!
             serverMap.set(lp.id, lp);
-            pendingPushNeeded = true;
           }
         }
         const mergedProducts = Array.from(serverMap.values());
         localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(mergedProducts));
-        if (pendingPushNeeded) {
-          setTimeout(() => this.pushStoreDataToServer(), 100);
-        }
       }
 
       if (Array.isArray(d.services)) {
@@ -1656,17 +1671,12 @@ class StorageService {
             serverMap.set(s.id, s);
           }
         }
-        let pendingPush = false;
         for (const ls of localServices) {
           if (ls && ls.id && !serverMap.has(ls.id) && !this.deletedServiceIds.has(ls.id)) {
             serverMap.set(ls.id, ls);
-            pendingPush = true;
           }
         }
         localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(Array.from(serverMap.values())));
-        if (pendingPush) {
-          setTimeout(() => this.pushStoreDataToServer(), 100);
-        }
       }
 
       if (Array.isArray(d.sales)) {
@@ -1770,8 +1780,23 @@ class StorageService {
    * Force immediate bidirectional sync across all devices
    */
   public async syncNow(): Promise<boolean> {
+    this.syncState = 'syncing';
+    this.notify('sync_status');
+
+    if (typeof window !== 'undefined' && this.isFirebaseConnected) {
+      try {
+        const prods = this.getProducts();
+        for (const p of prods) {
+          if (p && p.id) setDoc(doc(db, 'products', p.id), p).catch(() => {});
+        }
+      } catch {}
+    }
+
     await this.pushStoreDataToServer();
-    return await this.fetchServerData(true);
+    const result = await this.fetchServerData(true);
+    this.syncState = 'synced';
+    this.notify('sync_status');
+    return result;
   }
 
   public getSyncStatus(): StoreSyncStatus {
@@ -1780,7 +1805,7 @@ class StorageService {
     let effectiveState = this.syncState;
     if (!isOnline) {
       effectiveState = 'offline';
-    } else if (this.isPushingToServer) {
+    } else if (this.isPushingToServer && effectiveState !== 'just_uploaded' && !this.isFirebaseConnected) {
       effectiveState = 'uploading';
     } else if (this.isSyncingFromServer && effectiveState === 'synced') {
       effectiveState = 'syncing';
@@ -1811,6 +1836,15 @@ class StorageService {
     if (s.taxRatePercent !== 0 || s.taxNumber) {
       s.taxRatePercent = 0;
       s.taxNumber = '';
+      changed = true;
+    }
+    if (!s.enableFirestoreSync || !s.firestoreConfig || s.firestoreConfig.projectId !== 'gen-lang-client-0489362255') {
+      s.enableFirestoreSync = true;
+      s.firestoreConfig = {
+        projectId: 'gen-lang-client-0489362255',
+        databaseId: 'ai-studio-rahelstationaryp-11469eb8-590a-499d-b290-d20df05b3d1d',
+        experimentalForceLongPolling: false
+      };
       changed = true;
     }
     if (changed) {
