@@ -357,7 +357,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
           <CheckCircle className="w-4 h-4 text-[#d4af37]" />
           <div>
             <span className="font-bold text-[#f5d77f]">{barcodeToast.productName}</span>
-            <span className="text-[#a39c90]"> added to sale ({settings.currencySymbol} {barcodeToast.retailPrice.toFixed(2)})</span>
+            <span className="text-[#a39c90]"> added to sale ({settings.currencySymbol} {(Number(barcodeToast.retailPrice) || 0).toFixed(2)})</span>
             <span className="ml-2 font-mono text-[10px] text-[#8c8273]">[{barcodeToast.barcode}]</span>
           </div>
         </div>
@@ -624,7 +624,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                   {/* Price & Stock Badge */}
                   <div className="pt-2.5 border-t border-[#26221c] flex items-center justify-between gap-2">
                     <span className="text-base sm:text-lg font-black font-mono text-[#f5d77f]">
-                      {settings.currencySymbol} {p.retailPrice.toFixed(2)}
+                      {settings.currencySymbol} {(Number(p.retailPrice) || 0).toFixed(2)}
                     </span>
 
                     <div className="flex items-center gap-2">
@@ -703,7 +703,7 @@ export const PosRegisterView: React.FC<PosRegisterViewProps> = ({
                           {isServiceItem ? 'Service' : p.sku || 'N/A'}
                         </td>
                         <td className="py-3 px-3 text-right font-mono font-bold text-sm text-[#f5d77f]">
-                          {settings.currencySymbol} {p.retailPrice.toFixed(2)}
+                          {settings.currencySymbol} {(Number(p.retailPrice) || 0).toFixed(2)}
                         </td>
                         <td className="py-3 px-3 text-center">
                           {isServiceItem ? (

@@ -227,7 +227,7 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             <img src="${dataUrl}" alt="QR Code" />
           </div>
           <div class="qr-code-text">${qrVal}</div>
-          <div class="price-row">${currency} ${p.retailPrice.toFixed(2)}</div>
+          <div class="price-row">${currency} ${(Number(p.retailPrice) || 0).toFixed(2)}</div>
         </div>
       `
       )
@@ -567,11 +567,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
             </div>
           ) : (
             filtered.map((prod) => {
-              const isLow = prod.stock <= LOW_STOCK_THRESHOLD;
+              const isLow = (prod.stock ?? 0) <= LOW_STOCK_THRESHOLD;
               const isSelected = selectedProductIds.has(prod.id);
+              const retail = Number(prod.retailPrice) || 0;
+              const cost = Number(prod.costPrice) || 0;
               const marginPercent =
-                prod.retailPrice > 0
-                  ? (((prod.retailPrice - prod.costPrice) / prod.retailPrice) * 100).toFixed(0)
+                retail > 0
+                  ? (((retail - cost) / retail) * 100).toFixed(0)
                   : '0';
 
               return (
@@ -615,10 +617,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
 
                     <div className="text-right shrink-0">
                       <div className="text-sm font-bold font-mono text-[#f5d77f]">
-                        {settings.currencySymbol} {prod.retailPrice.toFixed(2)}
+                        {settings.currencySymbol} {retail.toFixed(2)}
                       </div>
                       <div className="text-[10px] text-[#8c8273]">
-                        Cost: {settings.currencySymbol} {prod.costPrice.toFixed(2)} ({marginPercent}%)
+                        Cost: {settings.currencySymbol} {cost.toFixed(2)} ({marginPercent}%)
                       </div>
                     </div>
                   </div>
@@ -795,11 +797,13 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                 </tr>
               ) : (
                 filtered.map((prod) => {
-                  const isLow = prod.stock <= LOW_STOCK_THRESHOLD;
+                  const isLow = (prod.stock ?? 0) <= LOW_STOCK_THRESHOLD;
                   const isSelected = selectedProductIds.has(prod.id);
+                  const retail = Number(prod.retailPrice) || 0;
+                  const cost = Number(prod.costPrice) || 0;
                   const marginPercent =
-                    prod.retailPrice > 0
-                      ? (((prod.retailPrice - prod.costPrice) / prod.retailPrice) * 100).toFixed(0)
+                    retail > 0
+                      ? (((retail - cost) / retail) * 100).toFixed(0)
                       : '0';
 
                   return (
@@ -893,10 +897,10 @@ export const InventoryView: React.FC<InventoryViewProps> = ({
                         </div>
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-[#8c8273]">
-                        {settings.currencySymbol} {prod.costPrice.toFixed(2)}
+                        {settings.currencySymbol} {cost.toFixed(2)}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono font-bold text-[#f5d77f]">
-                        {settings.currencySymbol} {prod.retailPrice.toFixed(2)}
+                        {settings.currencySymbol} {retail.toFixed(2)}
                       </td>
                       <td className="py-2.5 px-3 text-right font-mono text-[#d4af37] font-semibold">
                         {marginPercent}%

@@ -9,6 +9,9 @@ import {
   Keyboard,
   Cloud,
   CloudCheck,
+  CloudUpload,
+  CloudOff,
+  CheckCircle2,
   RefreshCw,
   Lock,
   UserCheck,
@@ -26,7 +29,7 @@ import {
   PlusCircle,
   ArrowRight
 } from 'lucide-react';
-import { storage } from '../services/storage';
+import { storage, StoreSyncStatus } from '../services/storage';
 import { Product, AppNotification, LOW_STOCK_THRESHOLD } from '../types';
 import { BrandLogo } from './BrandLogo';
 
@@ -120,7 +123,11 @@ export const Navbar: React.FC<NavbarProps> = ({
         .slice(0, 6)
     : [];
 
-  // Close more menu & notification menu when clicking outside
+  const syncMenuRef = useRef<HTMLDivElement>(null);
+  const [isSyncDetailsOpen, setIsSyncDetailsOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<StoreSyncStatus>(() => storage.getSyncStatus());
+
+  // Close more menu, notification menu & sync popover when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
@@ -129,14 +136,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       if (notifMenuRef.current && !notifMenuRef.current.contains(e.target as Node)) {
         setIsNotifOpen(false);
       }
+      if (syncMenuRef.current && !syncMenuRef.current.contains(e.target as Node)) {
+        setIsSyncDetailsOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const [syncStatus, setSyncStatus] = useState(() => storage.getSyncStatus());
 
   // Listen to storage sync events
   useEffect(() => {
@@ -523,16 +531,213 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Multi-Device Uniform Cloud Sync Status Indicator (Visible on Mobile & Desktop) */}
-        <button
-          onClick={handleManualSync}
-          disabled={isSyncing}
-          title={`Multi-Device Central Sync: Active & Uniform (Version ${syncStatus.version}) · Last synced: ${lastSyncTime}. Click to force sync all devices.`}
-          className="flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-[#141417] hover:bg-[#d4af37]/15 border border-[#2a261f] text-xs text-[#c2baa9] hover:text-[#f5d77f] transition-all cursor-pointer"
-        >
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-          <span className="text-[11px] font-medium hidden md:inline text-[#e0d8cc]">Sync v{syncStatus.version}</span>
-          <RefreshCw className={`w-3.5 h-3.5 text-[#d4af37] ${isSyncing ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="relative" ref={syncMenuRef}>
+          <button
+            onClick={() => setIsSyncDetailsOpen(!isSyncDetailsOpen)}
+            title={
+              syncStatus.state === 'just_uploaded'
+                ? `Item uploaded successfully to cloud server (v${syncStatus.version})`
+                : syncStatus.state === 'uploading'
+                ? `Uploading changes to cloud server...`
+                : syncStatus.state === 'offline'
+                ? `Offline: changes stored locally`
+                : `In Sync: Central cloud database active (v${syncStatus.version})`
+            }
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs transition-all cursor-pointer select-none ${
+              syncStatus.state === 'just_uploaded'
+                ? 'bg-emerald-950/60 border-emerald-500/70 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)] animate-pulse'
+                : syncStatus.state === 'uploading'
+                ? 'bg-amber-950/40 border-amber-500/60 text-amber-200 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                : syncStatus.state === 'syncing' || isSyncing
+                ? 'bg-[#141417] border-[#d4af37]/60 text-[#f5d77f]'
+                : syncStatus.state === 'offline' || syncStatus.state === 'error'
+                ? 'bg-rose-950/40 border-rose-500/50 text-rose-200'
+                : 'bg-[#141417] hover:bg-[#d4af37]/15 border-[#2a261f] text-[#c2baa9] hover:text-[#f5d77f]'
+            }`}
+          >
+            {/* Dynamic visual indicator dot */}
+            {syncStatus.state === 'just_uploaded' ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            ) : syncStatus.state === 'uploading' ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+              </span>
+            ) : syncStatus.state === 'offline' || syncStatus.state === 'error' ? (
+              <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0" />
+            ) : (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+            )}
+
+            {/* Dynamic Status Icon */}
+            {syncStatus.state === 'just_uploaded' ? (
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            ) : syncStatus.state === 'uploading' ? (
+              <CloudUpload className="w-3.5 h-3.5 text-amber-300 animate-bounce shrink-0" />
+            ) : syncStatus.state === 'syncing' || isSyncing ? (
+              <RefreshCw className="w-3.5 h-3.5 text-[#d4af37] animate-spin shrink-0" />
+            ) : syncStatus.state === 'offline' ? (
+              <CloudOff className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            ) : (
+              <CloudCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            )}
+
+            {/* Status Label (Responsive) */}
+            <span className="text-[11px] font-semibold tracking-tight">
+              {syncStatus.state === 'just_uploaded' ? (
+                <>
+                  <span className="hidden sm:inline">Uploaded</span>
+                  <span className="sm:hidden">Saved</span>
+                  <span className="hidden md:inline font-mono text-[10px] ml-1 opacity-80">(v{syncStatus.version})</span>
+                </>
+              ) : syncStatus.state === 'uploading' ? (
+                <>
+                  <span className="hidden sm:inline">Uploading...</span>
+                  <span className="sm:hidden">Sync...</span>
+                </>
+              ) : syncStatus.state === 'syncing' || isSyncing ? (
+                <>
+                  <span className="hidden sm:inline">Syncing...</span>
+                  <span className="sm:hidden">Sync...</span>
+                </>
+              ) : syncStatus.state === 'offline' ? (
+                <span>Offline</span>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">In Sync</span>
+                  <span className="font-mono text-[10px] ml-1 opacity-80">v{syncStatus.version}</span>
+                </>
+              )}
+            </span>
+          </button>
+
+          {/* Sync Details Dropdown Panel */}
+          {isSyncDetailsOpen && (
+            <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-[#141417] text-[#f4efe8] shadow-2xl border border-[#2a261f] z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 p-4 space-y-3">
+              {/* Header */}
+              <div className="flex items-center justify-between border-b border-[#26221c] pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                    syncStatus.state === 'just_uploaded'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : syncStatus.state === 'uploading'
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-[#d4af37]/15 text-[#f5d77f]'
+                  }`}>
+                    {syncStatus.state === 'just_uploaded' ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : syncStatus.state === 'uploading' ? (
+                      <CloudUpload className="w-4 h-4 text-amber-400" />
+                    ) : (
+                      <CloudCheck className="w-4 h-4 text-[#d4af37]" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-[#f5d77f]">
+                      Cloud Database Status
+                    </h4>
+                    <span className="text-[10px] text-[#8c8273]">
+                      Uniform multi-device engine
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded-md bg-[#24242c] font-mono text-[10px] font-bold text-[#e0d8cc]">
+                  v{syncStatus.version}
+                </span>
+              </div>
+
+              {/* Status explanation */}
+              <div className={`p-2.5 rounded-xl text-xs flex items-start gap-2 border ${
+                syncStatus.state === 'just_uploaded'
+                  ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
+                  : syncStatus.state === 'uploading'
+                  ? 'bg-amber-950/30 border-amber-500/40 text-amber-200'
+                  : syncStatus.state === 'offline'
+                  ? 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                  : 'bg-[#1a1714] border-[#2a261f] text-[#c2baa9]'
+              }`}>
+                {syncStatus.state === 'just_uploaded' ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                ) : syncStatus.state === 'uploading' ? (
+                  <RefreshCw className="w-4 h-4 text-amber-400 shrink-0 mt-0.5 animate-spin" />
+                ) : (
+                  <CheckCheck className="w-4 h-4 text-[#d4af37] shrink-0 mt-0.5" />
+                )}
+                <div className="text-[11px] leading-snug">
+                  {syncStatus.state === 'just_uploaded' && (
+                    <p>
+                      <strong>New items uploaded!</strong> All updates successfully committed to the central server.
+                    </p>
+                  )}
+                  {syncStatus.state === 'uploading' && (
+                    <p>
+                      <strong>Uploading changes...</strong> Transmitting local mutations to the central server.
+                    </p>
+                  )}
+                  {syncStatus.state === 'synced' && (
+                    <p>
+                      <strong>100% In Sync.</strong> Your local workstation is uniform with all connected phones, tablets, and computers.
+                    </p>
+                  )}
+                  {syncStatus.state === 'offline' && (
+                    <p>
+                      <strong>Offline mode.</strong> Changes are safely saved locally and will upload once reconnected.
+                    </p>
+                  )}
+                  {syncStatus.state === 'error' && (
+                    <p>
+                      <strong>Sync notice:</strong> {syncStatus.lastErrorMessage || 'Temporary network retry in progress.'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Upload Item Feedback */}
+              {syncStatus.lastUploadedItemName && (
+                <div className="bg-[#101012] p-2 rounded-xl border border-[#221e17] text-[11px] space-y-0.5">
+                  <span className="text-[10px] text-[#7d7465] uppercase tracking-wider font-bold">
+                    Last Transmitted Item
+                  </span>
+                  <div className="flex items-center justify-between font-medium text-[#f4efe8]">
+                    <span className="truncate max-w-[180px]">{syncStatus.lastUploadedItemName}</span>
+                    <span className="text-[10px] text-emerald-400 font-bold shrink-0">Uploaded</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Last sync time */}
+              <div className="flex items-center justify-between text-[11px] text-[#8c8273] px-1">
+                <span>Last verified sync:</span>
+                <span className="font-mono text-[#e0d8cc] font-medium">{lastSyncTime}</span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="pt-1 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleManualSync();
+                  }}
+                  disabled={isSyncing}
+                  className="flex-1 py-2 px-3 rounded-xl bg-gradient-to-r from-[#d4af37] via-[#e5c158] to-[#c59b27] text-black font-bold text-xs flex items-center justify-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[#d4af37]/20 disabled:opacity-50 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-black ${isSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isSyncing ? 'Syncing Now...' : 'Force Cloud Sync'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsSyncDetailsOpen(false)}
+                  className="py-2 px-3 rounded-xl bg-[#202028] hover:bg-[#282834] text-[#c2baa9] text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* POS Cart Pill with Live Item Badge */}
         <button
@@ -609,11 +814,27 @@ export const Navbar: React.FC<NavbarProps> = ({
               {/* Central Multi-Device Uniform Cloud Sync Status */}
               <div className="p-2.5 rounded-xl bg-[#1a1a20] border border-[#2a261f] flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <CloudCheck className="w-4 h-4 text-[#d4af37] shrink-0" />
+                  {syncStatus.state === 'just_uploaded' ? (
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  ) : syncStatus.state === 'uploading' ? (
+                    <CloudUpload className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
+                  ) : syncStatus.state === 'offline' ? (
+                    <CloudOff className="w-4 h-4 text-rose-400 shrink-0" />
+                  ) : (
+                    <CloudCheck className="w-4 h-4 text-[#d4af37] shrink-0" />
+                  )}
                   <div>
-                    <div className="font-semibold text-[11px] text-[#f4efe8]">Multi-Device Central Sync</div>
+                    <div className="font-semibold text-[11px] text-[#f4efe8] flex items-center gap-1.5">
+                      <span>Cloud Database</span>
+                      {syncStatus.state === 'just_uploaded' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">Uploaded</span>
+                      )}
+                      {syncStatus.state === 'uploading' && (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Uploading</span>
+                      )}
+                    </div>
                     <div className="text-[10px] text-[#8c8273]">
-                      Uniform v{syncStatus.version} · Synced: {lastSyncTime}
+                      v{syncStatus.version} · {syncStatus.lastUploadedItemName ? `Last: ${syncStatus.lastUploadedItemName.slice(0, 16)}` : `Synced: ${lastSyncTime}`}
                     </div>
                   </div>
                 </div>
@@ -621,7 +842,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   onClick={handleManualSync}
                   disabled={isSyncing}
                   title="Force Sync Now"
-                  className="p-1.5 rounded-lg bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] transition-colors"
+                  className="p-1.5 rounded-lg bg-[#24242c] hover:bg-[#d4af37]/20 text-[#f5d77f] transition-colors cursor-pointer"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin text-[#d4af37]' : ''}`} />
                 </button>

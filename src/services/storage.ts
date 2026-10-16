@@ -1121,6 +1121,18 @@ const generateMonthlySeedSales = (initialSeeds: Sale[]): Sale[] => {
 
 const ALL_SEED_SALES = generateMonthlySeedSales(SEED_SALES);
 
+export interface StoreSyncStatus {
+  state: 'synced' | 'syncing' | 'uploading' | 'just_uploaded' | 'pending' | 'offline' | 'error';
+  version: number;
+  isSyncing: boolean;
+  isOnline: boolean;
+  lastSyncTime: string;
+  pendingCount: number;
+  lastUploadedItemName: string | null;
+  lastUploadedTimestamp: string | null;
+  lastErrorMessage: string | null;
+}
+
 class StorageService {
   private listeners: Set<(key?: string) => void> = new Set();
   private isNotifying = false;
@@ -1130,6 +1142,14 @@ class StorageService {
   private syncPushTimeout: any = null;
   private currentServerVersion = 0;
   private isSyncingFromServer = false;
+  private isPushingToServer = false;
+  private syncState: 'synced' | 'syncing' | 'uploading' | 'just_uploaded' | 'pending' | 'offline' | 'error' = 'synced';
+  private pendingUploadCount = 0;
+  private lastUploadedItemName: string | null = null;
+  private lastUploadedTimestamp: string | null = null;
+  private lastSyncSuccessTime: string = '';
+  private lastErrorMessage: string | null = null;
+  private justUploadedTimer: any = null;
   private deletedProductIds: Set<string> = new Set();
   private deletedServiceIds: Set<string> = new Set();
   private deletedExpenseIds: Set<string> = new Set();
@@ -1353,6 +1373,10 @@ class StorageService {
       STORAGE_KEYS.PARKED_CARTS
     ];
     if (syncKeys.includes(key) && !this.isSyncingFromServer) {
+      this.pendingUploadCount++;
+      this.syncState = 'uploading';
+      this.notify('sync_status');
+
       if (this.syncPushTimeout) clearTimeout(this.syncPushTimeout);
       this.syncPushTimeout = setTimeout(() => {
         this.pushStoreDataToServer();
@@ -1362,6 +1386,10 @@ class StorageService {
 
   public async pushStoreDataToServer(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
+    this.isPushingToServer = true;
+    this.syncState = 'uploading';
+    this.notify('sync_status');
+
     try {
       const token = localStorage.getItem('rahel_pos_session_token') || sessionStorage.getItem('rahel_pos_session_token') || '';
       const headers: Record<string, string> = {
@@ -1402,22 +1430,48 @@ class StorageService {
         this.deletedProductIds.clear();
         this.deletedServiceIds.clear();
         this.deletedExpenseIds.clear();
+        this.pendingUploadCount = 0;
+        this.lastErrorMessage = null;
 
+        const nowStr = new Date().toISOString();
         if (data && data.version) {
           this.currentServerVersion = data.version;
           localStorage.setItem('rahel_pos_server_version', String(data.version));
-          localStorage.setItem('rahel_pos_last_sync_time', new Date().toISOString());
+          this.lastSyncSuccessTime = nowStr;
+          localStorage.setItem('rahel_pos_last_sync_time', nowStr);
         }
+
         // If server returned merged dataset, update local state cleanly
         if (data && data.data) {
           this.applyServerSnapshot(data.data, data.version || this.currentServerVersion);
         }
+
+        this.syncState = 'just_uploaded';
+        this.notify('sync_status');
+
+        if (this.justUploadedTimer) clearTimeout(this.justUploadedTimer);
+        this.justUploadedTimer = setTimeout(() => {
+          if (this.syncState === 'just_uploaded') {
+            this.syncState = 'synced';
+            this.notify('sync_status');
+          }
+        }, 4000);
+
         return true;
       }
+
+      this.syncState = 'error';
+      this.lastErrorMessage = `Sync failed with status ${res.status}`;
+      this.notify('sync_status');
       return false;
-    } catch (e) {
+    } catch (e: any) {
       console.warn('Could not sync store data to server:', e);
+      this.syncState = typeof navigator !== 'undefined' && !navigator.onLine ? 'offline' : 'error';
+      this.lastErrorMessage = e?.message || 'Network disconnected';
+      this.notify('sync_status');
       return false;
+    } finally {
+      this.isPushingToServer = false;
     }
   }
 
@@ -1479,16 +1533,16 @@ class StorageService {
       }
 
       if (Array.isArray(d.creditAccounts)) {
-        const localCreds = this.get<CreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, []);
-        const credMap = new Map<string, CreditAccount>();
+        const localCreds = this.get<CustomerCreditAccount[]>(STORAGE_KEYS.CREDIT_ACCOUNTS, []);
+        const credMap = new Map<string, CustomerCreditAccount>();
         for (const c of d.creditAccounts) if (c && c.id) credMap.set(c.id, c);
         for (const lc of localCreds) if (lc && lc.id && !credMap.has(lc.id)) credMap.set(lc.id, lc);
         localStorage.setItem(STORAGE_KEYS.CREDIT_ACCOUNTS, JSON.stringify(Array.from(credMap.values())));
       }
 
       if (Array.isArray(d.expenses)) {
-        const localExp = this.get<ExpenseRecord[]>(STORAGE_KEYS.EXPENSES, []);
-        const expMap = new Map<string, ExpenseRecord>();
+        const localExp = this.get<Expense[]>(STORAGE_KEYS.EXPENSES, []);
+        const expMap = new Map<string, Expense>();
         for (const e of d.expenses) if (e && e.id && !this.deletedExpenseIds.has(e.id)) expMap.set(e.id, e);
         for (const le of localExp) if (le && le.id && !expMap.has(le.id) && !this.deletedExpenseIds.has(le.id)) expMap.set(le.id, le);
         localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(Array.from(expMap.values())));
@@ -1575,12 +1629,28 @@ class StorageService {
     return await this.fetchServerData(true);
   }
 
-  public getSyncStatus() {
+  public getSyncStatus(): StoreSyncStatus {
     const ver = this.currentServerVersion || parseInt(localStorage.getItem('rahel_pos_server_version') || '1', 10);
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+    let effectiveState = this.syncState;
+    if (!isOnline) {
+      effectiveState = 'offline';
+    } else if (this.isPushingToServer) {
+      effectiveState = 'uploading';
+    } else if (this.isSyncingFromServer && effectiveState === 'synced') {
+      effectiveState = 'syncing';
+    }
+
     return {
+      state: effectiveState,
       version: ver,
-      isSyncing: this.isSyncingFromServer,
-      lastSyncTime: localStorage.getItem('rahel_pos_last_sync_time') || new Date().toISOString()
+      isSyncing: this.isPushingToServer || this.isSyncingFromServer,
+      isOnline,
+      lastSyncTime: this.lastSyncSuccessTime || localStorage.getItem('rahel_pos_last_sync_time') || new Date().toISOString(),
+      pendingCount: this.pendingUploadCount,
+      lastUploadedItemName: this.lastUploadedItemName,
+      lastUploadedTimestamp: this.lastUploadedTimestamp,
+      lastErrorMessage: this.lastErrorMessage
     };
   }
 
@@ -2000,6 +2070,11 @@ class StorageService {
     if (idx >= 0) {
       services[idx] = { ...service, updatedAt: now };
       this.deletedServiceIds.delete(service.id);
+      this.lastUploadedItemName = `Service: ${service.name}`;
+      this.lastUploadedTimestamp = now;
+      this.pendingUploadCount++;
+      this.syncState = 'uploading';
+      this.notify('sync_status');
       this.logActivity('SERVICE_UPDATED', 'inventory', `Updated service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
     } else {
       const newService = {
@@ -2009,6 +2084,11 @@ class StorageService {
         updatedAt: now
       };
       this.deletedServiceIds.delete(newService.id);
+      this.lastUploadedItemName = `Service: ${service.name}`;
+      this.lastUploadedTimestamp = now;
+      this.pendingUploadCount++;
+      this.syncState = 'uploading';
+      this.notify('sync_status');
       services.push(newService);
       this.logActivity('SERVICE_CREATED', 'inventory', `Added service "${service.name}" (Price: ETB ${service.price.toFixed(2)})`);
     }
@@ -2024,6 +2104,12 @@ class StorageService {
     if (!target) return { success: false, error: 'Service not found.' };
 
     this.deletedServiceIds.add(id);
+    this.lastUploadedItemName = `Removed: ${target.name}`;
+    this.lastUploadedTimestamp = new Date().toISOString();
+    this.pendingUploadCount++;
+    this.syncState = 'uploading';
+    this.notify('sync_status');
+
     const remaining = services.filter(s => s.id !== id);
     this.set(STORAGE_KEYS.SERVICES, remaining);
     this.logActivity('SERVICE_DELETED', 'inventory', `Deleted service "${target.name}".`);
@@ -2076,14 +2162,41 @@ class StorageService {
     if (cleanProducts.length !== products.length) {
       mutated = true;
     }
-    const targetProducts = cleanProducts;
 
-    for (const p of targetProducts) {
-      if (!p.qrCode || p.qrCode.trim() === '') {
-        p.qrCode = (p.sku || `QR-${p.id || Date.now()}`).trim();
+    const targetProducts = cleanProducts.map(p => {
+      const costPrice = typeof p.costPrice === 'number' && !isNaN(p.costPrice) ? p.costPrice : 0;
+      const retailPrice = typeof p.retailPrice === 'number' && !isNaN(p.retailPrice) ? p.retailPrice : 0;
+      const stock = typeof p.stock === 'number' && !isNaN(p.stock) ? p.stock : 0;
+      const minThreshold = typeof p.minThreshold === 'number' && !isNaN(p.minThreshold) ? p.minThreshold : LOW_STOCK_THRESHOLD;
+      const sku = (p.sku || `SKU-${p.id || Date.now()}`).trim();
+      const qrCode = (p.qrCode || sku || `QR-${p.id || Date.now()}`).trim();
+      const barcode = (p.barcode || '890123456000').trim();
+
+      if (
+        p.costPrice !== costPrice ||
+        p.retailPrice !== retailPrice ||
+        p.stock !== stock ||
+        p.minThreshold !== minThreshold ||
+        p.qrCode !== qrCode ||
+        p.barcode !== barcode
+      ) {
         mutated = true;
       }
-    }
+
+      return {
+        ...p,
+        costPrice,
+        retailPrice,
+        stock,
+        minThreshold,
+        sku,
+        qrCode,
+        barcode,
+        unit: p.unit || 'pcs',
+        category: p.category || 'Paper & Notebooks'
+      };
+    });
+
     if (mutated) {
       this.set(STORAGE_KEYS.PRODUCTS, targetProducts);
     }
@@ -2201,6 +2314,11 @@ class StorageService {
     const nowIso = new Date().toISOString();
     product.updatedAt = nowIso;
     this.deletedProductIds.delete(product.id);
+    this.lastUploadedItemName = product.name;
+    this.lastUploadedTimestamp = nowIso;
+    this.pendingUploadCount++;
+    this.syncState = 'uploading';
+    this.notify('sync_status');
 
     const idx = list.findIndex(p => p.id === product.id);
     const isNew = idx < 0;
@@ -2514,6 +2632,12 @@ class StorageService {
     const prod = list.find(p => p.id === id);
     if (prod) {
       this.deletedProductIds.add(id);
+      this.lastUploadedItemName = `Removed: ${prod.name}`;
+      this.lastUploadedTimestamp = new Date().toISOString();
+      this.pendingUploadCount++;
+      this.syncState = 'uploading';
+      this.notify('sync_status');
+
       const filtered = list.filter(p => p.id !== id);
       this.set(STORAGE_KEYS.PRODUCTS, filtered);
       this.logActivity('PRODUCT_DELETED', 'inventory', `Removed product ${prod.name} (SKU: ${prod.sku})`);
@@ -2604,6 +2728,11 @@ class StorageService {
     }
 
     sales.unshift(sale);
+    this.lastUploadedItemName = `Sale #${sale.receiptNumber}`;
+    this.lastUploadedTimestamp = new Date().toISOString();
+    this.pendingUploadCount++;
+    this.syncState = 'uploading';
+    this.notify('sync_status');
     this.set(STORAGE_KEYS.SALES, sales);
 
     // Deduct stock for each item sold (Physical products ONLY - services require no inventory)
