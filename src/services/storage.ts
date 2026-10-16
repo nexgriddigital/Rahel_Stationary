@@ -36,6 +36,8 @@ import {
   generateUniqueBarcode,
   isLowStock
 } from './productGenerator';
+import { db } from './firebase';
+import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 const STORAGE_KEYS = {
   INITIALIZED: 'rahel_pos_initialized_v2',
@@ -1126,6 +1128,7 @@ export interface StoreSyncStatus {
   version: number;
   isSyncing: boolean;
   isOnline: boolean;
+  isFirebaseLive: boolean;
   lastSyncTime: string;
   pendingCount: number;
   lastUploadedItemName: string | null;
@@ -1138,11 +1141,12 @@ class StorageService {
   private isNotifying = false;
   private pendingNotifyKeys = new Set<string>();
 
-  // Multi-Device Central Sync Engine
+  // Multi-Device Central Sync Engine & Live Firebase
   private syncPushTimeout: any = null;
   private currentServerVersion = 0;
   private isSyncingFromServer = false;
   private isPushingToServer = false;
+  private isFirebaseConnected = false;
   private syncState: 'synced' | 'syncing' | 'uploading' | 'just_uploaded' | 'pending' | 'offline' | 'error' = 'synced';
   private pendingUploadCount = 0;
   private lastUploadedItemName: string | null = null;
@@ -1158,15 +1162,18 @@ class StorageService {
     this.initSeeds();
 
     if (typeof window !== 'undefined') {
-      // 1. Fetch authoritative central store data immediately on startup (force true to guarantee freshness across devices)
+      // 1. Instant Real-time Firebase Firestore Listener
+      this.initFirestoreRealtime();
+
+      // 2. Fetch authoritative central store data immediately on startup (force true to guarantee freshness across devices)
       this.fetchServerData(true);
 
-      // 2. Poll for updates committed by other devices every 2 seconds for real-time uniformity
+      // 3. Poll for updates committed by other devices every 2 seconds for real-time uniformity
       setInterval(() => {
         this.pollServerVersion();
       }, 2000);
 
-      // 3. Immediately poll when user switches back to the tab, unlocks their phone, or comes online
+      // 4. Immediately poll when user switches back to the tab, unlocks their phone, or comes online
       window.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           this.pollServerVersion();
@@ -1178,6 +1185,144 @@ class StorageService {
       window.addEventListener('online', () => {
         this.syncNow();
       });
+    }
+  }
+
+  private initFirestoreRealtime() {
+    if (typeof window === 'undefined') return;
+    try {
+      // 1. Instant Real-time listener for Products collection
+      onSnapshot(collection(db, 'products'), (snapshot) => {
+        this.isFirebaseConnected = true;
+        const currentLocal = this.get<Product[]>(STORAGE_KEYS.PRODUCTS, []);
+        if (snapshot.empty) {
+          // If Firestore is empty, seed it with current catalog so all connected devices immediately have it
+          if (currentLocal.length > 0) {
+            currentLocal.forEach(p => {
+              if (p && p.id) {
+                setDoc(doc(db, 'products', p.id), p).catch(() => {});
+              }
+            });
+          }
+          return;
+        }
+        const productsMap = new Map<string, Product>();
+        for (const p of currentLocal) {
+          if (p && p.id && !this.deletedProductIds.has(p.id)) {
+            productsMap.set(p.id, p);
+          }
+        }
+        snapshot.forEach((docSnap) => {
+          const item = docSnap.data() as Product;
+          if (item && item.id && !this.deletedProductIds.has(item.id)) {
+            productsMap.set(item.id, {
+              ...item,
+              costPrice: typeof item.costPrice === 'number' && !isNaN(item.costPrice) ? item.costPrice : 0,
+              retailPrice: typeof item.retailPrice === 'number' && !isNaN(item.retailPrice) ? item.retailPrice : 0,
+              stock: typeof item.stock === 'number' && !isNaN(item.stock) ? item.stock : 0
+            });
+          }
+        });
+        const merged = Array.from(productsMap.values());
+        localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(merged));
+        if (this.syncState === 'uploading' || this.syncState === 'syncing') {
+          this.syncState = 'just_uploaded';
+          if (this.justUploadedTimer) clearTimeout(this.justUploadedTimer);
+          this.justUploadedTimer = setTimeout(() => {
+            if (this.syncState === 'just_uploaded') {
+              this.syncState = 'synced';
+              this.notify('sync_status');
+            }
+          }, 3000);
+        } else if (this.syncState !== 'just_uploaded') {
+          this.syncState = 'synced';
+        }
+        this.pendingUploadCount = 0;
+        this.lastSyncSuccessTime = new Date().toISOString();
+        this.notify();
+        this.notify('sync_status');
+      }, (err) => {
+        console.warn('Firestore products listener:', err);
+      });
+
+      // 2. Instant Real-time listener for Services collection
+      onSnapshot(collection(db, 'services'), (snapshot) => {
+        const currentLocal = this.get<ServiceItem[]>(STORAGE_KEYS.SERVICES, []);
+        if (snapshot.empty) {
+          if (currentLocal.length > 0) {
+            currentLocal.forEach(s => {
+              if (s && s.id) {
+                setDoc(doc(db, 'services', s.id), s).catch(() => {});
+              }
+            });
+          }
+          return;
+        }
+        const servicesMap = new Map<string, ServiceItem>();
+        for (const s of currentLocal) {
+          if (s && s.id && !this.deletedServiceIds.has(s.id)) {
+            servicesMap.set(s.id, s);
+          }
+        }
+        snapshot.forEach((docSnap) => {
+          const item = docSnap.data() as ServiceItem;
+          if (item && item.id && !this.deletedServiceIds.has(item.id)) {
+            servicesMap.set(item.id, item);
+          }
+        });
+        localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(Array.from(servicesMap.values())));
+        this.notify();
+        this.notify('sync_status');
+      }, (err) => {
+        console.warn('Firestore services listener:', err);
+      });
+
+      // 3. Instant Real-time listener for Store Settings
+      onSnapshot(collection(db, 'storeSettings'), (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          if (docSnap.id === 'global') {
+            const data = docSnap.data();
+            if (data && typeof data === 'object') {
+              const current = this.getSettings();
+              this.set(STORAGE_KEYS.SETTINGS, { ...current, ...data }, false);
+              this.notify();
+            }
+          }
+        });
+      }, (err) => {
+        console.warn('Firestore settings listener:', err);
+      });
+
+      // 4. Instant Real-time listener for Sales collection
+      onSnapshot(collection(db, 'sales'), (snapshot) => {
+        if (snapshot.empty) {
+          const currentSales = this.get<Sale[]>(STORAGE_KEYS.SALES, []);
+          if (currentSales.length > 0) {
+            currentSales.slice(-20).forEach(s => {
+              if (s && s.id) setDoc(doc(db, 'sales', s.id), s).catch(() => {});
+            });
+          }
+          return;
+        }
+        const salesMap = new Map<string, Sale>();
+        const currentSales = this.get<Sale[]>(STORAGE_KEYS.SALES, []);
+        for (const s of currentSales) {
+          if (s && s.id) salesMap.set(s.id, s);
+        }
+        snapshot.forEach((docSnap) => {
+          const item = docSnap.data() as Sale;
+          if (item && item.id) {
+            salesMap.set(item.id, item);
+          }
+        });
+        localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(Array.from(salesMap.values())));
+        this.notify();
+        this.notify('sync_status');
+      }, (err) => {
+        console.warn('Firestore sales listener:', err);
+      });
+    } catch (e) {
+      console.warn('Could not initialize Firebase real-time listeners:', e);
     }
   }
 
@@ -1646,6 +1791,7 @@ class StorageService {
       version: ver,
       isSyncing: this.isPushingToServer || this.isSyncingFromServer,
       isOnline,
+      isFirebaseLive: this.isFirebaseConnected,
       lastSyncTime: this.lastSyncSuccessTime || localStorage.getItem('rahel_pos_last_sync_time') || new Date().toISOString(),
       pendingCount: this.pendingUploadCount,
       lastUploadedItemName: this.lastUploadedItemName,
@@ -1675,6 +1821,9 @@ class StorageService {
 
   public saveSettings(settings: StoreSettings): void {
     this.set(STORAGE_KEYS.SETTINGS, settings);
+    if (typeof window !== 'undefined') {
+      setDoc(doc(db, 'storeSettings', 'global'), settings).catch(() => {});
+    }
     this.logActivity('SETTINGS_UPDATE', 'security', `Store settings updated by active staff.`);
   }
 
@@ -2094,6 +2243,10 @@ class StorageService {
     }
 
     this.set(STORAGE_KEYS.SERVICES, services);
+    if (typeof window !== 'undefined') {
+      const targetService = idx >= 0 ? services[idx] : services[services.length - 1];
+      setDoc(doc(db, 'services', targetService.id), targetService).catch(() => {});
+    }
     this.pushStoreDataToServer();
     return { success: true };
   }
@@ -2112,6 +2265,9 @@ class StorageService {
 
     const remaining = services.filter(s => s.id !== id);
     this.set(STORAGE_KEYS.SERVICES, remaining);
+    if (typeof window !== 'undefined') {
+      deleteDoc(doc(db, 'services', id)).catch(() => {});
+    }
     this.logActivity('SERVICE_DELETED', 'inventory', `Deleted service "${target.name}".`);
     this.pushStoreDataToServer();
     return { success: true };
@@ -2359,7 +2515,18 @@ class StorageService {
       list[idx] = product;
       this.logActivity('PRODUCT_UPDATED', 'inventory', `Updated product ${product.name} (Barcode: ${product.barcode})`);
     }
+    this.lastUploadedItemName = product.name;
+    this.lastUploadedTimestamp = nowIso;
+    this.syncState = 'just_uploaded';
+    this.notify('sync_status');
     this.set(STORAGE_KEYS.PRODUCTS, list);
+    if (typeof window !== 'undefined') {
+      setDoc(doc(db, 'products', product.id), product).then(() => {
+        this.syncState = 'just_uploaded';
+        this.lastUploadedItemName = product.name;
+        this.notify('sync_status');
+      }).catch(() => {});
+    }
     this.pushStoreDataToServer();
     return { success: true };
   }
@@ -2617,7 +2784,16 @@ class StorageService {
       }
     });
 
+    this.lastUploadedItemName = `${added + updated} items bulk imported`;
+    this.lastUploadedTimestamp = now;
+    this.syncState = 'just_uploaded';
+    this.notify('sync_status');
     this.set(STORAGE_KEYS.PRODUCTS, list);
+    if (typeof window !== 'undefined') {
+      list.forEach(p => {
+        setDoc(doc(db, 'products', p.id), p).catch(() => {});
+      });
+    }
     this.logActivity(
       'BULK_IMPORT',
       'inventory',
@@ -2640,6 +2816,9 @@ class StorageService {
 
       const filtered = list.filter(p => p.id !== id);
       this.set(STORAGE_KEYS.PRODUCTS, filtered);
+      if (typeof window !== 'undefined') {
+        deleteDoc(doc(db, 'products', id)).catch(() => {});
+      }
       this.logActivity('PRODUCT_DELETED', 'inventory', `Removed product ${prod.name} (SKU: ${prod.sku})`);
       this.pushStoreDataToServer();
     }
@@ -2652,7 +2831,14 @@ class StorageService {
       const prev = prod.stock;
       prod.stock = Math.max(0, prod.stock + quantityChange);
       prod.updatedAt = new Date().toISOString();
+      this.lastUploadedItemName = `${prod.name} (Stock: ${prod.stock})`;
+      this.lastUploadedTimestamp = new Date().toISOString();
+      this.syncState = 'just_uploaded';
+      this.notify('sync_status');
       this.set(STORAGE_KEYS.PRODUCTS, list);
+      if (typeof window !== 'undefined') {
+        setDoc(doc(db, 'products', prod.id), prod).catch(() => {});
+      }
       this.pushStoreDataToServer();
 
       this.logStockMovement({
@@ -2734,6 +2920,9 @@ class StorageService {
     this.syncState = 'uploading';
     this.notify('sync_status');
     this.set(STORAGE_KEYS.SALES, sales);
+    if (typeof window !== 'undefined') {
+      setDoc(doc(db, 'sales', sale.id), sale).catch(() => {});
+    }
 
     // Deduct stock for each item sold (Physical products ONLY - services require no inventory)
     sale.items.forEach(item => {

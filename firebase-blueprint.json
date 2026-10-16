@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Stationery catalog product with stock, barcode, and pricing",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "costPrice": { "type": "number" },
+        "retailPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "sku": { "type": "string" },
+        "barcode": { "type": "string" },
+        "qrCode": { "type": "string" },
+        "minThreshold": { "type": "number" },
+        "unit": { "type": "string" },
+        "description": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "retailPrice", "stock", "sku", "barcode"]
+    },
+    "ServiceItem": {
+      "title": "ServiceItem",
+      "description": "Store service item such as printing, photocopying, or laminating",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "unit": { "type": "string" },
+        "isActive": { "type": "boolean" },
+        "description": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "price"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Point of sale transaction record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "total": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "cashierName": { "type": "string" }
+      },
+      "required": ["id", "total", "timestamp"]
+    },
+    "StoreSettings": {
+      "title": "StoreSettings",
+      "description": "Global store profile and POS settings",
+      "type": "object",
+      "properties": {
+        "storeName": { "type": "string" },
+        "currencySymbol": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Inventory products in the store catalog"
+    },
+    "/services/{serviceId}": {
+      "schema": "ServiceItem",
+      "description": "Store services"
+    },
+    "/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Recorded sales transactions"
+    },
+    "/storeSettings/{settingId}": {
+      "schema": "StoreSettings",
+      "description": "Global store configuration"
+    }
+  }
+}

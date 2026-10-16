@@ -607,7 +607,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span>Offline</span>
               ) : (
                 <>
-                  <span className="hidden sm:inline">In Sync</span>
+                  <span className="hidden sm:inline">{syncStatus.isFirebaseLive ? 'Live Firebase' : 'In Sync'}</span>
+                  <span className="sm:hidden">{syncStatus.isFirebaseLive ? 'Live' : 'Sync'}</span>
                   <span className="font-mono text-[10px] ml-1 opacity-80">v{syncStatus.version}</span>
                 </>
               )}
